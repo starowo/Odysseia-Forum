@@ -3,13 +3,9 @@ from discord import app_commands
 from discord.ext import commands
 import datetime
 import math
-import re
-import asyncio
-import pickle
-import base64
 
-import database
-from ranking_config import RankingConfig
+from search import database
+from search.ranking_config import RankingConfig
 
 class Search(commands.Cog):
     """搜索相关命令"""
@@ -442,7 +438,7 @@ class Search(commands.Cog):
         try:
             # 应用预设配置
             if preset:
-                from ranking_config import PresetConfigs
+                from search.ranking_config import PresetConfigs
                 if preset.value == "balanced":
                     PresetConfigs.balanced()
                 elif preset.value == "time_focused":
