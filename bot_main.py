@@ -1,12 +1,11 @@
-import asyncio
 import json
 import discord
 from discord.ext import commands
 
-from cogs.tag_system import TagSystem
-from cogs.indexer import Indexer
-from cogs.search import Search
-import database
+from search.cogs import TagSystem
+from search.cogs.indexer import Indexer
+from search.cogs.search import Search
+from search import database
 
 intents = discord.Intents.default()
 intents.message_content = True

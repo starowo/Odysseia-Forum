@@ -3,7 +3,8 @@ from discord import app_commands
 from discord.ext import commands
 import datetime
 
-import database
+from search import database
+
 
 class TagSystem(commands.Cog):
     """处理标签同步与评价"""
