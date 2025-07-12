@@ -1,11 +1,9 @@
-import asyncio
 import json
 import discord
 from discord.ext import commands
 
 from cogs.tag_system import TagSystem
 from cogs.indexer import Indexer
-from cogs.search import Search
 import database
 
 intents = discord.Intents.default()
@@ -27,7 +25,7 @@ async def on_ready():
 
     await bot.add_cog(TagSystem(bot))
     await bot.add_cog(Indexer(bot))
-    await bot.add_cog(Search(bot))
+    await bot.load_extension("cogs.search.main")
     try:
         synced = await bot.tree.sync()
         print(f"Synced {len(synced)} commands")
