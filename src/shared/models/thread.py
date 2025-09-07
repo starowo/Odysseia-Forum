@@ -17,7 +17,7 @@ class Thread(SQLModel, table=True):
     thread_id: int = Field(index=True, unique=True)
     title: str
     author_id: int = Field(index=True)
-    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
+    created_at: datetime = Field(default_factory=datetime.utcnow, nullable=False, index=True)
 
     last_active_at: Optional[datetime] = Field(default=None, index=True)
     reaction_count: int = Field(default=0, index=True)
