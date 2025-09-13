@@ -34,7 +34,7 @@ class ChannelSelectionView(discord.ui.View):
             discord.SelectOption(
                 label="所有已索引频道",
                 value="all",
-                default="all" in preselected_ids,
+                default=False,
             )
         ]
         # Discord限制25个选项，为"all"选项留一个位置
@@ -55,7 +55,7 @@ class ChannelSelectionView(discord.ui.View):
         self.channel_select = discord.ui.Select(
             placeholder="选择论坛频道（可多选）...",
             options=options,
-            min_values=1,
+            min_values=0,
             max_values=len(options),
         )
         self.channel_select.callback = self.on_channel_select
@@ -65,33 +65,66 @@ class ChannelSelectionView(discord.ui.View):
             label="✅ 确定搜索",
             style=discord.ButtonStyle.success,
             disabled=initial_disabled,
+            row=1,
         )
         self.confirm_button.callback = self.on_confirm
         self.add_item(self.confirm_button)
 
+        self.clear_button = discord.ui.Button(
+            label="🧹 清空选择",
+            style=discord.ButtonStyle.secondary,
+            disabled=initial_disabled,
+            row=1,
+        )
+        self.clear_button.callback = self.on_clear_selection
+        self.add_item(self.clear_button)
+
     async def on_channel_select(self, interaction: discord.Interaction):
         """当用户在下拉菜单中做出选择时调用。"""
-        # 启用确定按钮
-        self.confirm_button.disabled = False
+        # 根据是否有选择来更新按钮状态
+        has_selection = bool(self.channel_select.values)
+        self.confirm_button.disabled = not has_selection
+        self.clear_button.disabled = not has_selection
 
+        # 更新选项的持久化选中状态
         selected_values = self.channel_select.values
-
-        # 更新选项的默认状态以保持选择
         for option in self.channel_select.options:
             option.default = option.value in selected_values
-
+ 
         # 更新消息以反映当前选择
-        if "all" in selected_values:
-            display_text = "所有已索引频道"
+        if not has_selection:
+            message_content = "请选择想搜索的论坛频道（可多选）："
         else:
-            # 从 self.channels 中查找名称
-            selected_names = [
-                ch.name for ch in self.channels if str(ch.id) in selected_values
-            ]
-            display_text = ", ".join(selected_names)
+            if "all" in self.channel_select.values:
+                display_text = "所有已索引频道"
+            else:
+                selected_names = [
+                    ch.name
+                    for ch in self.channels
+                    if str(ch.id) in self.channel_select.values
+                ]
+                display_text = ", ".join(selected_names)
+            message_content = f"**已选择:** {display_text}\n\n请点击“确定搜索”继续。"
 
+        await interaction.response.edit_message(content=message_content, view=self)
+
+    # 清空按钮的回调
+    async def on_clear_selection(self, interaction: discord.Interaction):
+        """当用户点击清空按钮时调用"""
+        # 清空内部值
+        self.channel_select.values.clear()
+
+        # 移除所有选项的 'default' 状态
+        for option in self.channel_select.options:
+            option.default = False
+
+        # 禁用按钮
+        self.confirm_button.disabled = True
+        self.clear_button.disabled = True
+
+        # 更新消息
         await interaction.response.edit_message(
-            content=f"**已选择:** {display_text}\n\n请点击“确定搜索”继续。", view=self
+            content="请选择想搜索的论坛频道（可多选）：", view=self
         )
 
     async def on_confirm(self, interaction: discord.Interaction):

@@ -160,7 +160,7 @@ class ThreadManager(commands.Cog):
     async def on_thread_update(self, before: discord.Thread, after: discord.Thread):
         if (
             self.is_channel_indexed(channel_id=after.parent_id)
-            and before.applied_tags != after.applied_tags
+            and (before.applied_tags != after.applied_tags or before.name != after.name)
         ):
             modified = await self.apply_mutex_tag_rules(after)
             if modified:

@@ -30,6 +30,7 @@ def _setup_tokenizer_on_connect(dbapi_connection, connection_record):
     执行双层解包以从 SQLAlchemy 异步适配器中获取标准连接。
     """
     try:
+        dbapi_connection.execute("PRAGMA journal_mode=WAL")
         # dbapi_connection 是 SQLAlchemy 的异步包装器 (AsyncAdapt_...)
         # 访问其 ._connection 属性，获取原始的 aiosqlite.Connection
         aiosqlite_conn = dbapi_connection._connection
