@@ -4,7 +4,7 @@ from discord import app_commands
 from discord.ext import commands
 import datetime
 from sqlalchemy.ext.asyncio import async_sessionmaker
-from typing import TYPE_CHECKING, List, Tuple, Any
+from typing import TYPE_CHECKING, List, Tuple, Any, Dict
 
 from shared.safe_defer import safe_defer
 from config.repository import ConfigRepository
@@ -64,7 +64,7 @@ class ThreadManager(commands.Cog):
         return self.cache_service.is_channel_indexed(channel_id)
 
     async def _notify_user_of_mutex_removal(
-        self, thread: discord.Thread, conflicts: List[Tuple[Any, set]]
+        self, thread: discord.Thread, conflicts: List[Dict[str, Any]]
     ) -> bool:
         """通知用户他们的帖子因为互斥规则被修改了。如果发送了公开通知，则返回 True。"""
         if not thread.owner:
@@ -86,23 +86,43 @@ class ThreadManager(commands.Cog):
         )
         embed.add_field(name="原因", value="触发了互斥标签规则", inline=False)
 
-        for i, (group, removed_tags_for_group) in enumerate(conflicts):
+        for i, conflict_info in enumerate(conflicts):
+            group = conflict_info["group"]
+            removed_tags = conflict_info["removed"]
+            added_tag = conflict_info["added"]
+
             sorted_rules = sorted(group.rules, key=lambda r: r.priority)
-            group_tags_list = [
-                f"优先级 {j + 1} : {rule.tag_name}"
+            
+            group_tags_list = []
+            if group.override_tag_name:
+                group_tags_list.append(f"覆盖标签: **{group.override_tag_name}**")
+
+            priority_rules_list = [
+                f"优先级 {j + 1}: **{rule.tag_name}**"
                 for j, rule in enumerate(sorted_rules)
             ]
+            group_tags_list.extend(priority_rules_list)
+            
             group_tags_str = "\n".join(group_tags_list)
+            
+            removed_tags_str = ", ".join(f"{t}" for t in removed_tags)
+            value_parts = [f"**规则**:\n{group_tags_str}"]
+
+            if added_tag:
+                value_parts.append(f"**结果**: \n应用覆盖标签: **{added_tag}**")
+                value_parts.append(f"移除标签: **{removed_tags_str}**")
+            else:
+                value_parts.append(f"**结果**: \n保留最高优先级标签")
+                value_parts.append(f"移除标签: **{removed_tags_str}**")
 
             embed.add_field(
                 name=f"冲突组 {i + 1}",
-                value=f"**规则**:\n{group_tags_str}\n**被移除的标签**:\n{', '.join(removed_tags_for_group)}",
+                value="\n".join(value_parts),
                 inline=False,
             )
 
-        embed.set_footer(
-            text="系统自动保留了冲突组中优先级最高的标签\n请右键点击左侧频道列表中的帖子名，对标签进行修改\n选择其中一个标签进行保留"
-        )
+        footer_text = "如需修改，请右键点击左侧频道列表中的帖子名，\n选择'编辑帖子'来调整标签"
+        embed.set_footer(text=footer_text)
 
         try:
             # 尝试通过调度器发送私信
@@ -129,7 +149,7 @@ class ThreadManager(commands.Cog):
     async def _notify_management_of_mutex_conflict(
         self,
         thread: discord.Thread,
-        conflicts: List[Tuple[Any, set]],
+        conflicts: List[Dict[str, Any]],
         user_notified_publicly: bool,
     ):
         """在帖子中通知管理组发生了互斥标签冲突。"""
@@ -151,17 +171,38 @@ class ThreadManager(commands.Cog):
                 color=discord.Color.greyple(),
             )
 
-            for i, (group, removed_tags_for_group) in enumerate(conflicts):
+            for i, conflict_info in enumerate(conflicts):
+                group = conflict_info["group"]
+                removed_tags = conflict_info["removed"]
+                added_tag = conflict_info["added"]
+
                 sorted_rules = sorted(group.rules, key=lambda r: r.priority)
-                group_tags_list = [
-                    f"优先级 {j + 1} : {rule.tag_name}"
+
+                group_tags_list = []
+                if group.override_tag_name:
+                    group_tags_list.append(f"覆盖标签: **{group.override_tag_name}**")
+
+                priority_rules_list = [
+                    f"优先级 {j + 1} : **{rule.tag_name}**"
                     for j, rule in enumerate(sorted_rules)
                 ]
+                group_tags_list.extend(priority_rules_list)
+
                 group_tags_str = "\n".join(group_tags_list)
+
+                removed_tags_str = ", ".join(f"{t}" for t in removed_tags)
+                value_parts = [f"**规则**:\n{group_tags_str}"]
+
+                if added_tag:
+                    value_parts.append(f"**结果**: \n应用覆盖标签: **{added_tag}**")
+                    value_parts.append(f"移除标签: **{removed_tags_str}**")
+                else:
+                    value_parts.append(f"**结果**: \n保留最高优先级标签")
+                    value_parts.append(f"移除标签: **{removed_tags_str}**")
 
                 embed.add_field(
                     name=f"冲突组 {i + 1}",
-                    value=f"**规则**:\n{group_tags_str}\n**被移除的标签**: {', '.join(removed_tags_for_group)}",
+                    value="\n".join(value_parts),
                     inline=False,
                 )
 
@@ -180,67 +221,95 @@ class ThreadManager(commands.Cog):
     async def apply_mutex_tag_rules(self, thread: discord.Thread) -> bool:
         """检查并应用互斥标签规则。如果进行了修改，则返回 True。"""
         applied_tags = thread.applied_tags
-        if not applied_tags or len(applied_tags) < 2:
+        if (not applied_tags or
+            len(applied_tags) < 2 or
+            not thread.parent or
+            not isinstance(thread.parent, discord.ForumChannel)):
             return False
 
-        post_tag_name_to_id = {tag.name: tag.id for tag in applied_tags}
-        post_tag_names = set(post_tag_name_to_id.keys())
+        post_tag_name_to_obj = {tag.name: tag for tag in applied_tags}
+        post_tag_names = set(post_tag_name_to_obj.keys())
 
         async with self.session_factory() as session:
             repo = ConfigRepository(session)
             groups = await repo.get_all_mutex_groups_with_rules()
-
-            # 检查是否需要发送管理通知
-            notify_config = await repo.get_search_config(
-                SearchConfigType.NOTIFY_ON_MUTEX_CONFLICT
-            )
+            notify_config = await repo.get_search_config(SearchConfigType.NOTIFY_ON_MUTEX_CONFLICT)
             should_notify_management = notify_config and notify_config.value_int == 1
 
-        tags_to_remove_ids = set()
-        all_conflicts = []  # 收集所有冲突信息
+        tags_to_remove = set()
+        tags_to_add = set()
+        all_conflicts = []
 
         for group in groups:
             sorted_rules = sorted(group.rules, key=lambda r: r.priority)
-            conflicting_names = [
-                rule.tag_name
-                for rule in sorted_rules
-                if rule.tag_name in post_tag_names
-            ]
+            group_tag_names = {rule.tag_name for rule in sorted_rules}
+            
+            conflicting_names_in_post = post_tag_names.intersection(group_tag_names)
 
-            # 如果帖子的标签中，有超过一个（含）的标签在本互斥组内
-            if len(conflicting_names) > 1:
-                group_tags_to_remove = set(conflicting_names[1:])
-                # 保留优先级最高的（第一个），移除其他的
-                for name_to_remove in group_tags_to_remove:
-                    tags_to_remove_ids.add(post_tag_name_to_id[name_to_remove])
+            if len(conflicting_names_in_post) > 1:
+                override_tag_obj = None
+                # --- 检查覆盖标签 ---
+                if group.override_tag_name:
+                    # 检查覆盖标签是否在当前频道的可用标签中
+                    override_tag_obj = discord.utils.get(thread.parent.available_tags, name=group.override_tag_name)
 
-                # 记录冲突信息
-                all_conflicts.append((group, group_tags_to_remove))
+                if override_tag_obj:
+                    # 应用覆盖逻辑
+                    # 移除所有与本组冲突的标签
+                    for name in conflicting_names_in_post:
+                        tags_to_remove.add(post_tag_name_to_obj[name])
+                    # 添加覆盖标签
+                    tags_to_add.add(override_tag_obj)
+                    
+                    # 记录冲突信息用于通知
+                    all_conflicts.append({
+                        "group": group,
+                        "removed": conflicting_names_in_post,
+                        "added": override_tag_obj.name,
+                    })
+                else:
+                    # 回退到原始优先级逻辑
+                    # 找到帖子中优先级最高的那个冲突标签
+                    highest_priority_tag_name = ""
+                    for rule in sorted_rules:
+                        if rule.tag_name in conflicting_names_in_post:
+                            highest_priority_tag_name = rule.tag_name
+                            break
+                    
+                    # 移除除了最高优先级之外的其他冲突标签
+                    tags_to_remove_from_group = {
+                        post_tag_name_to_obj[name]
+                        for name in conflicting_names_in_post
+                        if name != highest_priority_tag_name
+                    }
+                    tags_to_remove.update(tags_to_remove_from_group)
 
-        if tags_to_remove_ids:
-            # 发送通知 (一次性发送所有冲突)
+                    all_conflicts.append({
+                        "group": group,
+                        "removed": {t.name for t in tags_to_remove_from_group},
+                        "added": None,
+                    })
+
+        if tags_to_remove or tags_to_add:
+            # 发送通知
             if all_conflicts:
                 # 通知发帖人 (私信)，并检查是否在帖子内发送了公开通知
                 user_notified_publicly = await self._notify_user_of_mutex_removal(
                     thread, all_conflicts
                 )
-
                 # 如果配置开启，通知管理组 (在帖子内)
                 if should_notify_management:
                     await self._notify_management_of_mutex_conflict(
                         thread, all_conflicts, user_notified_publicly
                     )
+            
+            # 计算最终标签
+            final_tags = list((set(applied_tags) - tags_to_remove) | tags_to_add)
 
-            final_tags = [
-                tag for tag in applied_tags if tag.id not in tags_to_remove_ids
-            ]
-
-            # 使用集合推导式获取被移除的标签名称
-            removed_tag_names = {
-                tag.name for tag in applied_tags if tag.id in tags_to_remove_ids
-            }
+            removed_names = {t.name for t in tags_to_remove}
+            added_names = {t.name for t in tags_to_add}
             logger.info(
-                f"帖子 {thread.id} 发现互斥标签，将移除: {', '.join(removed_tag_names)}"
+                f"帖子 {thread.id} 发现互斥标签，将移除: {', '.join(removed_names) if removed_names else '无'}，将添加: {', '.join(added_names) if added_names else '无'}"
             )
 
             try:

@@ -27,12 +27,12 @@ class ConfigRepository:
         )
         return list(result.scalars().unique().all())
 
-    async def add_mutex_group(self, tag_names: List[str]) -> MutexTagGroup:
+    async def add_mutex_group(self, tag_names: List[str], override_tag_name: Optional[str] = None) -> MutexTagGroup:
         """
         添加一个新的互斥标签组及其规则。
         tag_names 列表中的顺序决定了优先级，越靠前优先级越高 (priority 0 最高)。
         """
-        new_group = MutexTagGroup()
+        new_group = MutexTagGroup(override_tag_name=override_tag_name)
         self.session.add(new_group)
         await self.session.flush()  # 刷新以获取 new_group.id
         assert new_group.id is not None, "新创建的互斥组ID不应为None"

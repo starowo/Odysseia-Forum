@@ -1,11 +1,11 @@
 {
-  "token": "将这里替换为你的Discord机器人Token",
+  "token": "将这里替换为你的 Discord 机器人Token",
   
   "db_url": "sqlite+aiosqlite:///data/database.db",
   "_comment_db": "上面的db_url是默认的数据库链接，如果你想使用其他数据库，请修改这里",
   
   "proxy": "",
-  "_comment_proxy": "如果你需要通过代理连接Discord，请在proxy里填写你的代理地址(例如 http://127.0.0.1:7890)，否则请留空",
+  "_comment_proxy": "如果你需要通过代理连接Discord，请在proxy里填写你的代理地址(例如 http://127.0.0.1:8080)，否则请留空",
 
   "performance": {
     "api_scheduler_concurrency": 40,

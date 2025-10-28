@@ -49,18 +49,8 @@ class MutexConfigView(discord.ui.View):
 
     # --- 按钮回调 ---
     async def on_add_button_click(self, interaction: discord.Interaction):
-        """点击新增按钮时，发送一个新的私密消息来显示新增设置视图。"""
-        await safe_defer(interaction, ephemeral=True)
-
-        add_view = AddMutexGroupView(
-            self.handler, self.all_tag_names, self.origin_interaction
-        )
-        await self.handler.bot.api_scheduler.submit(
-            coro_factory=lambda: interaction.followup.send(
-                embed=add_view.build_embed(), view=add_view, ephemeral=True
-            ),
-            priority=1,
-        )
+        """点击新增按钮时，发送一个新的私密消息来显示新增设置视图"""
+        await self.handler.handle_add_group_start(interaction, self.origin_interaction)
 
     async def on_delete_button_click(self, interaction: discord.Interaction):
         await self.handler.handle_delete_group(interaction, self)
