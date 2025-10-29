@@ -6,7 +6,7 @@ import asyncio
 from typing import Coroutine, Optional, Union, TYPE_CHECKING
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from ThreadManager.repository import ThreadManagerRepository
+from ThreadManager.thread_manager_service import ThreadManagerService
 
 if TYPE_CHECKING:
     from bot_main import MyBot
@@ -238,7 +238,7 @@ class SyncService:
                         f"sync_thread: 获取到的 channel {thread_id} 不是一个帖子，将标记为未找到。"
                     )
                     async with self.session_factory() as session:
-                        repo = ThreadManagerRepository(session=session)
+                        repo = ThreadManagerService(session=session)
                         await repo.increment_not_found_count(thread_id=thread_id)
                     return
                 thread = fetched_channel
@@ -247,7 +247,7 @@ class SyncService:
                     f"sync_thread: 无法找到帖子 {thread_id}，可能已被删除。将增加其 not_found_count。"
                 )
                 async with self.session_factory() as session:
-                    repo = ThreadManagerRepository(session=session)
+                    repo = ThreadManagerService(session=session)
                     await repo.increment_not_found_count(thread_id=thread_id)
                 return
             except Exception as e:
@@ -269,7 +269,7 @@ class SyncService:
                     f"sync_thread (fetch_if_incomplete): 无法找到帖子 {thread.id}，可能已被删除。将增加其 not_found_count。"
                 )
                 async with self.session_factory() as session:
-                    repo = ThreadManagerRepository(session=session)
+                    repo = ThreadManagerService(session=session)
                     await repo.increment_not_found_count(thread_id=thread.id)
                 return
 
@@ -287,7 +287,7 @@ class SyncService:
         tags_data = {t.id: t.name for t in thread.applied_tags or []}
 
         async with self.session_factory() as session:
-            repo = ThreadManagerRepository(session=session)
+            repo = ThreadManagerService(session=session)
             await repo.add_or_update_thread_with_tags(
                 thread_data=thread_data, tags_data=tags_data
             )

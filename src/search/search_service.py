@@ -11,13 +11,13 @@ from shared.models.thread import Thread
 from shared.models.tag import Tag
 from shared.models.author import Author
 from search.qo.thread_search import ThreadSearchQuery
-from core.tagService import TagService
+from core.tag_service import TagService
 from shared.range_parser import parse_range_string
 from shared.enum.default_preferences import DefaultPreferences
 from shared.time_parser import parse_time_string
 
 
-class SearchRepository:
+class SearchService:
     """封装与搜索相关的数据库操作。"""
 
     def __init__(self, session: AsyncSession, tag_service: TagService):

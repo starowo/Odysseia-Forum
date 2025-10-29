@@ -13,7 +13,7 @@ from shared.enum.search_config_type import SearchConfigType, SearchConfigDefault
 logger = logging.getLogger(__name__)
 
 
-class ConfigRepository:
+class ConfigService:
     def __init__(self, session: AsyncSession):
         self.session = session
 

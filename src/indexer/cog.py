@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, cast
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from shared.safe_defer import safe_defer
 from ThreadManager.cog import ThreadManager
-from core.tagService import TagService
+from core.tag_service import TagService
 from core.sync_service import SyncService
 from .views import IndexerDashboard
 

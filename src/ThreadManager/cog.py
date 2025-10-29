@@ -7,16 +7,16 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from typing import TYPE_CHECKING, List, Tuple, Any, Dict
 
 from shared.safe_defer import safe_defer
-from config.repository import ConfigRepository
+from config.config_service import ConfigService
 from shared.enum.search_config_type import SearchConfigType
 from core.cache_service import CacheService
 
 if TYPE_CHECKING:
     from bot_main import MyBot
     from core.sync_service import SyncService
-from .repository import ThreadManagerRepository
+from .thread_manager_service import ThreadManagerService
 from .views.vote_view import TagVoteView
-from .services.batch_update_service import BatchUpdateService
+from .batch_update_service import BatchUpdateService
 
 import logging
 
@@ -231,7 +231,7 @@ class ThreadManager(commands.Cog):
         post_tag_names = set(post_tag_name_to_obj.keys())
 
         async with self.session_factory() as session:
-            repo = ConfigRepository(session)
+            repo = ConfigService(session)
             groups = await repo.get_all_mutex_groups_with_rules()
             notify_config = await repo.get_search_config(SearchConfigType.NOTIFY_ON_MUTEX_CONFLICT)
             should_notify_management = notify_config and notify_config.value_int == 1
@@ -349,7 +349,7 @@ class ThreadManager(commands.Cog):
     async def on_thread_delete(self, thread: discord.Thread):
         if self.is_channel_indexed(thread.parent_id):
             async with self.session_factory() as session:
-                repo = ThreadManagerRepository(session=session)
+                repo = ThreadManagerService(session=session)
                 await repo.delete_thread_index(thread_id=thread.id)
             # 缓存现在由全局事件处理，此处不再需要手动刷新
 
@@ -389,7 +389,7 @@ class ThreadManager(commands.Cog):
                 else:
                     # 普通消息编辑只更新活跃时间
                     async with self.session_factory() as session:
-                        repo = ThreadManagerRepository(session)
+                        repo = ThreadManagerService(session)
                         # payload 中没有编辑时间，所以我们用当前时间
                         await repo.update_thread_last_active_at(
                             channel.id, datetime.datetime.now(datetime.timezone.utc)
@@ -410,7 +410,7 @@ class ThreadManager(commands.Cog):
                 # 如果首楼被删除，删除整个索引
                 if payload.message_id == channel.id:
                     async with self.session_factory() as session:
-                        repo = ThreadManagerRepository(session=session)
+                        repo = ThreadManagerService(session=session)
                         await repo.delete_thread_index(thread_id=channel.id)
                     # 缓存现在由全局事件处理，此处不再需要手动刷新
                 else:
@@ -471,7 +471,7 @@ class ThreadManager(commands.Cog):
             )
 
             async with self.session_factory() as session:
-                repo = ThreadManagerRepository(session)
+                repo = ThreadManagerService(session)
 
                 update_succeeded = await repo.update_thread_reaction_count(
                     thread.id, reaction_count
@@ -510,7 +510,7 @@ class ThreadManager(commands.Cog):
 
         try:
             async with self.session_factory() as session:
-                repo = ThreadManagerRepository(session=session)
+                repo = ThreadManagerService(session=session)
                 await repo.get_or_create_tags(tags_data)
             logger.debug(
                 f"为频道 '{channel.name}' (ID: {channel.id}) 预同步了 {len(tags_data)} 个标签。"
@@ -560,7 +560,7 @@ class ThreadManager(commands.Cog):
             )
             # 获取初始统计数据
             async with self.session_factory() as session:
-                repo = ThreadManagerRepository(session)
+                repo = ThreadManagerService(session)
                 initial_stats = await repo.get_tag_vote_stats(
                     interaction.channel.id, tag_map
                 )

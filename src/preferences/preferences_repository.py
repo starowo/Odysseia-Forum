@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user_search_preferences import UserSearchPreferences
 from search.dto.user_search_preferences import UserSearchPreferencesDTO
-from core.tagService import TagService
+from core.tag_service import TagService
 
 logger = logging.getLogger(__name__)
 

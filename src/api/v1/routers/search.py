@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from src.search.cog import Search
 from src.search.qo.thread_search import ThreadSearchQuery
-from src.search.repository import SearchRepository
-from src.config.repository import ConfigRepository
+from src.search.search_service import SearchService
+from config.config_service import ConfigService
 from src.shared.enum.search_config_type import SearchConfigType, SearchConfigDefaults
 from ..dependencies.security import get_api_key
 from ..schemas.search import SearchRequest, SearchResponse, ThreadDetail
@@ -55,8 +55,8 @@ async def execute_search(request: SearchRequest):
 
     try:
         async with async_session_factory() as session:
-            repo = SearchRepository(session, search_cog_instance.tag_service)
-            config_repo = ConfigRepository(session)
+            repo = SearchService(session, search_cog_instance.tag_service)
+            config_repo = ConfigService(session)
 
             total_disp_conf = await config_repo.get_search_config(
                 SearchConfigType.TOTAL_DISPLAY_COUNT

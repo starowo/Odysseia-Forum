@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from shared.safe_defer import safe_defer
 
-from .repository import ConfigRepository
+from .config_service import ConfigService
 from .embed_builder import ConfigEmbedBuilder
 from .views.config_panel_view import ConfigPanelView
 from .views.components.edit_config_modal import EditConfigModal
@@ -28,7 +28,7 @@ class GeneralConfigHandler:
         await safe_defer(interaction, ephemeral=True)
 
         async with self.session_factory() as session:
-            repo = ConfigRepository(session)
+            repo = ConfigService(session)
             all_configs = await repo.get_all_configurable_search_configs()
 
         # 默认选中第一个可配置项
@@ -71,7 +71,7 @@ class GeneralConfigHandler:
         await safe_defer(interaction, ephemeral=True)
         try:
             async with self.session_factory() as session:
-                repo = ConfigRepository(session)
+                repo = ConfigService(session)
                 await repo.update_search_config(
                     config_type, new_values, interaction.user.id
                 )

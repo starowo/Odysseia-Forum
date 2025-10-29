@@ -8,13 +8,13 @@ from shared.safe_defer import safe_defer
 from .dto.tag import TagDTO
 from .views.global_search_view import GlobalSearchView
 from sqlalchemy.ext.asyncio import async_sessionmaker
-from .repository import SearchRepository
-from core.tagService import TagService
+from .search_service import SearchService
+from core.tag_service import TagService
 from core.cache_service import CacheService
 from core.impression_cache_service import ImpressionCacheService
 from search.qo.thread_search import ThreadSearchQuery
 from .views.channel_selection_view import ChannelSelectionView
-from config.repository import ConfigRepository
+from config.config_service import ConfigService
 from shared.enum.search_config_type import SearchConfigType, SearchConfigDefaults
 from .views.generic_search_view import GenericSearchView
 from .views.persistent_channel_search_view import PersistentChannelSearchView
@@ -110,7 +110,7 @@ class Search(commands.Cog):
 
             # 创建 embed
             embed = discord.Embed(
-                title=f"🔍 {interaction.channel.parent.name} 频道搜索",
+                title=f"🔍 「{interaction.channel.parent.name} 」频道搜索",
                 description=f"点击下方按钮，搜索 <#{channel_id}> 频道内的所有帖子",
                 color=0x3498DB,
             )
@@ -342,7 +342,7 @@ class Search(commands.Cog):
     async def get_tags_for_author(self, author_id: int):
         """获取给定作者使用过的全部标签"""
         async with self.session_factory() as session:
-            repo = SearchRepository(session, self.tag_service)
+            repo = SearchService(session, self.tag_service)
             return await repo.get_tags_for_author(author_id)
 
     async def get_indexed_channel_ids(self) -> Sequence[int]:
@@ -360,8 +360,8 @@ class Search(commands.Cog):
         """通用搜索和显示函数"""
         try:
             async with self.session_factory() as session:
-                repo = SearchRepository(session, self.tag_service)
-                config_repo = ConfigRepository(session)
+                repo = SearchService(session, self.tag_service)
+                config_repo = ConfigService(session)
 
                 # 获取 UCB1 配置
                 total_disp_conf = await config_repo.get_search_config(

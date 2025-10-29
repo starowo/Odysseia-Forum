@@ -8,9 +8,9 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from core.cache_service import CacheService
 from shared.safe_defer import safe_defer
 from shared.utils import process_string_to_set
-from .repository import PreferencesRepository
+from .preferences_repository import PreferencesRepository
 from search.dto.user_search_preferences import UserSearchPreferencesDTO
-from core.tagService import TagService
+from core.tag_service import TagService
 from .views.tag_preferences_view import TagPreferencesView
 from .views.channel_preferences_view import ChannelPreferencesView
 

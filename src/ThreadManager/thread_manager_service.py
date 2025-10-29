@@ -11,12 +11,12 @@ from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from shared.models.thread import Thread
 from shared.models.tag import Tag
 from shared.models.thread_tag_link import ThreadTagLink
-from .dto import UpdateData
+from .update_data_dto import UpdateData
 
 logger = logging.getLogger(__name__)
 
 
-class ThreadManagerRepository:
+class ThreadManagerService:
     """封装与标签系统相关的数据库操作。"""
 
     def __init__(self, session: AsyncSession):

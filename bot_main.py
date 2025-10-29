@@ -19,7 +19,7 @@ import uvicorn
 
 from shared.database import AsyncSessionFactory, init_db, close_db
 from src.ThreadManager.cog import ThreadManager
-from src.core.tagService import TagService
+from src.core.tag_service import TagService
 from src.core.cache_service import CacheService
 from src.core.sync_service import SyncService
 from src.core.impression_cache_service import ImpressionCacheService
@@ -30,7 +30,7 @@ from src.preferences.cog import Preferences
 from src.preferences.preferences_service import PreferencesService
 from src.auditor.cog import Auditor
 from src.config.cog import Configuration
-from src.config.repository import ConfigRepository
+from config.config_service import ConfigService
 from src.shared.api_scheduler import APIScheduler
 from src.webpage.index_sync import start_index_sync
 from src.api.v1.routers import (
@@ -112,7 +112,7 @@ class MyBot(commands.Bot):
 
         # 确保搜索配置存在
         async with AsyncSessionFactory() as session:
-            config_repo = ConfigRepository(session)
+            config_repo = ConfigService(session)
             await config_repo.initialize_search_configs()
 
         # 1. 初始化核心服务

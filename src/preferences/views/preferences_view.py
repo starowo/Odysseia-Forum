@@ -3,7 +3,7 @@ import discord
 from typing import TYPE_CHECKING, Optional
 
 from shared.safe_defer import safe_defer
-from preferences.repository import PreferencesRepository
+from preferences.preferences_repository import PreferencesRepository
 from ...search.dto.user_search_preferences import UserSearchPreferencesDTO
 from ...search.views.components.keyword_modal import KeywordModal
 from shared.views.components.time_range_modal import TimeRangeModal

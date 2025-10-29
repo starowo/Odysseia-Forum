@@ -3,7 +3,7 @@ import discord
 from typing import TYPE_CHECKING, List, Optional
 
 from shared.safe_defer import safe_defer
-from config.repository import ConfigRepository
+from config.config_service import ConfigService
 from config.views.mutex_config_view import MutexConfigView
 from config.views.components.delete_group_modal import DeleteGroupModal
 
@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 
 if TYPE_CHECKING:
     from bot_main import MyBot
-    from core.tagService import TagService
+    from core.tag_service import TagService
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ class MutexTagsHandler:
             color=0xE74C3C,
         )
         async with self.session_factory() as session:
-            repo = ConfigRepository(session)
+            repo = ConfigService(session)
             groups = await repo.get_all_mutex_groups_with_rules()
 
         if not groups and not selected_priority_tags:
@@ -127,7 +127,7 @@ class MutexTagsHandler:
         override_tag_name = view.selected_override_tag if view.selected_override_tag else None
 
         async with self.session_factory() as session:
-            repo = ConfigRepository(session)
+            repo = ConfigService(session)
             await repo.add_mutex_group(priority_tags, override_tag_name)
             logger.info(f"成功添加新的互斥标签组，包含标签: {priority_tags}，覆盖标签: {override_tag_name}")
 
@@ -152,7 +152,7 @@ class MutexTagsHandler:
         try:
             group_id = int(group_id_str)
             async with self.session_factory() as session:
-                repo = ConfigRepository(session)
+                repo = ConfigService(session)
                 success = await repo.delete_mutex_group(group_id)
 
             if success:
