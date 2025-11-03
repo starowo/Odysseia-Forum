@@ -23,13 +23,13 @@ class ConfigService:
         """
         从数据库加载所有配置项来构建或刷新缓存。
         """
-        logger.info("刷新 BotConfig 缓存...")
+        # logger.info("刷新 BotConfig 缓存...")
         result = await self.session.execute(select(BotConfig))
         all_configs = result.scalars().all()
 
         # 使用 SearchConfigType 枚举作为键，方便类型提示和访问
         self._cache = {SearchConfigType(config.type): config for config in all_configs}
-        logger.info(f"BotConfig 缓存刷新完毕，共加载 {len(self._cache)} 个配置项。")
+        # logger.info(f"BotConfig 缓存刷新完毕，共加载 {len(self._cache)} 个配置项。")
 
     async def get_config_from_cache(
         self, config_type: SearchConfigType

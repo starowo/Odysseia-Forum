@@ -4,15 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "odysseia-forum"
-version = "0.1.0"
+version = "1.3.0"
 description = "Discord论坛搜索机器人"
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 license = { text = "MIT" }
 
 dependencies = [
     "discord.py[speed]>=2.3.0",
     "aiohttp>=3.8.0",
-    "Pillow>=9.0.0",
     "sqlmodel==0.0.19",
     "aiosqlite>=0.19.0",
     "sqlitefts",
@@ -21,7 +20,7 @@ dependencies = [
     "fastapi",
     "uvicorn[standard]",
     "uvloop; platform_system != 'Windows'",
-    "httpx"
+    "httpx",
 ]
 
 [project.optional-dependencies]

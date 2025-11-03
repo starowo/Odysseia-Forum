@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Sequence, Set
 
 from shared.safe_defer import safe_defer
 from .generic_search_view import GenericSearchView
+from ..strategies import DefaultSearchStrategy
 
 if TYPE_CHECKING:
     from ..cog import Search
@@ -220,5 +221,7 @@ class ChannelSelectionView(discord.ui.View):
         self.search_state.all_available_tags = correct_tag_names
 
         # 启动通用搜索视图
-        generic_view = GenericSearchView(self.cog, interaction, self.search_state)
+        generic_view = GenericSearchView(
+            self.cog, interaction, self.search_state, strategy=DefaultSearchStrategy()
+        )
         await generic_view.start()

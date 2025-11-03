@@ -1,4 +1,5 @@
 """频道选择视图"""
+
 import logging
 import discord
 from typing import TYPE_CHECKING
@@ -83,18 +84,18 @@ class ChannelSelectionView(discord.ui.View):
                     cover_image_url=self.cover_image_url,
                     target_scope=target_scope,
                 )
-                
+
                 if not result.success:
                     await interaction.followup.send(
                         f"❌ {result.message}", ephemeral=True
                     )
                     return
-                
+
                 application = result.application
 
             # 使用共享函数发送审核消息
             from src.banner.banner_service import send_review_message
-            
+
             success = await send_review_message(
                 bot=self.bot,
                 session_factory=self.session_factory,
@@ -102,7 +103,7 @@ class ChannelSelectionView(discord.ui.View):
                 config=self.config,
                 guild_id=interaction.guild_id,
             )
-            
+
             if not success:
                 await interaction.followup.send(
                     "❌ 审核消息发送失败，但申请已创建。请联系管理员。", ephemeral=True

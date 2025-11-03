@@ -23,6 +23,7 @@ from .views.persistent_channel_search_view import PersistentChannelSearchView
 from ..preferences.preferences_service import PreferencesService
 from .views.thread_embed_builder import ThreadEmbedBuilder
 from .dto.search_state import SearchStateDTO
+from .strategies import AuthorSearchStrategy, CollectionSearchStrategy
 
 
 if TYPE_CHECKING:
@@ -321,16 +322,11 @@ class Search(commands.Cog):
                 )
                 return
 
-            # 获取该作者使用过的所有标签，并确保唯一性
-            author_tags = await self.get_tags_for_author(author.id)
-            author_tag_names = sorted({tag.name for tag in author_tags})
-
             # 定义需要强制覆盖用户偏好的字段
             overrides = {
                 "channel_ids": all_channel_ids,
                 "include_authors": {author.id},
                 "exclude_authors": set(),
-                "all_available_tags": author_tag_names,
                 "include_tags": set(),
                 "exclude_tags": set(),
                 "page": 1,
@@ -339,8 +335,11 @@ class Search(commands.Cog):
                 interaction.user.id, overrides
             )
 
+            # 创建作者搜索策略
+            strategy = AuthorSearchStrategy(author_id=author.id)
+
             # 创建通用搜索视图
-            view = GenericSearchView(self, interaction, search_state)
+            view = GenericSearchView(self, interaction, search_state, strategy=strategy)
 
             # 启动视图
             await view.start()
@@ -364,6 +363,42 @@ class Search(commands.Cog):
     ):
         """右键点击消息，搜索该消息作者的作品"""
         await self._quick_author_search(interaction, author=message.author)
+
+    @commands.Cog.listener()
+    async def on_open_collection_search(self, interaction: discord.Interaction):
+        """处理收藏搜索事件"""
+        await self.start_collection_search(interaction)
+
+    async def start_collection_search(self, interaction: discord.Interaction):
+        """启动用户收藏搜索流程"""
+        try:
+            await safe_defer(interaction, ephemeral=True)
+
+            # 创建收藏搜索策略
+            strategy = CollectionSearchStrategy(user_id=interaction.user.id)
+
+            # 从用户偏好创建初始状态
+            # 收藏搜索不预设频道和作者，但会加载用户的其他偏好
+            initial_state = await self._create_initial_state_from_prefs(
+                interaction.user.id, overrides={"page": 1}
+            )
+
+            # 创建 GenericSearchView 实例，并注入策略
+            view = GenericSearchView(
+                cog=self,
+                interaction=interaction,
+                search_state=initial_state,
+                strategy=strategy,
+            )
+
+            # 启动视图，总是发送新的私密消息，避免修改公开面板
+            await view.start(send_new_ephemeral=True)
+
+        except Exception as e:
+            logger.error(f"启动收藏搜索时出错: {e}", exc_info=True)
+            if not interaction.response.is_done():
+                await safe_defer(interaction, ephemeral=True)
+            await interaction.followup.send("❌ 启动收藏搜索失败。", ephemeral=True)
 
     async def get_tags_for_author(self, author_id: int):
         """获取给定作者使用过的全部标签"""
@@ -426,7 +461,19 @@ class Search(commands.Cog):
                     strength_weight,
                 )
 
-            if threads:
+            # 当排序方法为按创建时间排序时，不记录展示次数
+            count_view = search_qo.sort_method == "created_at" or (
+                search_qo.sort_method == "custom"
+                and search_qo.custom_base_sort == "created_at"
+            )
+
+            # 当排序方法为按创建时间排序时，不记录展示次数
+            count_view = search_qo.sort_method == "created_at" or (
+                search_qo.sort_method == "custom"
+                and search_qo.custom_base_sort == "created_at"
+            )
+
+            if threads and not count_view:
                 thread_ids_to_update = [t.id for t in threads if t.id is not None]
                 # 调用服务，将这些帖子的新增展示量存入内存缓存
                 await self.impression_cache_service.increment(thread_ids_to_update)

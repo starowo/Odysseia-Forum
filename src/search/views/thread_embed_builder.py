@@ -76,7 +76,7 @@ class ThreadEmbedBuilder:
         embed.add_field(name="首楼摘要", value=highlighted_excerpt, inline=False)
 
         # 根据用户偏好设置预览图显示方式（使用首张图片）
-        preview_url = (thread.thumbnail_urls[0] if thread.thumbnail_urls else None)
+        preview_url = thread.thumbnail_urls[0] if thread.thumbnail_urls else None
         if preview_url:
             if preview_mode == "image":
                 embed.set_image(url=preview_url)

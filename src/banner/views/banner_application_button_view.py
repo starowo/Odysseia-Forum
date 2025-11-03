@@ -1,4 +1,5 @@
 """Banner申请按钮视图"""
+
 import logging
 import discord
 from typing import TYPE_CHECKING
@@ -25,19 +26,20 @@ class BannerApplicationButtonView(discord.ui.View):
         self.bot = bot
         self.session_factory = session_factory
         self.config = config
-        
+
         # 解析申请人身份组ID列表（逗号分隔的字符串）
         applicant_role_ids_str = config.get("applicant_role_ids", "")
-        self.allowed_role_ids = [int(rid.strip()) for rid in applicant_role_ids_str.split(",") if rid.strip()]
-        
+        self.allowed_role_ids = [
+            int(rid.strip()) for rid in applicant_role_ids_str.split(",") if rid.strip()
+        ]
+
         self.review_thread_id = config.get("review_thread_id")
         self.archive_thread_id = config.get("archive_thread_id")
-        
+
         # 转换available_channels从dict格式到list格式
         channels_dict = config.get("available_channels", {})
         self.available_channels = [
-            {"id": ch_id, "name": ch_name}
-            for ch_id, ch_name in channels_dict.items()
+            {"id": ch_id, "name": ch_name} for ch_id, ch_name in channels_dict.items()
         ]
 
     @discord.ui.button(
@@ -57,7 +59,9 @@ class BannerApplicationButtonView(discord.ui.View):
             )
             return
 
-        has_role = any(role.id in self.allowed_role_ids for role in interaction.user.roles)
+        has_role = any(
+            role.id in self.allowed_role_ids for role in interaction.user.roles
+        )
         if not has_role and self.allowed_role_ids:
             await interaction.response.send_message(
                 "❌ 您没有权限申请Banner展示。需要特定身份组。", ephemeral=True

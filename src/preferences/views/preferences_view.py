@@ -15,7 +15,6 @@ from search.constants import SortMethod
 if TYPE_CHECKING:
     from ..preferences_service import PreferencesService
 
-# 获取一个模块级别的 logger
 logger = logging.getLogger(__name__)
 
 

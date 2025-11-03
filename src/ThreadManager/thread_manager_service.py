@@ -356,30 +356,28 @@ class ThreadManagerService:
         result = await self.session.execute(stmt)
         await self.session.commit()
         return result.rowcount > 0
-    
+
     async def update_thread_update_info(
-        self,
-        thread_id: int,
-        latest_update_link: str
+        self, thread_id: int, latest_update_link: str
     ) -> bool:
         """
         更新帖子的最新更新时间和链接
-        
+
         Args:
             thread_id: 帖子Discord ID
             latest_update_link: 最新版消息链接
-        
+
         Returns:
             是否更新成功
         """
         from datetime import datetime, timezone
-        
+
         stmt = (
             update(Thread)
             .where(Thread.thread_id == thread_id)  # type: ignore
             .values(
                 latest_update_at=datetime.now(timezone.utc),
-                latest_update_link=latest_update_link
+                latest_update_link=latest_update_link,
             )
         )
         result = await self.session.execute(stmt)

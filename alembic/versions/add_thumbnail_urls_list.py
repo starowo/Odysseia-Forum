@@ -5,6 +5,7 @@ Revises: add_thread_follow_update
 Create Date: 2025-11-24 03:40:00.000000
 
 """
+
 import json
 
 from alembic import op

@@ -1,9 +1,10 @@
 """Banner申请和管理Cog"""
+
 import logging
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
-from typing import TYPE_CHECKING, cast, Optional
+from typing import TYPE_CHECKING, cast
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from src.shared.safe_defer import safe_defer
@@ -48,12 +49,12 @@ class BannerManagement(commands.Cog):
         self.session_factory = session_factory
         self.config = bot.config.get("banner", {})
         logger.info("Banner管理模块已加载")
-        
+
         # 检查配置
         if not self.config.get("enabled", True):
             logger.warning("Banner系统已在配置中禁用")
             return
-        
+
         # 启动清理任务
         self.cleanup_expired_banners.start()
 
@@ -66,7 +67,7 @@ class BannerManagement(commands.Cog):
             config=self.config,
         )
         self.bot.add_view(application_view)
-        
+
         # 注册审核按钮持久化视图
         review_view = ReviewView(
             bot=self.bot,
@@ -74,7 +75,7 @@ class BannerManagement(commands.Cog):
             config=self.config,
         )
         self.bot.add_view(review_view)
-        
+
         logger.info("Banner持久化视图已注册")
 
     def cog_unload(self):
@@ -101,7 +102,8 @@ class BannerManagement(commands.Cog):
     banner_group = app_commands.Group(name="banner", description="Banner申请系统管理")
 
     @banner_group.command(
-        name="创建申请通道", description="在当前频道创建Banner申请按钮（使用config.json配置）"
+        name="创建申请通道",
+        description="在当前频道创建Banner申请按钮（使用config.json配置）",
     )
     @is_admin_or_bot_admin()
     async def create_application_channel(self, interaction: discord.Interaction):
@@ -136,7 +138,11 @@ class BannerManagement(commands.Cog):
                 return
 
             # 解析申请人身份组ID列表
-            applicant_role_ids = [int(rid.strip()) for rid in applicant_role_ids_str.split(",") if rid.strip()]
+            applicant_role_ids = [
+                int(rid.strip())
+                for rid in applicant_role_ids_str.split(",")
+                if rid.strip()
+            ]
 
             # 获取身份组（用于显示）
             role_mentions = []
@@ -228,12 +234,12 @@ class BannerManagement(commands.Cog):
 
                 # 获取配置的频道（dict格式）
                 channels_dict = self.config.get("available_channels", {})
-                
+
                 status_msg += "\n**频道Banner统计**:\n"
                 for idx, (ch_id, ch_name) in enumerate(channels_dict.items()):
                     if idx >= 5:  # 只显示前5个
                         break
-                    
+
                     ch_banners = await service.get_active_banners(channel_id=int(ch_id))
                     # 只计算该频道特定的banner，不包括全频道的
                     ch_specific = [b for b in ch_banners if b.channel_id is not None]

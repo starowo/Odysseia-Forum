@@ -3,7 +3,7 @@ import math
 from typing import TYPE_CHECKING
 
 from search.qo.thread_search import ThreadSearchQuery
-from .components.page_jump_modal import PageJumpModal
+from ...shared.views.components.page_jump_modal import PageJumpModal
 
 if TYPE_CHECKING:
     from ..cog import Search

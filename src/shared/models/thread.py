@@ -27,16 +27,13 @@ class Thread(SQLModel, table=True):
     reply_count: int = Field(default=0, index=True)
     first_message_excerpt: Optional[str] = Field(default=None)
     thumbnail_urls: List[str] = Field(default_factory=list, sa_column=Column(JSON))
-    
+
     # 帖子更新相关字段
     latest_update_at: Optional[datetime] = Field(
-        default=None,
-        index=True,
-        description="最新更新时间（贴主发布更新时刷新）"
+        default=None, index=True, description="最新更新时间（贴主发布更新时刷新）"
     )
     latest_update_link: Optional[str] = Field(
-        default=None,
-        description="最新版消息链接"
+        default=None, description="最新版消息链接"
     )
 
     # 帖子是否在搜索中显示

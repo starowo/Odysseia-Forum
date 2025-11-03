@@ -1,4 +1,4 @@
-from typing import List, Optional, Set
+from typing import List, Optional, Set, Dict, Any
 
 from pydantic import BaseModel
 
@@ -47,6 +47,10 @@ class SearchStateDTO(BaseModel):
     # UI 状态
     page: int = 0
     tag_page: int = 0
+
+    # 策略信息 (用于超时恢复)
+    strategy_type: str = "default"
+    strategy_params: Dict[str, Any] = {}
 
     class Config:
         arbitrary_types_allowed = True  # 允许Set类型

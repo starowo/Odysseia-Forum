@@ -7,7 +7,9 @@ from src.core.cache_service import CacheService
 
 cache_service_instance: Optional[CacheService] = None
 
-router = APIRouter(prefix="/meta", tags=["元数据"], dependencies=[Depends(get_current_user)])
+router = APIRouter(
+    prefix="/meta", tags=["元数据"], dependencies=[Depends(get_current_user)]
+)
 
 
 @router.get(

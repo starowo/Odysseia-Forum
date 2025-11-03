@@ -13,7 +13,7 @@ class AuthorDetail(BaseModel):
     display_name: str = Field(description="作者的服务器内显示名称")
     avatar_url: Optional[str] = Field(description="作者头像的 URL")
 
-    @field_serializer('id')
+    @field_serializer("id")
     def serialize_id(self, value: int) -> str:
         """将 Discord ID 序列化为字符串，避免 JavaScript 精度丢失"""
         return str(value)

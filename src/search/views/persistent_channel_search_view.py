@@ -2,6 +2,8 @@ import discord
 from typing import TYPE_CHECKING
 
 from .generic_search_view import GenericSearchView
+from ..strategies import DefaultSearchStrategy
+from shared.safe_defer import safe_defer
 
 if TYPE_CHECKING:
     from ..cog import Search
@@ -27,13 +29,8 @@ class PersistentChannelSearchView(discord.ui.View):
         """
         当用户点击“搜索本频道”按钮时，启动一个预设了频道ID的通用搜索流程。
         """
-        try:
-            await interaction.response.send_message(
-                "正在加载搜索界面...", ephemeral=True
-            )
-        except discord.errors.InteractionResponded:
-            await interaction.followup.send("操作过快，请稍后重试。", ephemeral=True)
-            return
+
+        await safe_defer(interaction, ephemeral=True)
 
         if not interaction.guild:
             await self.cog.bot.api_scheduler.submit(
@@ -77,13 +74,9 @@ class PersistentChannelSearchView(discord.ui.View):
             )
             return
 
-        # 从 channel 对象获取标签名
-        channel_tag_names = sorted([tag.name for tag in channel.available_tags])
-
         # 定义需要强制覆盖用户偏好的字段
         overrides = {
             "channel_ids": [channel_id],
-            "all_available_tags": channel_tag_names,
             "page": 1,
         }
 
@@ -96,8 +89,10 @@ class PersistentChannelSearchView(discord.ui.View):
             cog=self.cog,
             interaction=interaction,
             search_state=initial_state,
+            strategy=DefaultSearchStrategy(),
         )
-        await generic_view.start(send_new_ephemeral=False)
+
+        await generic_view.start(send_new_ephemeral=True)
 
     @discord.ui.button(
         label="⚙️ 偏好设置",
@@ -113,3 +108,18 @@ class PersistentChannelSearchView(discord.ui.View):
         """
         # 分派事件由 PreferencesCog 监听
         self.cog.bot.dispatch("open_preferences_panel", interaction)
+
+    @discord.ui.button(
+        label="⭐ 查看收藏",
+        style=discord.ButtonStyle.secondary,
+        custom_id="persistent_channel_collections_button",
+        row=0,
+    )
+    async def collections_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        """
+        分派一个事件来启动收藏搜索流程。
+        """
+        # 分派事件由 SearchCog 监听
+        self.cog.bot.dispatch("open_collection_search", interaction)

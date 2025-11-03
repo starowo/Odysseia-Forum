@@ -13,7 +13,9 @@ from ..dependencies.security import require_auth
 from shared.models.thread import Thread
 
 DISCORD_API_BASE = "https://discord.com/api/v10"
-IMAGE_URL_REGEX = re.compile(r"https?://[^\s]+\.(?:jpg|jpeg|png|gif|webp)", re.IGNORECASE)
+IMAGE_URL_REGEX = re.compile(
+    r"https?://[^\s]+\.(?:jpg|jpeg|png|gif|webp)", re.IGNORECASE
+)
 IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".gif", ".webp")
 
 router = APIRouter(
