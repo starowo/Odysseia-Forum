@@ -23,8 +23,8 @@ async def execute_search(request: SearchRequest):
     """
     根据指定的条件搜索帖子，并返回包含作者信息的分页结果。
 
-    - **request**: 搜索请求参数，包含所有搜索条件
-    - **return**: 分页的搜索结果，包含帖子列表和总数
+    - request: 搜索请求参数，包含所有搜索条件
+    - return: 分页的搜索结果，包含帖子列表和总数
     """
     if not search_cog_instance or not async_session_factory:
         raise HTTPException(

@@ -30,6 +30,10 @@ def upgrade() -> None:
 
     # --- 删除 FTS 表 ---
     op.execute("DROP TABLE IF EXISTS thread_fts;")
+    
+    # --- 删除可能存在的旧表 ---
+    op.execute("DROP TABLE IF EXISTS author;")
+    op.execute("DROP TABLE IF EXISTS bot_config;")
 
     # --- 创建新表 ---
     op.create_table('author',
