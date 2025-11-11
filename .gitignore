@@ -189,3 +189,11 @@ data/
 temp/
 webpage/index.json
 config_production.json
+# Frontend specific ignores
+webpage/node_modules/
+webpage/dist/
+webpage/.vite/
+webpage/coverage/
+*.local
+*.log
+.DS_Store
