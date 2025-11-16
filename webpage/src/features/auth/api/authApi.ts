@@ -1,5 +1,4 @@
 import { apiClient } from '@/lib/api/client';
-import { mockAuthApi, isDevelopmentMode } from '@/lib/mockAuth';
 
 export interface User {
   id: string;
@@ -15,11 +14,6 @@ export interface AuthResponse {
 
 export const authApi = {
   checkAuth: async (): Promise<AuthResponse> => {
-    // 开发模式使用 mock 数据
-    if (isDevelopmentMode()) {
-      return mockAuthApi.checkAuth();
-    }
-    
     try {
       const response = await apiClient.get<AuthResponse>('/auth/checkauth');
       return response.data;
@@ -30,11 +24,6 @@ export const authApi = {
   },
 
   logout: async (): Promise<void> => {
-    // 开发模式使用 mock 数据
-    if (isDevelopmentMode()) {
-      return mockAuthApi.logout();
-    }
-    
     await apiClient.post('/auth/logout');
     localStorage.removeItem('auth_token');
   },

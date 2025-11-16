@@ -14,7 +14,9 @@ dist/
 downloads/
 eggs/
 .eggs/
+# 忽略所有 lib/ 文件夹，但是 webpage/src/lib/ 除外
 lib/
+!webpage/src/lib/
 lib64/
 parts/
 sdist/

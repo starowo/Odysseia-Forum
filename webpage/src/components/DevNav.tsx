@@ -1,6 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
 import { Search, Bookmark, TestTube, LogOut } from 'lucide-react';
-import { isDevelopmentMode } from '@/lib/mockAuth';
 import { toast } from 'sonner';
 
 export function DevNav() {
@@ -37,17 +36,15 @@ export function DevNav() {
           <Bookmark className="h-5 w-5" />
         </Link>
 
-        {isDevelopmentMode() && (
-          <Link
-            to="/test"
-            className={`rounded-full p-2 transition-all duration-200 hover:scale-110 ${
-              isActive('/test') ? 'bg-[#5865f2] text-white' : 'text-[#b5bac1] hover:bg-[#4e5058] hover:text-[#f2f3f5]'
-            }`}
-            title="测试页面"
-          >
-            <TestTube className="h-5 w-5" />
-          </Link>
-        )}
+        <Link
+          to="/test"
+          className={`rounded-full p-2 transition-all duration-200 hover:scale-110 ${
+            isActive('/test') ? 'bg-[#5865f2] text-white' : 'text-[#b5bac1] hover:bg-[#4e5058] hover:text-[#f2f3f5]'
+          }`}
+          title="测试页面"
+        >
+          <TestTube className="h-5 w-5" />
+        </Link>
 
         <div className="mx-2 h-6 w-px bg-[#4e5058]" />
 

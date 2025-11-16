@@ -1,9 +1,7 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { DiscordIcon } from '@/components/icons/DiscordIcon';
-import { mockAuthApi, isDevelopmentMode } from '@/lib/mockAuth';
 import { useRefreshAuth } from '@/features/auth/hooks/useAuth';
-import { toast } from 'sonner';
 import forumIcon from '@/assets/images/icon/A90C044F8DDF1959B2E9078CB629C239.png';
 import backgroundImage from '@/assets/images/background/winter.png';
 
@@ -11,22 +9,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const refreshAuth = useRefreshAuth();
 
-  const handleLogin = async () => {
-    // 开发模式：使用模拟登录
-    if (isDevelopmentMode()) {
-      await mockAuthApi.login();
-      toast.success('模拟登录成功！');
-      
-      // 刷新认证状态
-      refreshAuth();
-      
-      // 延迟跳转，确保状态已更新
-      setTimeout(() => {
-        navigate('/', { replace: true });
-      }, 300);
-      return;
-    }
-
+  const handleLogin = () => {
     // 生产模式：跳转到真实的 Discord OAuth
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:10810/v1';
     window.location.href = `${apiUrl}/auth/login`;
@@ -64,17 +47,14 @@ export function LoginPage() {
           <div className="flex items-center justify-center gap-3">
             <DiscordIcon className="h-7 w-7" />
             <span className="text-lg">
-              {isDevelopmentMode() ? '模拟登录（开发模式）' : '使用 Discord 登录'}
+              使用 Discord 登录
             </span>
           </div>
         </button>
 
         {/* 说明文字 */}
         <p className="mt-8 text-sm text-[#949ba4]">
-          {isDevelopmentMode() 
-            ? '开发模式：点击按钮直接进入系统，无需真实登录'
-            : '我们仅读取你的基本信息，不会发送任何消息'
-          }
+          我们仅读取你的基本信息，不会发送任何消息
         </p>
       </motion.div>
     </div>

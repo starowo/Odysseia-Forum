@@ -1,21 +1,18 @@
 import { useEffect, useState } from 'react';
-import { isDevelopmentMode } from '@/lib/mockAuth';
 
 export function TestPage() {
   const [info, setInfo] = useState({
-    isDev: false,
+    isMocking: import.meta.env.VITE_API_MOCKING === 'true',
     hasToken: false,
     token: '',
-    mockUser: '',
   });
 
   useEffect(() => {
-    setInfo({
-      isDev: isDevelopmentMode(),
+    setInfo(prev => ({
+      ...prev,
       hasToken: !!localStorage.getItem('auth_token'),
       token: localStorage.getItem('auth_token') || 'none',
-      mockUser: localStorage.getItem('mock_user') || 'none',
-    });
+    }));
   }, []);
 
   return (
@@ -24,7 +21,7 @@ export function TestPage() {
       
       <div className="space-y-4 rounded-lg bg-slate-900 p-6">
         <div>
-          <strong>开发模式:</strong> {info.isDev ? '✅ 已启用' : '❌ 未启用'}
+          <strong>API Mocking:</strong> {info.isMocking ? '✅ 已启用' : '❌ 未启用'}
         </div>
         <div>
           <strong>有 Token:</strong> {info.hasToken ? '✅ 是' : '❌ 否'}
@@ -32,10 +29,6 @@ export function TestPage() {
         <div>
           <strong>Token 值:</strong>
           <pre className="mt-2 rounded bg-slate-800 p-2 text-xs">{info.token}</pre>
-        </div>
-        <div>
-          <strong>Mock User:</strong>
-          <pre className="mt-2 rounded bg-slate-800 p-2 text-xs">{info.mockUser}</pre>
         </div>
       </div>
 

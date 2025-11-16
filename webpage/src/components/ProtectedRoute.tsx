@@ -1,21 +1,11 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { isDevelopmentMode } from '@/lib/mockAuth';
 
 export function ProtectedRoute() {
   const { isAuthenticated, isLoading } = useAuth();
 
-  // 开发模式：检查 localStorage 中是否有 token
-  if (isDevelopmentMode()) {
-    const hasToken = localStorage.getItem('auth_token');
-    if (!hasToken) {
-      return <Navigate to="/login" replace />;
-    }
-    return <Outlet />;
-  }
-
-  // 生产模式：显示加载界面直到认证检查完成
+  // 显示加载界面直到认证检查完成
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#1e1f22]">
