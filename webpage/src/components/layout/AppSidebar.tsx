@@ -16,6 +16,7 @@ export function AppSidebar() {
   const { selectedChannel, setChannel } = useSearchStore();
   const isSearchPage = location.pathname === '/';
   const [notificationOpen, setNotificationOpen] = useState(false);
+  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
 
   // 频道列表：在搜索页左侧展示（生产环境走真实 API，本地走 MSW mock）
   // 后端 /v1/meta/channels 返回的是扁平的 Channel[] 列表
@@ -35,6 +36,10 @@ export function AppSidebar() {
       console.error('Failed to clear auth token on logout:', error);
     }
     window.location.href = '/login';
+  };
+
+  const handleNotificationUnreadChange = (count: number) => {
+    setHasUnreadNotifications(count > 0);
   };
 
   const isActive = (path: string) => location.pathname === path;
@@ -138,10 +143,23 @@ export function AppSidebar() {
           <button
             type="button"
             onClick={() => setNotificationOpen((prev) => !prev)}
-            className="flex w-full items-center gap-2 rounded-md border border-transparent px-2 py-1.5 text-sm text-[var(--od-text-tertiary)] transition-all duration-200 hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]"
+            className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-sm transition-all duration-200 ${
+              notificationOpen
+                ? 'border-[var(--od-accent)] bg-[var(--od-card)] text-[var(--od-text-primary)]'
+                : 'border-transparent text-[var(--od-text-tertiary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
+            }`}
             aria-label="打开通知中心"
           >
-            <Bell className="h-4 w-4 flex-shrink-0" />
+            <span className="relative inline-flex">
+              <Bell
+                className={`h-4 w-4 flex-shrink-0 ${
+                  notificationOpen ? 'text-[var(--od-accent)]' : ''
+                } ${hasUnreadNotifications ? 'notification-bell-wiggle' : ''}`}
+              />
+              {hasUnreadNotifications && (
+                <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-[var(--od-error)] shadow-[0_0_0_2px_var(--od-bg)]" />
+              )}
+            </span>
             <span className="truncate">通知中心</span>
           </button>
 
@@ -195,7 +213,11 @@ export function AppSidebar() {
       </div>
 
       {/* 通知中心面板：相对于侧边栏容器定位 */}
-      <NotificationCenter open={notificationOpen} onClose={() => setNotificationOpen(false)} />
+      <NotificationCenter
+        open={notificationOpen}
+        onClose={() => setNotificationOpen(false)}
+        onUnreadChange={handleNotificationUnreadChange}
+      />
     </div>
   );
 }
