@@ -51,12 +51,12 @@ export function TopBar({
   }, [searchValue, enableAutoSearch, autoSearchDelay, onSearch]);
 
   return (
-    <header className="sticky top-0 z-20 border-b border-[#1e1f22] bg-[#282a2e] shadow-lg">
+    <header className="sticky top-0 z-20 border-b border-[var(--od-border)] bg-[var(--od-bg)] shadow-lg">
       <div className="flex items-center gap-3 p-3">
         {/* 移动端菜单按钮 */}
         <button
           onClick={onMenuClick}
-          className="rounded p-2 text-[#b5bac1] transition-all duration-200 hover:bg-[#4e5058] hover:text-[#f2f3f5] lg:hidden"
+          className="rounded p-2 text-[var(--od-text-secondary)] transition-all duration-200 hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)] lg:hidden"
           aria-label="打开菜单"
         >
           <Menu className="h-5 w-5" />
@@ -64,7 +64,7 @@ export function TopBar({
 
         {/* 搜索框 */}
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#949ba4]" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--od-text-tertiary)]" />
           <input
             ref={searchInputRef}
             type="search"
@@ -73,7 +73,7 @@ export function TopBar({
             onKeyDown={(e) => e.key === 'Enter' && onSearch()}
             onFocus={() => setShowHistory(true)}
             placeholder="搜索标题、作者或内容..."
-            className="w-full rounded-md bg-[#1e1f22] py-1.5 pl-9 pr-3 text-sm text-[#dbdee1] placeholder-[#949ba4] focus:outline-none focus:ring-2 focus:ring-[#5865f2]/50"
+            className="w-full rounded-md bg-[var(--od-bg-tertiary)] py-1.5 pl-9 pr-3 text-sm text-[var(--od-text-primary)] placeholder:text-[var(--od-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--od-accent)]/50"
           />
           
           {/* 搜索历史下拉框 */}
@@ -91,20 +91,20 @@ export function TopBar({
         {/* 搜索按钮（移动端隐藏） */}
         <button
           onClick={onSearch}
-          className="hidden rounded-md bg-[#5865f2] px-4 py-1.5 text-sm font-medium text-white transition-all duration-200 hover:scale-105 hover:bg-[#4752c4] md:block"
+          className="hidden rounded-md bg-[var(--od-accent)] px-4 py-1.5 text-sm font-medium text-white transition-all duration-200 hover:scale-105 hover:bg-[var(--od-accent-hover)] md:block"
         >
           搜索
         </button>
       </div>
 
       {/* 搜索提示 - 可点击快捷填充 */}
-      <div className="border-t border-[#1e1f22] bg-[#2b2d31] px-3 py-2">
-        <div className="flex items-center gap-2 text-xs text-[#949ba4]">
+      <div className="border-t border-[var(--od-border)] bg-[var(--od-bg-secondary)] px-3 py-2">
+        <div className="flex items-center gap-2 text-xs text-[var(--od-text-tertiary)]">
           <Lightbulb className="h-3.5 w-3.5 flex-shrink-0 text-[#f0b232]" />
           <span className="flex-shrink-0">高级搜索：</span>
           <button
             onClick={() => onQuickSearch?.('author:')}
-            className="rounded-md bg-[#1e1f22] px-1.5 py-0.5 transition-all duration-200 hover:scale-105 hover:bg-[#2b2d31] hover:text-[#00a8fc]"
+            className="rounded-md bg-[var(--od-bg-tertiary)] px-1.5 py-0.5 transition-all duration-200 hover:scale-105 hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-link)]"
             title="点击填充到搜索框"
           >
             author:作者
@@ -112,7 +112,7 @@ export function TopBar({
           <span className="flex-shrink-0">·</span>
           <button
             onClick={() => onQuickSearch?.('"关键词"')}
-            className="rounded-md bg-[#1e1f22] px-1.5 py-0.5 transition-all duration-200 hover:scale-105 hover:bg-[#2b2d31] hover:text-[#00a8fc]"
+            className="rounded-md bg-[var(--od-bg-tertiary)] px-1.5 py-0.5 transition-all duration-200 hover:scale-105 hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-link)]"
             title="点击填充到搜索框"
           >
             "精确匹配"
@@ -120,7 +120,7 @@ export function TopBar({
           <span className="flex-shrink-0">·</span>
           <button
             onClick={() => onQuickSearch?.('-排除词')}
-            className="rounded-md bg-[#1e1f22] px-1.5 py-0.5 transition-all duration-200 hover:scale-105 hover:bg-[#2b2d31] hover:text-[#00a8fc]"
+            className="rounded-md bg-[var(--od-bg-tertiary)] px-1.5 py-0.5 transition-all duration-200 hover:scale-105 hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-link)]"
             title="点击填充到搜索框"
           >
             -排除

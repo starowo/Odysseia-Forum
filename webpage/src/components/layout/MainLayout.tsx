@@ -29,7 +29,7 @@ export function MainLayout({ children, showTopBar = true, enableAutoSearch }: Ma
   };
 
   return (
-    <div className="flex min-h-screen bg-[#282a2e]">
+    <div className="flex min-h-screen bg-[var(--od-bg)]">
       {/* 侧边栏 */}
       <ResizableSidebar
         defaultWidth={240}
@@ -42,7 +42,7 @@ export function MainLayout({ children, showTopBar = true, enableAutoSearch }: Ma
       </ResizableSidebar>
 
       {/* 主内容区 */}
-      <main className="flex-1 bg-[#282a2e] pb-20 lg:ml-[240px]">
+      <main className="flex-1 bg-[var(--od-bg)] pb-20 lg:ml-[240px]">
         {showTopBar && (
           <TopBar
             searchValue={searchInput}

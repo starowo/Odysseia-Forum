@@ -18,9 +18,9 @@ export function ScrollProgress() {
   }, []);
 
   return (
-    <div className="fixed left-0 top-0 z-50 h-1 w-full bg-[#1e1f22]">
+    <div className="fixed left-0 top-0 z-50 h-1 w-full bg-[var(--od-bg-tertiary)]/70">
       <div
-        className="h-full bg-gradient-to-r from-[#5865f2] to-[#7289da] transition-all duration-150 ease-out"
+        className="h-full bg-gradient-to-r from-[var(--od-accent)] to-[var(--od-link)] transition-all duration-150 ease-out"
         style={{ width: `${scrollProgress}%` }}
       />
     </div>

@@ -36,13 +36,13 @@ export function LazyImage({ src, alt, className = '', placeholder }: LazyImagePr
     <div ref={imgRef} className={`relative ${className}`}>
       {/* 占位符/加载动画 */}
       {!isLoaded && (
-        <div className="absolute inset-0 flex items-center justify-center bg-[#18191c]">
+        <div className="absolute inset-0 flex items-center justify-center bg-[color-mix(in_oklab,var(--od-bg-tertiary)_85%,transparent)]">
           {placeholder ? (
             <img src={placeholder} alt="" className="h-full w-full object-cover opacity-50" />
           ) : (
             <div className="flex flex-col items-center gap-2">
-              <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#4e5058] border-t-[#5865f2]" />
-              <span className="text-xs text-[#949ba4]">加载中...</span>
+              <div className="h-12 w-12 animate-spin rounded-full border-4 border-[var(--od-border-strong)] border-t-[var(--od-accent)]" />
+              <span className="text-xs text-[var(--od-text-tertiary)]">加载中...</span>
             </div>
           )}
         </div>

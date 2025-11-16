@@ -5,7 +5,13 @@ export interface UserSettings {
   cardSize: 'compact' | 'normal' | 'large';
   layoutMode: 'grid' | 'list';
   compactMode: boolean;
-  theme: 'light' | 'dark' | 'auto';
+  // 主题选择：4 套具体主题 + 自动
+  theme:
+    | 'discord-dark'
+    | 'discord-light'
+    | 'tweak-gray-dark'
+    | 'tweak-gray-light'
+    | 'auto';
   notifications: {
     newPosts: boolean;
     replies: boolean;
@@ -21,7 +27,7 @@ const defaultSettings: UserSettings = {
   cardSize: 'normal',
   layoutMode: 'grid',
   compactMode: false,
-  theme: 'dark',
+  theme: 'discord-dark',
   notifications: {
     newPosts: true,
     replies: true,
@@ -34,7 +40,18 @@ export function getUserSettings(): UserSettings {
   try {
     const stored = localStorage.getItem(SETTINGS_KEY);
     if (stored) {
-      const parsed = JSON.parse(stored);
+      const parsed = JSON.parse(stored) as Partial<UserSettings> & {
+        theme?: string;
+      };
+
+      // 兼容旧的 theme 值（使用字符串中间变量避免 TS 报错）
+      const rawTheme = parsed.theme as string | undefined;
+      if (rawTheme === 'dark') {
+        parsed.theme = 'discord-dark';
+      } else if (rawTheme === 'light') {
+        parsed.theme = 'discord-light';
+      }
+
       // 合并默认设置，确保新增的设置项有默认值
       return { ...defaultSettings, ...parsed };
     }

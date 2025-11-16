@@ -41,9 +41,9 @@ export function ThreadCard({ thread, onTagClick, searchQuery }: ThreadCardProps)
   };
 
   return (
-    <article className="group relative flex h-full flex-col overflow-hidden rounded-xl bg-[#1e1f22] shadow-md transition-all duration-300 ease-out hover:-translate-y-1 hover:bg-[#232428] hover:shadow-xl">
+    <article className="group relative flex h-full flex-col overflow-hidden rounded-xl bg-[var(--od-card)] shadow-md transition-all duration-300 ease-out hover:-translate-y-1 hover:bg-[var(--od-card-hover)] hover:shadow-xl">
       {/* 大图片区域 - 完全铺满 */}
-      <div className={`relative w-full overflow-hidden bg-[#18191c] ${cardSizes.imageHeight}`}>
+      <div className={`relative w-full overflow-hidden bg-[var(--od-bg-tertiary)] ${cardSizes.imageHeight}`}>
         {thread.thumbnail_url ? (
           <LazyImage
             src={thread.thumbnail_url}
@@ -82,12 +82,12 @@ export function ThreadCard({ thread, onTagClick, searchQuery }: ThreadCardProps)
       {/* 内容区域（图片下方） */}
       <div className={`flex flex-1 flex-col ${cardSizes.padding}`}>
         {/* 标题 - 支持关键词高亮和字体大小设置 */}
-        <h3 className={`mb-2 font-bold leading-snug text-[#f2f3f5] transition-colors duration-200 group-hover:text-white ${fontSizes.title} ${cardSizes.titleLines}`}>
+        <h3 className={`mb-2 font-bold leading-snug text-[var(--od-text-primary)] transition-colors duration-200 group-hover:text-white ${fontSizes.title} ${cardSizes.titleLines}`}>
           <HighlightText text={thread.title} highlight={searchQuery} />
         </h3>
 
         {/* 作者信息 */}
-        <div className={`mb-2 flex items-center gap-2 text-[#949ba4] ${fontSizes.meta}`}>
+        <div className={`mb-2 flex items-center gap-2 text-[var(--od-text-tertiary)] ${fontSizes.meta}`}>
           <span className="font-medium">
             {thread.author.display_name || thread.author.name}
           </span>
@@ -98,7 +98,7 @@ export function ThreadCard({ thread, onTagClick, searchQuery }: ThreadCardProps)
         {/* 内容摘要 - 支持关键词高亮和字体大小设置 */}
         {thread.first_message_excerpt ? (
           <div className={`mb-3 overflow-y-auto scrollbar-thin ${settings.cardSize === 'compact' ? 'h-12' : settings.cardSize === 'large' ? 'h-24' : 'h-20'}`}>
-            <p className={`leading-relaxed text-[#b5bac1] ${fontSizes.content} ${cardSizes.contentLines}`}>
+            <p className={`leading-relaxed text-[var(--od-text-secondary)] ${fontSizes.content} ${cardSizes.contentLines}`}>
               <HighlightText text={thread.first_message_excerpt} highlight={searchQuery} />
             </p>
           </div>
@@ -107,7 +107,7 @@ export function ThreadCard({ thread, onTagClick, searchQuery }: ThreadCardProps)
         )}
 
         {/* 底部统计信息 - 固定在底部 */}
-        <div className="mt-auto flex items-center justify-between border-t border-[#2b2d31] pt-2 text-xs text-[#949ba4]">
+        <div className="mt-auto flex items-center justify-between border-t border-[var(--od-border)] pt-2 text-xs text-[var(--od-text-tertiary)]">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
               <MessageCircle className="h-3.5 w-3.5" />
@@ -120,9 +120,9 @@ export function ThreadCard({ thread, onTagClick, searchQuery }: ThreadCardProps)
           </div>
           {/* 跳转按钮 */}
           <Tooltip content="在Discord中打开" position="left">
-            <button 
+            <button
               onClick={handleOpenThread}
-              className="flex items-center gap-1.5 rounded-lg bg-[#5865f2] px-2.5 py-1 text-xs font-medium text-white transition-all duration-200 hover:scale-105 hover:bg-[#4752c4]"
+              className="flex items-center gap-1.5 rounded-lg bg-[var(--od-accent)] px-2.5 py-1 text-xs font-medium text-white transition-all duration-200 hover:scale-105 hover:bg-[var(--od-accent-hover)]"
               aria-label="在Discord中打开"
             >
               <ExternalLink className="h-3.5 w-3.5" />

@@ -22,20 +22,20 @@ export function StatsBar({
   return (
     <div className="mb-4 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
       {/* 结果统计 */}
-      <div className="text-sm text-[#b5bac1]">
-        共 <span className="font-semibold text-[#f2f3f5]">{totalCount}</span> 条结果
+      <div className="text-sm text-[var(--od-text-secondary)]">
+        共 <span className="font-semibold text-[var(--od-text-primary)]">{totalCount}</span> 条结果
       </div>
 
       {/* 控制选项 */}
       <div className="flex flex-wrap items-center gap-3">
         {/* 布局切换 */}
-        <div className="flex items-center gap-1 rounded-md bg-[#2b2d31] p-1">
+        <div className="flex items-center gap-1 rounded-md bg-[var(--od-bg-secondary)] p-1">
           <button
             onClick={() => onLayoutModeChange('grid')}
             className={`flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-colors ${
               layoutMode === 'grid'
-                ? 'bg-[#5865f2] text-white'
-                : 'text-[#b5bac1] hover:bg-[#35373c] hover:text-[#f2f3f5]'
+                ? 'bg-[var(--od-accent)] text-white'
+                : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
             }`}
             title="网格布局"
           >
@@ -46,8 +46,8 @@ export function StatsBar({
             onClick={() => onLayoutModeChange('list')}
             className={`flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-colors ${
               layoutMode === 'list'
-                ? 'bg-[#5865f2] text-white'
-                : 'text-[#b5bac1] hover:bg-[#35373c] hover:text-[#f2f3f5]'
+                ? 'bg-[var(--od-accent)] text-white'
+                : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
             }`}
             title="列表布局"
           >
@@ -58,14 +58,14 @@ export function StatsBar({
 
         {/* 每页显示数量 */}
         <div className="flex items-center gap-2">
-          <label htmlFor="perPage" className="text-xs text-[#b5bac1]">
+          <label htmlFor="perPage" className="text-xs text-[var(--od-text-secondary)]">
             每页
           </label>
           <select
             id="perPage"
             value={perPage}
             onChange={(e) => onPerPageChange(Number(e.target.value))}
-            className="rounded-md bg-[#4e5058] px-2 py-1 text-sm text-[#dbdee1] focus:outline-none focus:ring-2 focus:ring-[#5865f2]"
+            className="rounded-md bg-[var(--od-bg-tertiary)] px-2 py-1 text-sm text-[var(--od-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--od-accent)]"
           >
             <option value={12}>12</option>
             <option value={24}>24</option>
@@ -75,14 +75,14 @@ export function StatsBar({
 
         {/* 跳转方式 */}
         <div className="flex items-center gap-2">
-          <label htmlFor="openMode" className="text-xs text-[#b5bac1]">
+          <label htmlFor="openMode" className="text-xs text-[var(--od-text-secondary)]">
             跳转方式
           </label>
           <select
             id="openMode"
             value={openMode}
             onChange={(e) => onOpenModeChange(e.target.value as 'app' | 'web')}
-            className="rounded-md bg-[#4e5058] px-2 py-1 text-sm text-[#dbdee1] focus:outline-none focus:ring-2 focus:ring-[#5865f2]"
+            className="rounded-md bg-[var(--od-bg-tertiary)] px-2 py-1 text-sm text-[var(--od-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--od-accent)]"
           >
             <option value="app">App</option>
             <option value="web">网页</option>

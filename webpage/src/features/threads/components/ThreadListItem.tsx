@@ -33,18 +33,18 @@ export function ThreadListItem({ thread, onTagClick, searchQuery }: ThreadListIt
   };
 
   return (
-    <article className="group relative flex gap-0 overflow-hidden rounded-xl bg-[#1e1f22] shadow-md transition-all duration-300 hover:bg-[#232428] hover:shadow-xl">
+    <article className="group relative flex gap-0 overflow-hidden rounded-xl bg-[var(--od-card)] shadow-md transition-all duration-300 hover:bg-[var(--od-card-hover)] hover:shadow-xl">
       {/* 左侧内容区 - 占据更多空间 */}
       <div className="flex flex-1 flex-col justify-between p-5">
         {/* 标题 */}
         <div>
-          <h3 className={`mb-2 font-bold leading-snug text-[#f2f3f5] transition-colors duration-200 ${fontSizes.title} line-clamp-2`}>
+          <h3 className={`mb-2 font-bold leading-snug text-[var(--od-text-primary)] transition-colors duration-200 ${fontSizes.title} line-clamp-2`}>
             <HighlightText text={thread.title} highlight={searchQuery} />
           </h3>
 
           {/* 作者和时间 */}
-          <div className={`mb-3 flex items-center gap-2 ${fontSizes.meta} text-[#949ba4]`}>
-            <span className="font-medium text-[#dbdee1]">
+          <div className={`mb-3 flex items-center gap-2 ${fontSizes.meta} text-[var(--od-text-tertiary)]`}>
+            <span className="font-medium text-[var(--od-text-primary)]">
               {thread.author.display_name || thread.author.name}
             </span>
             <span>·</span>
@@ -53,7 +53,7 @@ export function ThreadListItem({ thread, onTagClick, searchQuery }: ThreadListIt
 
           {/* 内容摘要 */}
           {thread.first_message_excerpt && (
-            <p className={`mb-3 leading-relaxed text-[#b5bac1] ${fontSizes.content} line-clamp-3`}>
+            <p className={`mb-3 leading-relaxed text-[var(--od-text-secondary)] ${fontSizes.content} line-clamp-3`}>
               <HighlightText text={thread.first_message_excerpt} highlight={searchQuery} />
             </p>
           )}
@@ -70,7 +70,7 @@ export function ThreadListItem({ thread, onTagClick, searchQuery }: ThreadListIt
                   e.stopPropagation();
                   onTagClick?.(tag);
                 }}
-                className="rounded-md bg-[#2b2d31] px-2.5 py-1 text-xs font-medium text-[#b5bac1] transition-colors duration-200 hover:bg-[#35373c] hover:text-[#f2f3f5]"
+                className="rounded-md bg-[var(--od-bg-secondary)] px-2.5 py-1 text-xs font-medium text-[var(--od-text-secondary)] transition-colors duration-200 hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]"
               >
                 {tag}
               </button>
@@ -83,11 +83,11 @@ export function ThreadListItem({ thread, onTagClick, searchQuery }: ThreadListIt
           {/* 统计信息和跳转按钮 */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1 text-[#949ba4]">
+              <div className="flex items-center gap-1 text-[var(--od-text-tertiary)]">
                 <MessageCircle className="h-4 w-4" />
                 <span className="text-sm">{thread.reply_count}</span>
               </div>
-              <div className="flex items-center gap-1 text-[#949ba4]">
+              <div className="flex items-center gap-1 text-[var(--od-text-tertiary)]">
                 <ThumbsUp className="h-4 w-4" />
                 <span className="text-sm">{thread.reaction_count}</span>
               </div>
@@ -97,7 +97,7 @@ export function ThreadListItem({ thread, onTagClick, searchQuery }: ThreadListIt
             <Tooltip content="在 Discord 中打开" position="left">
               <button
                 onClick={handleOpenThread}
-                className="flex items-center gap-1.5 rounded-lg bg-[#5865f2] px-3 py-1.5 text-sm font-medium text-white transition-all duration-200 hover:bg-[#4752c4]"
+                className="flex items-center gap-1.5 rounded-lg bg-[var(--od-accent)] px-3 py-1.5 text-sm font-medium text-white transition-all duration-200 hover:bg-[var(--od-accent-hover)]"
               >
                 <ExternalLink className="h-4 w-4" />
                 <span>打开</span>
@@ -108,7 +108,7 @@ export function ThreadListItem({ thread, onTagClick, searchQuery }: ThreadListIt
       </div>
 
       {/* 右侧图片区 - 带渐变遮罩，防止溢出 */}
-      <div className="relative w-80 flex-shrink-0 overflow-hidden">
+      <div className="relative w-80 flex-shrink-0 overflow-hidden bg-[var(--od-bg-secondary)]">
         {thread.thumbnail_url ? (
           <>
             <LazyImage
@@ -117,12 +117,12 @@ export function ThreadListItem({ thread, onTagClick, searchQuery }: ThreadListIt
               className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
             {/* 左侧渐变遮罩 - 柔和过渡 */}
-            <div className="pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[#1e1f22] via-[#1e1f22]/60 to-transparent transition-colors duration-300 group-hover:from-[#232428] group-hover:via-[#232428]/60" />
+            <div className="pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[var(--od-bg-tertiary)] via-[color-mix(in_oklab,var(--od-bg-tertiary)_60%,transparent)] to-transparent transition-colors duration-300 group-hover:from-[var(--od-card-hover)] group-hover:via-[color-mix(in_oklab,var(--od-card-hover)_60%,transparent)]" />
             {/* 整体暗化遮罩 - 柔和 */}
             <div className="pointer-events-none absolute inset-0 bg-black/10 transition-opacity duration-300 group-hover:bg-black/5" />
           </>
         ) : (
-          <div className="h-full w-full bg-[#2b2d31]" />
+          <div className="h-full w-full bg-[var(--od-bg-secondary)]" />
         )}
       </div>
     </article>

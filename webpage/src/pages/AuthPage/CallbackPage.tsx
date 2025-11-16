@@ -44,11 +44,11 @@ export function CallbackPage() {
   }, [searchParams, navigate, refreshAuth]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#1e1f22]">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--od-bg)]">
       <div className="text-center">
-        <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin text-[#5865f2]" />
-        <p className="text-lg text-[#f2f3f5]">正在登录...</p>
-        <p className="mt-2 text-sm text-[#b5bac1]">请稍候</p>
+        <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin text-[var(--od-accent)]" />
+        <p className="text-lg text-[var(--od-text-primary)]">正在登录...</p>
+        <p className="mt-2 text-sm text-[var(--od-text-secondary)]">请稍候</p>
       </div>
     </div>
   );

@@ -196,7 +196,7 @@ export function SearchPage() {
   const hasActiveFilters = query || selectedChannel || tagStates.size > 0;
 
   return (
-    <div className="flex min-h-screen bg-[#282a2e]">
+    <div className="flex min-h-screen bg-[var(--od-bg)]">
       {/* 回到顶部按钮 */}
       <ScrollToTop />
       {/* 可调整大小的侧边栏 */}
@@ -215,7 +215,7 @@ export function SearchPage() {
         />
 
         {/* 分隔线 */}
-        <div className="my-2 h-px bg-[#3f4147]" />
+        <div className="my-2 h-px bg-[var(--od-border-strong)]" />
 
         <div className="mb-6">
           <h2 className="mb-3 px-2 text-xs font-semibold uppercase tracking-wider text-[#949ba4]">频道</h2>
@@ -237,10 +237,10 @@ export function SearchPage() {
         </div>
 
         {/* 分隔线 */}
-        <div className="my-2 h-px bg-[#3f4147]" />
+        <div className="my-2 h-px bg-[var(--od-border-strong)]" />
 
         <div className="flex-1">
-          <h2 className="mb-3 px-2 text-xs font-semibold uppercase tracking-wider text-[#949ba4]">快捷操作</h2>
+          <h2 className="mb-3 px-2 text-xs font-semibold uppercase tracking-wider text-[var(--od-text-tertiary)]">快捷操作</h2>
           <div className="space-y-0.5">
             <Link
               to="/follows"
@@ -282,7 +282,7 @@ export function SearchPage() {
       </ResizableSidebar>
 
       {/* 主内容区 */}
-      <main className="flex-1 bg-[#282a2e] pb-20 lg:ml-[240px]">
+      <main className="flex-1 bg-[var(--od-bg)] pb-20 lg:ml-[240px]">
         {/* 顶部搜索栏 */}
         <TopBar
           searchValue={searchInput}
@@ -295,8 +295,8 @@ export function SearchPage() {
         />
 
         {/* 频道标题栏 */}
-        <div className="border-b border-[#1e1f22] bg-[#2b2d31] px-4 py-3">
-          <h1 className="text-lg font-semibold text-[#f2f3f5] transition-all duration-300">
+        <div className="border-b border-[var(--od-border)] bg-[var(--od-bg-secondary)] px-4 py-3">
+          <h1 className="text-lg font-semibold text-[var(--od-text-primary)] transition-all duration-300">
             # {currentChannelName}
           </h1>
         </div>
@@ -324,14 +324,14 @@ export function SearchPage() {
 
         {/* 标签筛选区 */}
         {availableTags.length > 0 && (
-          <div className="border-b border-[#1e1f22] bg-[#2b2d31] p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="border-b border-[var(--od-border)] bg-[var(--od-bg-secondary)] p-4 animate-in fade-in slide-in-from-top-2 duration-300">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <span className="text-sm font-medium text-[#b5bac1]">标签筛选</span>
+                <span className="text-sm font-medium text-[var(--od-text-secondary)]">标签筛选</span>
                 {tagStates.size > 0 && (
                   <button
                     onClick={clearAllTags}
-                    className="flex items-center gap-1 text-xs text-[#949ba4] hover:text-[#f2f3f5]"
+                    className="flex items-center gap-1 text-xs text-[var(--od-text-tertiary)] hover:text-[var(--od-text-primary)]"
                   >
                     <X className="h-3 w-3" />
                     清空
@@ -339,7 +339,7 @@ export function SearchPage() {
                 )}
               </div>
               <div className="flex items-center gap-3">
-                <label className="flex items-center gap-2 text-xs text-[#949ba4]">
+                <label className="flex items-center gap-2 text-xs text-[var(--od-text-tertiary)]">
                   <input
                     type="checkbox"
                     checked={tagMode === 'excluded'}
@@ -350,7 +350,7 @@ export function SearchPage() {
                 </label>
                 <button
                   onClick={() => setTagLogic(tagLogic === 'and' ? 'or' : 'and')}
-                  className="flex items-center gap-2 text-xs text-[#949ba4] hover:text-[#f2f3f5]"
+                  className="flex items-center gap-2 text-xs text-[var(--od-text-tertiary)] hover:text-[var(--od-text-primary)]"
                 >
                   <SlidersHorizontal className="h-4 w-4" />
                   {tagLogic === 'and' ? 'AND' : 'OR'}
@@ -378,7 +378,7 @@ export function SearchPage() {
                   );
                 })
               ) : (
-                <p className="text-sm text-[#949ba4]">暂无可用标签</p>
+                <p className="text-sm text-[var(--od-text-tertiary)]">暂无可用标签</p>
               )}
             </div>
           </div>
@@ -447,13 +447,13 @@ export function SearchPage() {
               ))}
             </div>
           ) : (
-            <div className="flex min-h-[400px] items-center justify-center rounded-lg bg-[#2b2d31] p-8 animate-in fade-in duration-300">
+            <div className="flex min-h-[400px] items-center justify-center rounded-lg bg-[var(--od-card)] p-8 animate-in fade-in duration-300">
               <div className="text-center">
-                <Search className="mx-auto mb-4 h-16 w-16 text-[#4e5058]" />
-                <h3 className="mb-2 text-xl font-bold text-[#f2f3f5]">
+                <Search className="mx-auto mb-4 h-16 w-16 text-[var(--od-text-tertiary)]" />
+                <h3 className="mb-2 text-xl font-bold text-[var(--od-text-primary)]">
                   {hasActiveFilters ? '没有找到匹配的结果' : '开始搜索'}
                 </h3>
-                <p className="text-[#b5bac1]">
+                <p className="text-[var(--od-text-secondary)]">
                   {hasActiveFilters
                     ? '尝试调整搜索条件或清空筛选'
                     : '输入关键词或选择频道开始探索'}
@@ -468,17 +468,17 @@ export function SearchPage() {
               <button
                 onClick={() => setPage(Math.max(1, page - 1))}
                 disabled={page === 1}
-                className="rounded bg-[#4e5058] p-2 text-[#dbdee1] transition-all duration-200 hover:scale-110 disabled:opacity-50 hover:bg-[#5865f2]"
+                className="rounded bg-[var(--od-border-strong)] p-2 text-[var(--od-text-primary)] transition-all duration-200 hover:scale-110 disabled:opacity-50 hover:bg-[var(--od-accent)]"
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
-              <span className="text-sm text-[#b5bac1] transition-all duration-200">
+              <span className="text-sm text-[var(--od-text-secondary)] transition-all duration-200">
                 {page} / {totalPages}
               </span>
               <button
                 onClick={() => setPage(Math.min(totalPages, page + 1))}
                 disabled={page === totalPages}
-                className="rounded bg-[#4e5058] p-2 text-[#dbdee1] transition-all duration-200 hover:scale-110 disabled:opacity-50 hover:bg-[#5865f2]"
+                className="rounded bg-[var(--od-border-strong)] p-2 text-[var(--od-text-primary)] transition-all duration-200 hover:scale-110 disabled:opacity-50 hover:bg-[var(--od-accent)]"
               >
                 <ChevronRight className="h-5 w-5" />
               </button>

@@ -75,7 +75,7 @@ export const discordDarkTheme: Theme = {
   },
 };
 
-// Discord 浅色主题（预留）
+ // Discord 浅色主题（预留）
 export const discordLightTheme: Theme = {
   name: 'Discord Light',
   colors: {
@@ -106,14 +106,92 @@ export const discordLightTheme: Theme = {
   },
 };
 
+// Tweak 灰调深色主题（来自 tweakcn .dark 配色）
+export const tweakGrayDarkTheme: Theme = {
+  name: 'Tweak Gray Dark',
+  colors: {
+    // 背景色（整体偏灰的深色）
+    background: 'oklch(0.2046 0 0)',            // --background
+    backgroundSecondary: 'oklch(0.2393 0 0)',    // --muted
+    backgroundTertiary: 'oklch(0.2686 0 0)',     // --secondary
+
+    // 卡片
+    card: 'oklch(0.2686 0 0)',                  // --card
+    cardHover: 'oklch(0.3715 0 0)',             // --border 作为 hover 提升
+
+    // 文本
+    textPrimary: 'oklch(0.9219 0 0)',           // --foreground
+    textSecondary: 'oklch(0.7155 0 0)',         // --muted-foreground
+    textTertiary: 'oklch(0.5510 0.0234 264.3637)', // 取接近的中灰
+
+    // 强调色
+    accent: 'oklch(0.6231 0.1880 259.8145)',    // --primary
+    accentHover: 'oklch(0.5461 0.2152 262.8809)', // chart-2 略深
+
+    // 链接
+    link: 'oklch(0.7137 0.1434 254.6240)',      // chart-1
+    linkHover: 'oklch(0.6231 0.1880 259.8145)', // primary
+
+    // 边框
+    border: 'oklch(0.3715 0 0)',                // --border
+    borderStrong: 'oklch(0.2686 0 0)',          // 再深一点
+
+    // 状态色
+    success: 'oklch(0.7137 0.1434 254.6240)',   // 使用 chart-1 作为信息/成功色
+    warning: 'oklch(0.8823 0.0571 254.1284)',   // accent-foreground 近似
+    error: 'oklch(0.6368 0.2078 25.3313)',      // --destructive
+    info: 'oklch(0.6231 0.1880 259.8145)',      // primary 作为信息色
+  },
+};
+
+// Tweak 灰调浅色主题（来自 tweakcn :root 配色）
+export const tweakGrayLightTheme: Theme = {
+  name: 'Tweak Gray Light',
+  colors: {
+    // 背景色
+    background: 'oklch(1.0000 0 0)',            // --background
+    backgroundSecondary: 'oklch(0.9846 0.0017 247.8389)', // --muted
+    backgroundTertiary: 'oklch(0.9670 0.0029 264.5419)',  // --secondary
+
+    // 卡片
+    card: 'oklch(1.0000 0 0)',                  // --card
+    cardHover: 'oklch(0.9514 0.0250 236.8242)', // --accent
+
+    // 文本
+    textPrimary: 'oklch(0.3211 0 0)',           // --foreground
+    textSecondary: 'oklch(0.5510 0.0234 264.3637)', // --muted-foreground
+    textTertiary: 'oklch(0.4461 0.0263 256.8018)',   // secondary-foreground
+
+    // 强调色
+    accent: 'oklch(0.6231 0.1880 259.8145)',    // --primary
+    accentHover: 'oklch(0.5461 0.2152 262.8809)', // chart-2
+
+    // 链接
+    link: 'oklch(0.4882 0.2172 264.3763)',      // chart-3
+    linkHover: 'oklch(0.4244 0.1809 265.6377)', // chart-4
+
+    // 边框
+    border: 'oklch(0.9276 0.0058 264.5313)',    // --border
+    borderStrong: 'oklch(0.8840 0.0100 260)',   // 稍微加深一点（手动估计）
+
+    // 状态色
+    success: 'oklch(0.6231 0.1880 259.8145)',   // primary 复用
+    warning: 'oklch(0.6368 0.2078 25.3313)',    // destructive 作为警示色
+    error: 'oklch(0.6368 0.2078 25.3313)',      // 同上
+    info: 'oklch(0.3791 0.1378 265.5222)',      // chart-5
+  },
+};
+
 // 默认主题
 export const defaultTheme = discordDarkTheme;
 
-// 主题列表
+// 主题列表（4 套主题）
 export const themes = {
-  dark: discordDarkTheme,
-  light: discordLightTheme,
-};
+  discordDark: discordDarkTheme,
+  discordLight: discordLightTheme,
+  tweakGrayDark: tweakGrayDarkTheme,
+  tweakGrayLight: tweakGrayLightTheme,
+} as const;
 
 // 主题类型
 export type ThemeName = keyof typeof themes;

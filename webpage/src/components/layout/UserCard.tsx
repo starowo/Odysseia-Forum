@@ -20,7 +20,7 @@ export function UserCard({ avatar, username, status = 'online' }: UserCardProps)
   };
 
   return (
-    <div className="mb-4 flex items-center gap-3 rounded-xl bg-[#232428] p-3 transition-all duration-200 hover:bg-[#2a2c31]">
+    <div className="mb-4 flex items-center gap-3 rounded-xl bg-[var(--od-card)] p-3 transition-all duration-200 hover:bg-[var(--od-card-hover)]">
       {/* 头像 */}
       <div className="relative">
         {avatar ? (
@@ -30,20 +30,22 @@ export function UserCard({ avatar, username, status = 'online' }: UserCardProps)
             className="h-10 w-10 rounded-full"
           />
         ) : (
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#5865f2]">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--od-accent)]">
             <User className="h-5 w-5 text-white" />
           </div>
         )}
         {/* 状态指示器 */}
-        <div className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[#232428] ${statusColors[status]}`} />
+        <div
+          className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[var(--od-card)] ${statusColors[status]}`}
+        />
       </div>
 
       {/* 用户信息 */}
       <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-semibold text-[#f2f3f5]">
+        <div className="truncate text-sm font-semibold text-[var(--od-text-primary)]">
           {username}
         </div>
-        <div className="text-xs text-[#949ba4]">
+        <div className="text-xs text-[var(--od-text-tertiary)]">
           {statusLabels[status]}
         </div>
       </div>

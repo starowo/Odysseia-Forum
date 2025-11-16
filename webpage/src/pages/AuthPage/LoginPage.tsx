@@ -30,7 +30,7 @@ export function LoginPage() {
   };
 
   return (
-    <div 
+    <div
       className="flex min-h-screen items-center justify-center px-4 bg-cover bg-center bg-no-repeat"
       style={{ backgroundImage: `url(${backgroundImage})` }}
     >
@@ -38,25 +38,25 @@ export function LoginPage() {
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-sm text-center bg-[#1e1f22]/80 backdrop-blur-lg rounded-3xl p-8 shadow-2xl"
+        className="w-full max-w-sm text-center bg-[color-mix(in_oklab,var(--od-bg-tertiary)_85%,transparent)] backdrop-blur-lg rounded-3xl p-8 shadow-2xl"
       >
         {/* Logo */}
         <div className="mb-8 flex justify-center">
-          <img 
-            src={forumIcon} 
-            alt="类脑ΟΔΥΣΣΕΙΑ" 
+          <img
+            src={forumIcon}
+            alt="类脑ΟΔΥΣΣΕΙΑ"
             className="h-24 w-24 rounded-3xl shadow-2xl"
           />
         </div>
 
         {/* 标题 */}
-        <h1 className="mb-3 text-4xl font-bold text-[#f2f3f5]">类脑ΟΔΥΣΣΕΙΑ</h1>
-        <p className="mb-12 text-[#b5bac1]">使用 Discord 登录以继续</p>
+        <h1 className="mb-3 text-4xl font-bold text-[var(--od-text-primary)]">类脑ΟΔΥΣΣΕΙΑ</h1>
+        <p className="mb-12 text-[var(--od-text-secondary)]">使用 Discord 登录以继续</p>
 
         {/* 登录按钮 */}
         <button
           onClick={handleLogin}
-          className="w-full rounded-2xl bg-[#5865F2] px-8 py-5 font-semibold text-white shadow-lg shadow-[#5865F2]/50 transition-all hover:scale-105 hover:shadow-xl hover:shadow-[#5865F2]/60"
+          className="w-full rounded-2xl bg-[var(--od-accent)] px-8 py-5 font-semibold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl"
         >
           <div className="flex items-center justify-center gap-3">
             <DiscordIcon className="h-7 w-7" />
@@ -67,7 +67,7 @@ export function LoginPage() {
         </button>
 
         {/* 说明文字 */}
-        <p className="mt-8 text-sm text-[#949ba4]">
+        <p className="mt-8 text-sm text-[var(--od-text-tertiary)]">
           我们仅读取你的基本信息，不会发送任何消息
         </p>
       </motion.div>

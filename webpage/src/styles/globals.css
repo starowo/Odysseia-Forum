@@ -3,28 +3,48 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 263 70% 50%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 263 70% 50%;
-    --radius: 0.5rem;
-  }
+:root {
+  --background: 222.2 84% 4.9%;
+  --foreground: 210 40% 98%;
+  --card: 222.2 84% 4.9%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222.2 84% 4.9%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 263 70% 50%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 217.2 32.6% 17.5%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --accent: 217.2 32.6% 17.5%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 217.2 32.6% 17.5%;
+  --input: 217.2 32.6% 17.5%;
+  --ring: 263 70% 50%;
+  --radius: 0.5rem;
+
+  /* Odysseia runtime theme variables（由 JS 根据 Theme 动态覆盖） */
+  --od-bg: #282a2e;
+  --od-bg-secondary: #2b2d31;
+  --od-bg-tertiary: #1e1f22;
+  --od-card: #1e1f22;
+  --od-card-hover: #232428;
+  --od-text-primary: #f2f3f5;
+  --od-text-secondary: #b5bac1;
+  --od-text-tertiary: #949ba4;
+  --od-accent: #5865f2;
+  --od-accent-hover: #4752c4;
+  --od-link: #00a8fc;
+  --od-link-hover: #00c7fc;
+  --od-border: #2b2d31;
+  --od-border-strong: #3f4147;
+  --od-success: #23a55a;
+  --od-warning: #f0b232;
+  --od-error: #f23f42;
+  --od-info: #00a8fc;
+}
 }
 
 @layer base {
@@ -164,7 +184,7 @@ input[type='date']::-webkit-calendar-picker-indicator {
 
 /* 焦点指示器增强 */
 *:focus-visible {
-  outline: 2px solid #5865f2;
+  outline: 2px solid var(--od-accent);
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -174,6 +194,6 @@ button:focus-visible,
 a:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 2px solid #5865f2;
+  outline: 2px solid var(--od-accent);
   outline-offset: 2px;
 }

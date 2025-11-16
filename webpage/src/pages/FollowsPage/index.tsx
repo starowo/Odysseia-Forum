@@ -20,13 +20,13 @@ export function FollowsPage() {
     <MainLayout>
       <div>
         {/* 标题栏 */}
-        <div className="border-b border-[#1e1f22] bg-[#2b2d31] px-4 py-4">
+        <div className="border-b border-[var(--od-border)] bg-[var(--od-bg-secondary)] px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Bookmark className="h-6 w-6 text-[#f2f3f5]" />
               <div>
-                <h1 className="text-xl font-bold text-[#f2f3f5]">我的关注</h1>
-                <p className="text-sm text-[#b5bac1]">
+                <h1 className="text-xl font-bold text-[var(--od-text-primary)]">我的关注</h1>
+                <p className="text-sm text-[var(--od-text-secondary)]">
                   共 {follows.length} 个帖子
                   {unreadCount > 0 && (
                     <span className="ml-2 rounded bg-[#23a55a] px-2 py-0.5 text-xs font-bold text-white">
@@ -65,11 +65,11 @@ export function FollowsPage() {
           ) : (
             <div className="flex min-h-[400px] items-center justify-center">
               <div className="text-center">
-                <Bookmark className="mx-auto mb-4 h-16 w-16 text-[#4e5058]" />
-                <h3 className="mb-2 text-xl font-bold text-[#f2f3f5]">
+                <Bookmark className="mx-auto mb-4 h-16 w-16 text-[var(--od-border-strong)]" />
+                <h3 className="mb-2 text-xl font-bold text-[var(--od-text-primary)]">
                   还没有关注任何帖子
                 </h3>
-                <p className="text-[#b5bac1]">
+                <p className="text-[var(--od-text-secondary)]">
                   在Discord中使用Bot命令关注帖子
                 </p>
               </div>
