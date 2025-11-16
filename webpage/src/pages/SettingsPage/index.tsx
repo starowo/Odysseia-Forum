@@ -246,26 +246,22 @@ export function SettingsPage() {
                               </span>
                             </div>
                           </div>
-                          <div className="flex gap-1.5">
-                            {themeColors ? (
-                              <>
-                                <span
-                                  className="h-4 w-4 rounded-full border border-black/10"
-                                  style={{ background: themeColors.background }}
-                                />
-                                <span
-                                  className="h-4 w-4 rounded-full border border-black/10"
-                                  style={{ background: themeColors.card }}
-                                />
-                                <span
-                                  className="h-4 w-4 rounded-full border border-black/10"
-                                  style={{ background: themeColors.accent }}
-                                />
-                              </>
-                            ) : (
-                              <span className="h-4 w-8 rounded-full border border-black/10 bg-gradient-to-r from-[var(--od-bg)] via-[var(--od-card)] to-[var(--od-accent)]" />
-                            )}
-                          </div>
+                          {option.id !== 'auto' && themeColors && (
+                            <div className="flex gap-1.5">
+                              <span
+                                className="h-4 w-4 rounded-full border border-black/10"
+                                style={{ background: themeColors.background }}
+                              />
+                              <span
+                                className="h-4 w-4 rounded-full border border-black/10"
+                                style={{ background: themeColors.card }}
+                              />
+                              <span
+                                className="h-4 w-4 rounded-full border border-black/10"
+                                style={{ background: themeColors.accent }}
+                              />
+                            </div>
+                          )}
                         </div>
                       </button>
                     );

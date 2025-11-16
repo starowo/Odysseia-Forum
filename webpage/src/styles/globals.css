@@ -57,7 +57,7 @@
 }
 
 
-/* 自定义滚动条样式 */
+/* 自定义滚动条样式（使用动态主题变量） */
 @layer utilities {
   /* Webkit 浏览器（Chrome, Safari, Edge） */
   .scrollbar-thin::-webkit-scrollbar {
@@ -66,22 +66,46 @@
   }
 
   .scrollbar-thin::-webkit-scrollbar-track {
-    background: transparent;
+    background: var(--od-bg);
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: #4e5058;
+    background: var(--od-border-strong);
     border-radius: 4px;
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background: #5d6169;
+    background: color-mix(in_oklab, var(--od-border-strong) 80%, var(--od-bg) 20%);
   }
 
   /* Firefox */
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: #4e5058 transparent;
+    scrollbar-color: var(--od-border-strong) transparent;
+  }
+
+  /* 全局滚动条也跟随主题，保持风格统一 */
+  body::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  body::-webkit-scrollbar-track {
+    background: var(--od-bg);
+  }
+
+  body::-webkit-scrollbar-thumb {
+    background: var(--od-border-strong);
+    border-radius: 6px;
+  }
+
+  body::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in_oklab, var(--od-border-strong) 80%, var(--od-bg) 20%);
+  }
+
+  body {
+    scrollbar-width: thin;
+    scrollbar-color: var(--od-border-strong) var(--od-bg);
   }
 }
 
@@ -151,6 +175,64 @@
 
   .duration-500 {
     animation-duration: 0.5s;
+  }
+
+  /* 主题切换圆形扩散/收回动画 */
+  @keyframes theme-radial-expand {
+    0% {
+      transform: scale(0);
+      opacity: 0.35;
+    }
+    80% {
+      transform: scale(1.05);
+      opacity: 0.18;
+    }
+    100% {
+      transform: scale(1.1);
+      opacity: 0;
+    }
+  }
+
+  @keyframes theme-radial-collapse {
+    0% {
+      transform: scale(1.1);
+      opacity: 0.3;
+    }
+    70% {
+      transform: scale(0.2);
+      opacity: 0.15;
+    }
+    100% {
+      transform: scale(0);
+      opacity: 0;
+    }
+  }
+
+  .theme-radial-overlay {
+    position: fixed;
+    border-radius: 9999px;
+    background: var(--od-bg);
+    pointer-events: none;
+    z-index: 9999;
+    mix-blend-mode: lighten;
+  }
+
+  .theme-radial-overlay-expand {
+    transform: scale(0);
+    animation: theme-radial-expand 900ms ease-out forwards;
+  }
+
+  .theme-radial-overlay-collapse {
+    transform: scale(1.1);
+    animation: theme-radial-collapse 900ms ease-out forwards;
+  }
+
+  /* 主题切换时的全局颜色平滑过渡（约 1 秒从亮到暗/从暗到亮） */
+  html.od-theme-transition,
+  html.od-theme-transition * {
+    transition-property: background-color, color, border-color, box-shadow, fill, stroke;
+    transition-duration: 0.8s;
+    transition-timing-function: ease-in-out;
   }
 }
 

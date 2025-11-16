@@ -1,11 +1,28 @@
-import { Globe, Bookmark, Settings, Info, LogOut } from 'lucide-react';
+import { Globe, Bookmark, Settings, Info, LogOut, Search as SearchIcon } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { UserCard } from '@/components/layout/UserCard';
+import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { useSearchStore } from '@/features/search/store/searchStore';
+import { apiClient } from '@/lib/api/client';
+import type { ChannelCategory } from '@/types/thread.types';
 
 export function AppSidebar() {
   const { user } = useAuth();
   const location = useLocation();
+  const { selectedChannel, setChannel } = useSearchStore();
+  const isSearchPage = location.pathname === '/';
+
+  // 频道列表：在搜索页左侧展示（生产环境走真实 API，本地走 MSW mock）
+  const { data: channelCategories } = useQuery({
+    queryKey: ['meta', 'channels'],
+    queryFn: async () => {
+      const res = await apiClient.get<ChannelCategory[]>('/meta/channels');
+      return res.data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   const handleLogout = () => {
     localStorage.clear();
@@ -26,12 +43,87 @@ export function AppSidebar() {
       {/* 分隔线 */}
       <div className="my-2 h-px bg-[var(--od-border-strong)]" />
 
-      {/* 导航 */}
-      <div className="mb-6">
-        <h2 className="mb-3 px-2 text-xs font-semibold uppercase tracking-wider text-[var(--od-text-tertiary)]">
-          导航
-        </h2>
-        <div className="space-y-0.5">
+      {/* 频道（仅在搜索页显示） */}
+      {isSearchPage && (
+        <>
+          <div className="mb-6">
+            <h2 className="mb-3 px-2 text-xs font-semibold uppercase tracking-wider text-[var(--od-text-tertiary)]">
+              频道
+            </h2>
+            <div className="space-y-0.5">
+              {/* 全频道 */}
+              <button
+                onClick={() => setChannel(null)}
+                className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-sm transition-all duration-200 ${
+                  !selectedChannel
+                    ? 'border-[var(--od-accent)] bg-[var(--od-card)] text-[var(--od-text-primary)]'
+                    : 'border-transparent text-[var(--od-text-tertiary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
+                }`}
+              >
+                <Globe
+                  className={`h-4 w-4 flex-shrink-0 ${
+                    !selectedChannel ? 'text-[var(--od-accent)]' : ''
+                  }`}
+                />
+                <span className="truncate">全频道</span>
+              </button>
+            </div>
+
+            {/* 具体频道列表（从 /meta/channels 加载） */}
+            {channelCategories && (
+              <div className="mt-2 space-y-3">
+                {channelCategories.map((category) => (
+                  <div key={category.name} className="space-y-1 px-2">
+                    {/* 主频道名：更小、更灰，类似 Discord 分组标题 */}
+                    <p className="text-xs font-semibold text-[var(--od-text-tertiary)]">
+                      {category.name}
+                    </p>
+                    {/* 子频道：更大、更亮 */}
+                    <div className="space-y-0.5">
+                      {category.channels.map((ch) => {
+                        const active = selectedChannel === ch.id;
+                        return (
+                          <button
+                            key={ch.id}
+                            onClick={() => setChannel(ch.id)}
+                            className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-sm transition-all duration-200 ${
+                              active
+                                ? 'border-[var(--od-accent)] bg-[var(--od-card)] text-[var(--od-text-primary)]'
+                                : 'border-transparent text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
+                            }`}
+                          >
+                            <span className="truncate">{ch.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+ 
+         </>
+       )}
+ 
+       {/* 导航入口已合并到下方的快捷操作中 */}
+ 
+       {/* 频道区域与快捷操作之间的短分隔线 */}
+       <div className="mt-3 mb-2 px-2">
+         <div className="h-px w-10 rounded-full bg-[var(--od-border-strong)]" />
+       </div>
+ 
+       {/* 快捷操作 */}
+       <div className="flex-1">
+         <div className="mb-2 flex items-center justify-between px-2">
+           <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--od-text-tertiary)]">
+             快捷操作
+           </h2>
+           {/* 经典白天/黑夜切换开关 */}
+           <ThemeToggle />
+         </div>
+         <div className="space-y-0.5">
+          {/* 搜索页面和其他页面保持同一级入口 */}
           <Link
             to="/"
             className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-sm transition-all duration-200 ${
@@ -40,21 +132,10 @@ export function AppSidebar() {
                 : 'border-transparent text-[var(--od-text-tertiary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
             }`}
           >
-            <Globe className={`h-4 w-4 flex-shrink-0 ${isActive('/') ? 'text-[var(--od-accent)]' : ''}`} />
+            <SearchIcon className={`h-4 w-4 flex-shrink-0 ${isActive('/') ? 'text-[var(--od-accent)]' : ''}`} />
             <span className="truncate">搜索页面</span>
           </Link>
-        </div>
-      </div>
 
-      {/* 分隔线 */}
-      <div className="my-2 h-px bg-[var(--od-border-strong)]" />
-
-      {/* 快捷操作 */}
-      <div className="flex-1">
-        <h2 className="mb-3 px-2 text-xs font-semibold uppercase tracking-wider text-[var(--od-text-tertiary)]">
-          快捷操作
-        </h2>
-        <div className="space-y-0.5">
           <Link
             to="/follows"
             className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-sm transition-all duration-200 ${
@@ -64,7 +145,7 @@ export function AppSidebar() {
             }`}
           >
             <Bookmark className={`h-4 w-4 flex-shrink-0 ${isActive('/follows') ? 'text-[var(--od-accent)]' : ''}`} />
-            <span className="truncate">我的关注</span>
+          <span className="truncate">我的关注</span>
           </Link>
           <Link
             to="/settings"

@@ -39,24 +39,122 @@ export const handlers: RequestHandler[] = [
     return HttpResponse.json(MOCK_TAGS);
   }),
 
-  // 拦截搜索请求
+  // 拦截获取关注列表的请求（用于 FollowsPage）
+  http.get('http://localhost:10810/v1/preferences/follows', () => {
+    return HttpResponse.json({
+      results: MOCK_THREADS.slice(0, 12),
+      unread_count: 3,
+    });
+  }),
+
+  // 拦截搜索请求（本地 Mock）。生产环境不会启用 MSW。
   http.post('http://localhost:10810/v1/search', async ({ request }) => {
     const reqBody = (await request.json()) as {
-      query?: string;
-      tags?: string[];
+      // 实际后端使用 "keywords"，我们同时兼容 "query"
+      query?: string | null;
+      keywords?: string | null;
+      channel_ids?: string[] | null;
+      include_tags?: string[];
+      exclude_tags?: string[];
+      tag_logic?: 'and' | 'or';
+      created_after?: string | null;
+      created_before?: string | null;
       offset?: number;
       limit?: number;
     };
-    const { offset = 0, limit = 24 } = reqBody;
 
+    const {
+      query,
+      keywords,
+      channel_ids,
+      include_tags = [],
+      exclude_tags = [],
+      tag_logic = 'and',
+      created_after,
+      created_before,
+      offset = 0,
+      limit = 24,
+    } = reqBody;
+
+    let filtered = [...MOCK_THREADS];
+
+    // 关键词匹配：标题 + 摘要
+    const searchText = (keywords ?? query ?? '').trim();
+    if (searchText) {
+      const q = searchText.toLowerCase();
+      filtered = filtered.filter((thread) => {
+        const inTitle = thread.title.toLowerCase().includes(q);
+        const inExcerpt = thread.first_message_excerpt?.toLowerCase().includes(q) ?? false;
+        return inTitle || inExcerpt;
+      });
+    }
+
+    // 频道过滤
+    if (Array.isArray(channel_ids) && channel_ids.length > 0) {
+      const channelSet = new Set(channel_ids);
+      filtered = filtered.filter((thread) => channelSet.has(thread.channel_id));
+    }
+
+    // 标签包含过滤
+    if (include_tags.length > 0) {
+      const includeSet = new Set(include_tags);
+      filtered = filtered.filter((thread) => {
+        const threadTagSet = new Set(thread.tags);
+        if (tag_logic === 'and') {
+          // 所有 include_tags 都必须在帖子标签里
+          return include_tags.every((t) => threadTagSet.has(t));
+        }
+        // OR：至少有一个匹配
+        return include_tags.some((t) => threadTagSet.has(t));
+      });
+    }
+
+    // 标签排除过滤
+    if (exclude_tags.length > 0) {
+      const excludeSet = new Set(exclude_tags);
+      filtered = filtered.filter((thread) => !thread.tags.some((t) => excludeSet.has(t)));
+    }
+
+    // 时间范围过滤
+    if (created_after) {
+      const after = new Date(created_after).getTime();
+      filtered = filtered.filter((thread) => new Date(thread.created_at).getTime() >= after);
+    }
+    if (created_before) {
+      const before = new Date(created_before).getTime();
+      filtered = filtered.filter((thread) => new Date(thread.created_at).getTime() <= before);
+    }
+
+    const total = filtered.length;
+
+    // 分页
     const start = offset;
     const end = start + limit;
+    const paginatedThreads = filtered.slice(start, end);
 
-    const paginatedThreads = MOCK_THREADS.slice(start, end);
+    // 根据当前结果生成 available_tags（用来填标签筛选区）
+    const availableTagsSet = new Set<string>();
+    filtered.forEach((thread) => {
+      thread.tags.forEach((t) => availableTagsSet.add(t));
+    });
+    const available_tags = Array.from(availableTagsSet).sort();
+
+    // 选一些带封面的帖子作为 Banner
+    const banner_carousel = filtered
+      .filter((t) => !!t.thumbnail_url)
+      .slice(0, 5)
+      .map((t) => ({
+        thread_id: t.thread_id,
+        channel_id: t.channel_id,
+        title: t.title,
+        cover_image_url: t.thumbnail_url!,
+      }));
 
     return HttpResponse.json({
       threads: paginatedThreads,
-      total: MOCK_THREADS.length,
+      total,
+      available_tags,
+      banner_carousel,
     });
   }),
 ];

@@ -14,6 +14,13 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     const root = document.documentElement;
     const colors = theme.colors;
 
+    // 开启全局主题平滑过渡（几秒钟缓慢从亮到暗/从暗到亮）
+    root.classList.add('od-theme-transition');
+
+    const timeoutId = window.setTimeout(() => {
+      root.classList.remove('od-theme-transition');
+    }, 1800); // 1.8s 过渡时长，避免“一瞬间闪眼睛”
+
     root.style.setProperty('--od-bg', colors.background);
     root.style.setProperty('--od-bg-secondary', colors.backgroundSecondary);
     root.style.setProperty('--od-bg-tertiary', colors.backgroundTertiary);
@@ -35,6 +42,11 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
 
     // 方便调试：在 html 标签上标记当前主题
     root.setAttribute('data-od-theme', currentTheme);
+
+    return () => {
+      root.classList.remove('od-theme-transition');
+      window.clearTimeout(timeoutId);
+    };
   }, [theme, currentTheme]);
 
   return <>{children}</>;

@@ -4,31 +4,24 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Search,
   SlidersHorizontal,
-  Globe,
-  Bookmark,
-  Settings,
   X,
   ChevronLeft,
   ChevronRight,
-  Info,
-  LogOut,
 } from 'lucide-react';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { ScrollToTop } from '@/components/common/ScrollToTop';
 import { ResizableSidebar } from '@/components/ResizableSidebar';
 import { TopBar } from '@/components/layout/TopBar';
-import { UserCard } from '@/components/layout/UserCard';
 import { BannerCarousel } from '@/components/layout/BannerCarousel';
 import { FilterBar } from '@/components/layout/FilterBar';
 import { StatsBar } from '@/components/layout/StatsBar';
-import { Link } from 'react-router-dom';
 import { useSearchStore } from '@/features/search/store/searchStore';
 import { ThreadCard } from '@/features/threads/components/ThreadCard';
 import { ThreadListItem } from '@/features/threads/components/ThreadListItem';
 import { ThreadCardSkeleton } from '@/features/threads/components/ThreadCardSkeleton';
 import { searchApi } from '@/features/search/api/searchApi';
-import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useSettings } from '@/hooks/useSettings';
+import { AppSidebar } from '@/components/layout/AppSidebar';
 import { addSearchHistory } from '@/lib/searchHistory';
 import bannerImage from '@/assets/images/banners/adfd891a-f9f7-4f9d-8d7c-975fb32a7f0d.png';
 
@@ -64,7 +57,6 @@ export function SearchPage() {
   const [timeTo, setTimeTo] = useState('');
   const [openMode, setOpenMode] = useState<'app' | 'web'>('app');
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const { user } = useAuth();
   const { settings, updateSettings } = useSettings();
 
   // 默认Banner
@@ -200,85 +192,14 @@ export function SearchPage() {
       {/* 回到顶部按钮 */}
       <ScrollToTop />
       {/* 可调整大小的侧边栏 */}
-      <ResizableSidebar 
-        defaultWidth={240} 
-        minWidth={200} 
+      <ResizableSidebar
+        defaultWidth={240}
+        minWidth={200}
         maxWidth={400}
         isMobileOpen={isMobileOpen}
         setIsMobileOpen={setIsMobileOpen}
       >
-        {/* 用户信息卡片 */}
-        <UserCard
-          username={user?.username || user?.global_name || 'Discord User'}
-          avatar={user?.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` : undefined}
-          status="online"
-        />
-
-        {/* 分隔线 */}
-        <div className="my-2 h-px bg-[var(--od-border-strong)]" />
-
-        <div className="mb-6">
-          <h2 className="mb-3 px-2 text-xs font-semibold uppercase tracking-wider text-[#949ba4]">频道</h2>
-          <div className="space-y-0.5">
-            <button
-              onClick={() => setChannel(null)}
-              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${
-                !selectedChannel
-                  ? 'bg-[#404249] text-[#f2f3f5]'
-                  : 'text-[#949ba4] hover:bg-[#35373c] hover:text-[#dbdee1]'
-              }`}
-            >
-              <Globe className="h-4 w-4 flex-shrink-0" />
-              <span className="truncate">全频道</span>
-            </button>
-
-            {/* 频道列表暂时隐藏，使用全频道搜索 */}
-          </div>
-        </div>
-
-        {/* 分隔线 */}
-        <div className="my-2 h-px bg-[var(--od-border-strong)]" />
-
-        <div className="flex-1">
-          <h2 className="mb-3 px-2 text-xs font-semibold uppercase tracking-wider text-[var(--od-text-tertiary)]">快捷操作</h2>
-          <div className="space-y-0.5">
-            <Link
-              to="/follows"
-              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-[#949ba4] transition-all duration-200 hover:bg-[#35373c] hover:text-[#dbdee1]"
-            >
-              <Bookmark className="h-4 w-4 flex-shrink-0" />
-              <span className="truncate">我的关注</span>
-            </Link>
-            <Link
-              to="/settings"
-              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-[#949ba4] transition-all duration-200 hover:bg-[#35373c] hover:text-[#dbdee1]"
-            >
-              <Settings className="h-4 w-4 flex-shrink-0" />
-              <span className="truncate">设置</span>
-            </Link>
-            <Link
-              to="/about"
-              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-[#949ba4] transition-all duration-200 hover:bg-[#35373c] hover:text-[#dbdee1]"
-            >
-              <Info className="h-4 w-4 flex-shrink-0" />
-              <span className="truncate">关于我们</span>
-            </Link>
-          </div>
-        </div>
-
-        {/* 底部登出按钮 */}
-        <div className="mt-auto pt-2 border-t border-[#3f4147]">
-          <button
-            onClick={() => {
-              localStorage.clear();
-              window.location.href = '/login';
-            }}
-            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-[#f23f42] transition-all duration-200 hover:bg-[#f23f42]/10"
-          >
-            <LogOut className="h-4 w-4 flex-shrink-0" />
-            <span className="truncate font-medium">登出</span>
-          </button>
-        </div>
+        <AppSidebar />
       </ResizableSidebar>
 
       {/* 主内容区 */}
