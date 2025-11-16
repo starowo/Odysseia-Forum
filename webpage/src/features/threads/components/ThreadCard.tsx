@@ -12,16 +12,22 @@ interface ThreadCardProps {
   thread: Thread;
   onTagClick?: (tag: string) => void;
   searchQuery?: string;
+  onAuthorClick?: (authorName: string) => void;
+  onPreview?: (thread: Thread) => void;
 }
 
-export function ThreadCard({ thread, onTagClick, searchQuery }: ThreadCardProps) {
+export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onPreview }: ThreadCardProps) {
   const { settings } = useSettings();
   const fontSizes = fontSizeMap[settings.fontSize];
   const cardSizes = cardSizeMap[settings.cardSize];
+
   const createdTime = formatDistanceToNow(new Date(thread.created_at), {
     addSuffix: true,
     locale: zhCN,
   });
+
+  const articleBaseClasses =
+    'group relative flex h-full flex-col overflow-hidden rounded-xl bg-[var(--od-card)] shadow-md transition-all duration-300 ease-out hover:-translate-y-1 hover:bg-[var(--od-card-hover)] hover:shadow-xl';
 
   const authorName =
     thread.author?.display_name ??
@@ -47,9 +53,14 @@ export function ThreadCard({ thread, onTagClick, searchQuery }: ThreadCardProps)
   };
 
   return (
-    <article className="group relative flex h-full flex-col overflow-hidden rounded-xl bg-[var(--od-card)] shadow-md transition-all duration-300 ease-out hover:-translate-y-1 hover:bg-[var(--od-card-hover)] hover:shadow-xl">
-      {/* 大图片区域 - 完全铺满 */}
-      <div className={`relative w-full overflow-hidden bg-[var(--od-bg-tertiary)] ${cardSizes.imageHeight}`}>
+    <article
+      className={articleBaseClasses}
+      onClick={() => onPreview?.(thread)}
+    >
+      {/* 大图片区域 - 列表态固定高度，预览浮层中再放大展示 */}
+      <div
+        className={`relative w-full overflow-hidden bg-[var(--od-bg-tertiary)] ${cardSizes.imageHeight}`}
+      >
         {thread.thumbnail_url ? (
           <LazyImage
             src={thread.thumbnail_url}
@@ -59,13 +70,6 @@ export function ThreadCard({ thread, onTagClick, searchQuery }: ThreadCardProps)
         ) : (
           // 无图片时显示纯色背景
           <div className="h-full w-full bg-gradient-to-br from-[#18191c] to-[#1e1f22]" />
-        )}
-
-        {/* 关注红点（主要用于搜索结果中标记“已关注”） */}
-        {thread.is_following && (
-          <div className="absolute left-2 top-2 flex items-center gap-1 text-xs font-medium text-[#f23f43]">
-            <span className="inline-block h-2 w-2 rounded-full bg-[#f23f43]" />
-          </div>
         )}
 
         {/* 有更新徽章：绿色毛玻璃效果 */}
@@ -103,28 +107,60 @@ export function ThreadCard({ thread, onTagClick, searchQuery }: ThreadCardProps)
       {/* 内容区域（图片下方） */}
       <div className={`flex flex-1 flex-col ${cardSizes.padding}`}>
         {/* 标题 - 支持关键词高亮和字体大小设置 */}
-        <h3 className={`mb-2 font-bold leading-snug text-[var(--od-text-primary)] transition-colors duration-200 group-hover:text-white ${fontSizes.title} ${cardSizes.titleLines}`}>
+        <h3
+          className={`mb-2 flex items-center gap-1 font-bold leading-snug text-[var(--od-text-primary)] transition-colors duration-200 ${fontSizes.title} ${cardSizes.titleLines}`}
+        >
+          {thread.is_following && (
+            <span className="mr-1 inline-block h-2 w-2 rounded-full bg-[#f23f43]" />
+          )}
           <HighlightText text={thread.title} highlight={searchQuery} />
         </h3>
 
         {/* 作者信息 */}
         <div className={`mb-2 flex items-center gap-2 text-[var(--od-text-tertiary)] ${fontSizes.meta}`}>
-          <span className="font-medium">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (authorName && onAuthorClick) {
+                onAuthorClick(authorName);
+              }
+            }}
+            className="font-medium text-[var(--od-link)] hover:underline"
+          >
             {authorName}
-          </span>
+          </button>
           <span>·</span>
           <span>{createdTime}</span>
         </div>
 
-        {/* 内容摘要 - 支持关键词高亮和字体大小设置 */}
+        {/* 内容摘要 - 列表态仅展示固定高度的预览，全文阅读通过上层预览浮层完成 */}
         {thread.first_message_excerpt ? (
-          <div className={`mb-3 overflow-y-auto scrollbar-thin ${settings.cardSize === 'compact' ? 'h-12' : settings.cardSize === 'large' ? 'h-24' : 'h-20'}`}>
-            <p className={`leading-relaxed text-[var(--od-text-secondary)] ${fontSizes.content} ${cardSizes.contentLines}`}>
+          <div
+            className={`mb-3 overflow-y-auto scrollbar-thin ${
+              settings.cardSize === 'compact'
+                ? 'h-12'
+                : settings.cardSize === 'large'
+                  ? 'h-24'
+                  : 'h-20'
+            }`}
+          >
+            <p
+              className={`leading-relaxed text-[var(--od-text-secondary)] ${fontSizes.content} ${cardSizes.contentLines}`}
+            >
               <HighlightText text={thread.first_message_excerpt} highlight={searchQuery} />
             </p>
           </div>
         ) : (
-          <div className={`mb-3 ${settings.cardSize === 'compact' ? 'h-12' : settings.cardSize === 'large' ? 'h-24' : 'h-20'}`} />
+          <div
+            className={`mb-3 ${
+              settings.cardSize === 'compact'
+                ? 'h-12'
+                : settings.cardSize === 'large'
+                  ? 'h-24'
+                  : 'h-20'
+            }`}
+          />
         )}
 
         {/* 底部统计信息 - 固定在底部 */}

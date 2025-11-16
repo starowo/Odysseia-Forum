@@ -102,14 +102,41 @@ export const handlers: RequestHandler[] = [
 
     let filtered = [...MOCK_THREADS];
 
-    // 关键词匹配：标题 + 摘要
-    const searchText = (keywords ?? query ?? '').trim();
+    // 关键词匹配：标题 + 摘要 + 作者（支持 author:xxx 语法）
+    const rawSearchText = (keywords ?? query ?? '').trim();
+    let searchText = rawSearchText;
+    let authorFilter: string | null = null;
+
+    // 解析 author: 前缀（例如 author:用户1 或 author:用户1 LLM）
+    if (rawSearchText) {
+      const lower = rawSearchText.toLowerCase();
+      const prefix = 'author:';
+      const idx = lower.indexOf(prefix);
+      if (idx !== -1) {
+        const after = rawSearchText.slice(idx + prefix.length).trim();
+        if (after) {
+          authorFilter = after.toLowerCase();
+        }
+        // 剩余部分作为普通关键词
+        searchText = rawSearchText.slice(0, idx).trim();
+      }
+    }
+
+    // 普通关键词：匹配标题 + 摘要
     if (searchText) {
       const q = searchText.toLowerCase();
       filtered = filtered.filter((thread) => {
         const inTitle = thread.title.toLowerCase().includes(q);
         const inExcerpt = thread.first_message_excerpt?.toLowerCase().includes(q) ?? false;
         return inTitle || inExcerpt;
+      });
+    }
+
+    // 作者过滤：匹配 display_name / name（mock author 没有 global_name 字段）
+    if (authorFilter) {
+      filtered = filtered.filter((thread) => {
+        const names = [thread.author?.display_name, thread.author?.name].filter(Boolean) as string[];
+        return names.some((name) => name.toLowerCase().includes(authorFilter!));
       });
     }
 

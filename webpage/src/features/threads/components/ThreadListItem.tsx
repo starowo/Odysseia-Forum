@@ -12,9 +12,10 @@ interface ThreadListItemProps {
   thread: Thread;
   onTagClick?: (tag: string) => void;
   searchQuery?: string;
+  onAuthorClick?: (authorName: string) => void;
 }
 
-export function ThreadListItem({ thread, onTagClick, searchQuery }: ThreadListItemProps) {
+export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick }: ThreadListItemProps) {
   const { settings } = useSettings();
   const fontSizes = fontSizeMap[settings.fontSize];
 
@@ -22,6 +23,12 @@ export function ThreadListItem({ thread, onTagClick, searchQuery }: ThreadListIt
     addSuffix: true,
     locale: zhCN,
   });
+
+  const authorName =
+    thread.author?.display_name ??
+    thread.author?.global_name ??
+    thread.author?.name ??
+    '未知用户';
 
   const guildId = thread.guild_id || import.meta.env.VITE_GUILD_ID || '@me';
   const discordUrl = `https://discord.com/channels/${guildId}/${thread.channel_id}/${thread.thread_id}`;
@@ -38,15 +45,29 @@ export function ThreadListItem({ thread, onTagClick, searchQuery }: ThreadListIt
       <div className="flex flex-1 flex-col justify-between p-5">
         {/* 标题 */}
         <div>
-          <h3 className={`mb-2 font-bold leading-snug text-[var(--od-text-primary)] transition-colors duration-200 ${fontSizes.title} line-clamp-2`}>
+          <h3
+            className={`mb-2 flex items-center gap-1 font-bold leading-snug text-[var(--od-text-primary)] transition-colors duration-200 ${fontSizes.title} line-clamp-2`}
+          >
+            {thread.is_following && (
+              <span className="mr-1 inline-block h-2 w-2 rounded-full bg-[#f23f43]" />
+            )}
             <HighlightText text={thread.title} highlight={searchQuery} />
           </h3>
 
           {/* 作者和时间 */}
           <div className={`mb-3 flex items-center gap-2 ${fontSizes.meta} text-[var(--od-text-tertiary)]`}>
-            <span className="font-medium text-[var(--od-text-primary)]">
-              {thread.author.display_name || thread.author.name}
-            </span>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (authorName && onAuthorClick) {
+                  onAuthorClick(authorName);
+                }
+              }}
+              className="font-medium text-[var(--od-link)] hover:underline"
+            >
+              {authorName}
+            </button>
             <span>·</span>
             <span>{createdTime}</span>
           </div>

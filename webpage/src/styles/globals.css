@@ -56,6 +56,81 @@
   }
 }
 
+@layer components {
+  .od-md {
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--od-text-secondary);
+  }
+
+  .od-md h1,
+  .od-md h2,
+  .od-md h3 {
+    font-weight: 700;
+    color: var(--od-text-primary);
+    margin: 0.5rem 0 0.3rem;
+  }
+
+  .od-md h1 {
+    font-size: 1.05rem;
+    border-bottom: 1px solid var(--od-border);
+    padding-bottom: 0.25rem;
+  }
+
+  .od-md strong {
+    color: var(--od-text-primary);
+    font-weight: 700;
+  }
+
+  .od-md em {
+    color: var(--od-text-secondary);
+  }
+
+  .od-md code {
+    background: var(--od-bg-secondary);
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    font-size: 0.85em;
+    color: var(--od-text-primary);
+    border: 1px solid var(--od-border);
+  }
+
+  .od-md pre {
+    background: var(--od-bg-secondary);
+    padding: 10px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 8px 0;
+    border: 1px solid var(--od-border);
+  }
+
+  .od-md blockquote {
+    border-left: 4px solid var(--od-accent);
+    padding-left: 10px;
+    color: var(--od-text-secondary);
+    background: color-mix(in_oklab, var(--od-accent) 8%, var(--od-bg) 92%);
+    padding-top: 2px;
+    padding-bottom: 2px;
+    margin: 4px 0;
+    border-radius: 0 4px 4px 0;
+  }
+
+  .od-md a {
+    color: var(--od-link);
+    text-decoration: none;
+  }
+
+  .od-md a:hover {
+    color: var(--od-link-hover);
+    text-decoration: underline;
+  }
+
+  .od-md ul {
+    list-style-type: disc;
+    padding-left: 20px;
+  }
+}
 
 /* 自定义滚动条样式（使用动态主题变量） */
 @layer utilities {
