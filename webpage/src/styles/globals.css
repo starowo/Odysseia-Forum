@@ -252,6 +252,36 @@
     animation-duration: 0.5s;
   }
 
+  /* 通知铃铛左右摆动动画（有未读提醒时使用） */
+  @keyframes notification-bell-swing {
+    0% {
+      transform: rotate(0deg);
+    }
+    15% {
+      transform: rotate(-12deg);
+    }
+    30% {
+      transform: rotate(10deg);
+    }
+    45% {
+      transform: rotate(-8deg);
+    }
+    60% {
+      transform: rotate(6deg);
+    }
+    75% {
+      transform: rotate(-4deg);
+    }
+    100% {
+      transform: rotate(0deg);
+    }
+  }
+
+  .notification-bell-wiggle {
+    transform-origin: top center;
+    animation: notification-bell-swing 900ms ease-in-out infinite;
+  }
+
   /* 主题切换圆形扩散/收回动画 */
   @keyframes theme-radial-expand {
     0% {

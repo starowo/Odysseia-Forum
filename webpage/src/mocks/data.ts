@@ -155,46 +155,156 @@ function pickExcerpt(i: number): string | undefined {
   return undefined;
 }
 
- // 模拟帖子数据：混合不同频道、tag、多种文案
-export const MOCK_THREADS = Array.from({ length: 80 }, (_, i) => {
-  const channelCategory = MOCK_CHANNELS[i % MOCK_CHANNELS.length];
-  const channel = channelCategory.channels[i % channelCategory.channels.length];
-
-  const createdAt = new Date(Date.now() - i * 3_600_000); // 每条相差 1 小时
-  const lastActive = new Date(createdAt.getTime() + Math.floor(Math.random() * 2_400_000)); // +0~40 分钟
-
-  const titleTemplate = TITLE_TEMPLATES[i % TITLE_TEMPLATES.length];
-
-  const thumbnail =
-    i % 3 === 0
-      ? `https://picsum.photos/seed/thread-${i}/400/200`
-      : i % 5 === 0
-        ? `https://picsum.photos/seed/thread-wide-${i}/600/300`
-        : null;
-
-  const tags = pickRandomTags();
-
-  return {
-    thread_id: `thread-${i + 1}`,
-    title: titleTemplate(i + 1),
-    author: {
-      id: `user-${i % 7}`,
-      name: `用户${i % 7}`,
-      display_name: `用户${i % 7}`,
-    },
-    channel_id: channel.id,
-    guild_id: 'mock-guild-id',
-    tags,
-    first_message_excerpt: pickExcerpt(i + 1),
-    created_at: createdAt.toISOString(),
-    last_comment_time: lastActive.toISOString(),
-    last_active_at: lastActive.toISOString(),
-    reaction_count: Math.floor(Math.random() * 200),
-    reply_count: Math.floor(Math.random() * 80),
-    thumbnail_url: thumbnail,
-  };
-});
-
-// 约定：前 12 条帖子视为“已关注”，其中前 3 条有更新
-export const FOLLOWED_THREAD_IDS = MOCK_THREADS.slice(0, 12).map((t) => t.thread_id);
-export const UPDATED_THREAD_IDS = FOLLOWED_THREAD_IDS.slice(0, 3);
+ /**
+  * 核心 mock 状态：
+  * - INITIAL_* 常量作为“快照”，方便 reset；
+  * - 可变的 MOCK_THREADS / FOLLOWED_THREAD_IDS / UPDATED_THREAD_IDS 作为当前运行时状态；
+  * - 一组工具函数用于在 dev 模式下动态修改这些状态。
+  */
+ 
+ // 初始帖子数据：混合不同频道、tag、多种文案
+ const INITIAL_THREADS = Array.from({ length: 80 }, (_, i) => {
+   const channelCategory = MOCK_CHANNELS[i % MOCK_CHANNELS.length];
+   const channel = channelCategory.channels[i % channelCategory.channels.length];
+ 
+   const createdAt = new Date(Date.now() - i * 3_600_000); // 每条相差 1 小时
+   const lastActive = new Date(createdAt.getTime() + Math.floor(Math.random() * 2_400_000)); // +0~40 分钟
+ 
+   const titleTemplate = TITLE_TEMPLATES[i % TITLE_TEMPLATES.length];
+ 
+   const thumbnail =
+     i % 3 === 0
+       ? `https://picsum.photos/seed/thread-${i}/400/200`
+       : i % 5 === 0
+         ? `https://picsum.photos/seed/thread-wide-${i}/600/300`
+         : null;
+ 
+   const tags = pickRandomTags();
+ 
+   return {
+     thread_id: `thread-${i + 1}`,
+     title: titleTemplate(i + 1),
+     author: {
+       id: `user-${i % 7}`,
+       name: `用户${i % 7}`,
+       display_name: `用户${i % 7}`,
+     },
+     channel_id: channel.id,
+     guild_id: 'mock-guild-id',
+     tags,
+     first_message_excerpt: pickExcerpt(i + 1),
+     created_at: createdAt.toISOString(),
+     last_comment_time: lastActive.toISOString(),
+     last_active_at: lastActive.toISOString(),
+     reaction_count: Math.floor(Math.random() * 200),
+     reply_count: Math.floor(Math.random() * 80),
+     thumbnail_url: thumbnail,
+   };
+ });
+ 
+ export let MOCK_THREADS = [...INITIAL_THREADS];
+ 
+ // 约定：前 12 条帖子视为“已关注”，其中前 3 条有更新
+ const INITIAL_FOLLOWED_THREAD_IDS = INITIAL_THREADS.slice(0, 12).map((t) => t.thread_id);
+ const INITIAL_UPDATED_THREAD_IDS = INITIAL_FOLLOWED_THREAD_IDS.slice(0, 3);
+ 
+ export let FOLLOWED_THREAD_IDS = [...INITIAL_FOLLOWED_THREAD_IDS];
+ export let UPDATED_THREAD_IDS = [...INITIAL_UPDATED_THREAD_IDS];
+ 
+ /**
+  * 将所有 mock 状态重置为初始值
+  */
+ export function resetMockData() {
+   MOCK_THREADS = [...INITIAL_THREADS];
+   FOLLOWED_THREAD_IDS = [...INITIAL_FOLLOWED_THREAD_IDS];
+   UPDATED_THREAD_IDS = [...INITIAL_UPDATED_THREAD_IDS];
+ }
+ 
+ export interface CreateMockThreadInput {
+   title?: string;
+   channel_id?: string;
+   tags?: string[];
+   markdown?: string;
+ }
+ 
+ /**
+  * 在当前状态下新增一条帖子，并追加到 MOCK_THREADS 尾部。
+  * 仅用于本地 dev 环境，方便通过 /v1/dev/mock/add-thread 等接口动态造数据。
+  */
+ export function createMockThread(input: CreateMockThreadInput = {}) {
+   const i = MOCK_THREADS.length;
+   const channelCategory = MOCK_CHANNELS[i % MOCK_CHANNELS.length];
+   const channel = channelCategory.channels[i % channelCategory.channels.length];
+ 
+   const createdAt = new Date(Date.now() - i * 3_600_000);
+   const lastActive = new Date(createdAt.getTime() + Math.floor(Math.random() * 2_400_000));
+ 
+   const titleTemplate = TITLE_TEMPLATES[i % TITLE_TEMPLATES.length];
+ 
+   const thumbnail =
+     i % 3 === 0
+       ? `https://picsum.photos/seed/thread-${i}/400/200`
+       : i % 5 === 0
+         ? `https://picsum.photos/seed/thread-wide-${i}/600/300`
+         : null;
+ 
+   const tags = input.tags ?? pickRandomTags();
+ 
+   const thread = {
+     thread_id: `thread-${i + 1}`,
+     title: input.title ?? titleTemplate(i + 1),
+     author: {
+       id: `user-${i % 7}`,
+       name: `用户${i % 7}`,
+       display_name: `用户${i % 7}`,
+     },
+     channel_id: input.channel_id ?? channel.id,
+     guild_id: 'mock-guild-id',
+     tags,
+     first_message_excerpt: input.markdown ?? pickExcerpt(i + 1) ?? SUPER_LONG_MARKDOWN,
+     created_at: createdAt.toISOString(),
+     last_comment_time: lastActive.toISOString(),
+     last_active_at: lastActive.toISOString(),
+     reaction_count: Math.floor(Math.random() * 200),
+     reply_count: Math.floor(Math.random() * 80),
+     thumbnail_url: thumbnail,
+   };
+ 
+   MOCK_THREADS = [...MOCK_THREADS, thread];
+   return thread;
+ }
+ 
+ /**
+  * 关注 / 取关 / 标记更新：仅影响 FOLLOWED_THREAD_IDS / UPDATED_THREAD_IDS
+  */
+ export function followThread(threadId: string) {
+   if (!FOLLOWED_THREAD_IDS.includes(threadId)) {
+     FOLLOWED_THREAD_IDS = [...FOLLOWED_THREAD_IDS, threadId];
+   }
+ }
+ 
+ export function unfollowThread(threadId: string) {
+   FOLLOWED_THREAD_IDS = FOLLOWED_THREAD_IDS.filter((id) => id !== threadId);
+   UPDATED_THREAD_IDS = UPDATED_THREAD_IDS.filter((id) => id !== threadId);
+ }
+ 
+ export function markThreadUpdated(threadId: string, hasUpdate: boolean = true) {
+   if (hasUpdate) {
+     if (!UPDATED_THREAD_IDS.includes(threadId)) {
+       UPDATED_THREAD_IDS = [...UPDATED_THREAD_IDS, threadId];
+     }
+   } else {
+     UPDATED_THREAD_IDS = UPDATED_THREAD_IDS.filter((id) => id !== threadId);
+   }
+ }
+ 
+ /**
+  * 提供给 dev 控制台使用的只读视图
+  */
+ export function getMockState() {
+   return {
+     threads: MOCK_THREADS,
+     followed_ids: FOLLOWED_THREAD_IDS,
+     updated_ids: UPDATED_THREAD_IDS,
+   };
+ }

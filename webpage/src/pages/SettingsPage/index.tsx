@@ -1,4 +1,20 @@
-import { Settings, Moon, Sun, Monitor, Bell, Type, Layout, Grid, List } from 'lucide-react';
+import {
+  Settings,
+  Moon,
+  Sun,
+  Monitor,
+  Bell,
+  Layout,
+  Grid,
+  List,
+  Image as ImageIcon,
+  ImageOff,
+  SlidersHorizontal,
+  Info,
+  Minimize2,
+  Scan,
+  Maximize2,
+} from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useSettings } from '@/hooks/useSettings';
 import { resetUserSettings } from '@/lib/settings';
@@ -98,34 +114,43 @@ export function SettingsPage() {
                   字体大小
                 </label>
                 <div className="grid grid-cols-3 gap-3">
-                  {(['small', 'medium', 'large'] as const).map((size) => (
-                    <button
-                      key={size}
-                      onClick={() => updateSettings({ fontSize: size })}
-                      className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all ${
-                        settings.fontSize === size
-                          ? 'border-[var(--od-accent)] bg-[color-mix(in_oklab,var(--od-accent)_10%,transparent)]'
-                          : 'border-[var(--od-border-strong)] hover:border-[var(--od-accent)]/60'
-                      }`}
-                    >
-                      <Type
-                        className={`h-5 w-5 ${
-                          settings.fontSize === size
-                            ? 'text-[var(--od-accent)]'
-                            : 'text-[var(--od-text-secondary)]'
-                        }`}
-                      />
-                      <span
-                        className={`text-sm ${
-                          settings.fontSize === size
-                            ? 'text-[var(--od-text-primary)] font-medium'
-                            : 'text-[var(--od-text-primary)]'
+                  {(['small', 'medium', 'large'] as const).map((size) => {
+                    const isActive = settings.fontSize === size;
+                    const sampleSizeClass =
+                      size === 'small' ? 'text-xs' : size === 'medium' ? 'text-sm' : 'text-lg';
+
+                    return (
+                      <button
+                        key={size}
+                        onClick={() => updateSettings({ fontSize: size })}
+                        className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all ${
+                          isActive
+                            ? 'border-[var(--od-accent)] bg-[color-mix(in_oklab,var(--od-accent)_10%,transparent)]'
+                            : 'border-[var(--od-border-strong)] hover:border-[var(--od-accent)]/60'
                         }`}
                       >
-                        {size === 'small' ? '小' : size === 'medium' ? '中' : '大'}
-                      </span>
-                    </button>
-                  ))}
+                        {/* 用不同字号的 Aa 代替图标，让差异更直观 */}
+                        <span
+                          className={`font-semibold leading-none ${sampleSizeClass} ${
+                            isActive
+                              ? 'text-[var(--od-accent)]'
+                              : 'text-[var(--od-text-secondary)]'
+                          }`}
+                        >
+                          Aa
+                        </span>
+                        <span
+                          className={`text-sm ${
+                            isActive
+                              ? 'text-[var(--od-text-primary)] font-medium'
+                              : 'text-[var(--od-text-primary)]'
+                          }`}
+                        >
+                          {size === 'small' ? '小' : size === 'medium' ? '中' : '大'}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -135,34 +160,40 @@ export function SettingsPage() {
                   卡片大小
                 </label>
                 <div className="grid grid-cols-3 gap-3">
-                  {(['compact', 'normal', 'large'] as const).map((size) => (
-                    <button
-                      key={size}
-                      onClick={() => updateSettings({ cardSize: size })}
-                      className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all ${
-                        settings.cardSize === size
-                          ? 'border-[var(--od-accent)] bg-[color-mix(in_oklab,var(--od-accent)_10%,transparent)]'
-                          : 'border-[var(--od-border-strong)] hover:border-[var(--od-accent)]/60'
-                      }`}
-                    >
-                      <Layout
-                        className={`h-5 w-5 ${
-                          settings.cardSize === size
-                            ? 'text-[var(--od-accent)]'
-                            : 'text-[var(--od-text-secondary)]'
-                        }`}
-                      />
-                      <span
-                        className={`text-sm ${
-                          settings.cardSize === size
-                            ? 'text-[var(--od-text-primary)] font-medium'
-                            : 'text-[var(--od-text-primary)]'
+                  {(['compact', 'normal', 'large'] as const).map((size) => {
+                    const isActive = settings.cardSize === size;
+                    const Icon =
+                      size === 'compact' ? Minimize2 : size === 'normal' ? Scan : Maximize2;
+
+                    return (
+                      <button
+                        key={size}
+                        onClick={() => updateSettings({ cardSize: size })}
+                        className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all ${
+                          isActive
+                            ? 'border-[var(--od-accent)] bg-[color-mix(in_oklab,var(--od-accent)_10%,transparent)]'
+                            : 'border-[var(--od-border-strong)] hover:border-[var(--od-accent)]/60'
                         }`}
                       >
-                        {size === 'compact' ? '紧凑' : size === 'normal' ? '标准' : '宽松'}
-                      </span>
-                    </button>
-                  ))}
+                        <Icon
+                          className={`h-5 w-5 ${
+                            isActive
+                              ? 'text-[var(--od-accent)]'
+                              : 'text-[var(--od-text-secondary)]'
+                          }`}
+                        />
+                        <span
+                          className={`text-sm ${
+                            isActive
+                              ? 'text-[var(--od-text-primary)] font-medium'
+                              : 'text-[var(--od-text-primary)]'
+                          }`}
+                        >
+                          {size === 'compact' ? '紧凑' : size === 'normal' ? '标准' : '宽松'}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -214,6 +245,63 @@ export function SettingsPage() {
                         列表布局
                       </div>
                       <div className="text-xs text-[var(--od-text-tertiary)]">紧凑列表显示</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* 图片加载模式 */}
+              <div>
+                <label className="mb-3 block text-sm font-medium text-[var(--od-text-secondary)]">
+                  图片加载
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => updateSettings({ imageMode: 'normal' })}
+                    className={`flex items-center gap-3 rounded-lg border-2 p-4 transition-all ${
+                      settings.imageMode === 'normal'
+                        ? 'border-[var(--od-accent)] bg-[color-mix(in_oklab,var(--od-accent)_10%,transparent)]'
+                        : 'border-[var(--od-border-strong)] hover:border-[var(--od-accent)]/60'
+                    }`}
+                  >
+                    <ImageIcon
+                      className={`h-5 w-5 ${
+                        settings.imageMode === 'normal'
+                          ? 'text-[var(--od-accent)]'
+                          : 'text-[var(--od-text-secondary)]'
+                      }`}
+                    />
+                    <div className="text-left">
+                      <div className="text-sm font-medium text-[var(--od-text-primary)]">
+                        正常加载
+                      </div>
+                      <div className="text-xs text-[var(--od-text-tertiary)]">
+                        显示帖子缩略图等图片（默认）
+                      </div>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => updateSettings({ imageMode: 'off' })}
+                    className={`flex items-center gap-3 rounded-lg border-2 p-4 transition-all ${
+                      settings.imageMode === 'off'
+                        ? 'border-[var(--od-accent)] bg-[color-mix(in_oklab,var(--od-accent)_10%,transparent)]'
+                        : 'border-[var(--od-border-strong)] hover:border-[var(--od-accent)]/60'
+                    }`}
+                  >
+                    <ImageOff
+                      className={`h-5 w-5 ${
+                        settings.imageMode === 'off'
+                          ? 'text-[var(--od-accent)]'
+                          : 'text-[var(--od-text-secondary)]'
+                      }`}
+                    />
+                    <div className="text-left">
+                      <div className="text-sm font-medium text-[var(--od-text-primary)]">
+                        关闭图片（省流）
+                      </div>
+                      <div className="text-xs text-[var(--od-text-tertiary)]">
+                        不再请求帖子缩略图等图片，适合流量有限或弱网环境
+                      </div>
                     </div>
                   </button>
                 </div>
@@ -396,7 +484,7 @@ export function SettingsPage() {
           {/* 高级设置 */}
           <div className="rounded-xl bg-[var(--od-card)] p-6">
             <div className="mb-4 flex items-center gap-3">
-              <Settings className="h-5 w-5 text-[var(--od-accent)]" />
+              <SlidersHorizontal className="h-5 w-5 text-[var(--od-accent)]" />
               <h2 className="text-lg font-semibold text-[var(--od-text-primary)]">高级</h2>
             </div>
 
@@ -412,7 +500,7 @@ export function SettingsPage() {
           {/* 版本与更新 */}
           <div className="rounded-xl bg-[var(--od-card)] p-6">
             <div className="mb-3 flex items-center gap-3">
-              <Settings className="h-5 w-5 text-[var(--od-accent)]" />
+              <Info className="h-5 w-5 text-[var(--od-accent)]" />
               <h2 className="text-lg font-semibold text-[var(--od-text-primary)]">版本与更新</h2>
             </div>
             <p className="text-sm text-[var(--od-text-secondary)]">

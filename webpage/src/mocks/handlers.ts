@@ -5,10 +5,13 @@ import {
   MOCK_THREADS,
   FOLLOWED_THREAD_IDS,
   UPDATED_THREAD_IDS,
+  createMockThread,
+  followThread,
+  unfollowThread,
+  markThreadUpdated,
+  resetMockData,
+  getMockState,
 } from './data';
-
-const FOLLOWED_SET = new Set(FOLLOWED_THREAD_IDS);
-const UPDATED_SET = new Set(UPDATED_THREAD_IDS);
 
 const MOCK_USER = {
   id: '123456789',
@@ -52,13 +55,16 @@ export const handlers: RequestHandler[] = [
 
   // 拦截获取关注列表的请求（与 /v1/follows/ 对齐）
   http.get('http://localhost:10810/v1/follows/', () => {
-    const followedThreads = MOCK_THREADS.filter((thread) => FOLLOWED_SET.has(thread.thread_id)).map(
+    const followedSet = new Set(FOLLOWED_THREAD_IDS);
+    const updatedSet = new Set(UPDATED_THREAD_IDS);
+
+    const followedThreads = MOCK_THREADS.filter((thread) => followedSet.has(thread.thread_id)).map(
       (thread) => ({
         ...thread,
         // 关注列表结果里补充 id 字段，方便用作 React key
         id: thread.thread_id,
         is_following: true,
-        has_update: UPDATED_SET.has(thread.thread_id),
+        has_update: updatedSet.has(thread.thread_id),
       }),
     );
 
@@ -72,10 +78,13 @@ export const handlers: RequestHandler[] = [
 
   // 拦截获取关注未读数量的请求（/v1/follows/unread-count）
   http.get('http://localhost:10810/v1/follows/unread-count', () => {
-    const followedThreads = MOCK_THREADS.filter((thread) => FOLLOWED_SET.has(thread.thread_id)).map(
+    const followedSet = new Set(FOLLOWED_THREAD_IDS);
+    const updatedSet = new Set(UPDATED_THREAD_IDS);
+
+    const followedThreads = MOCK_THREADS.filter((thread) => followedSet.has(thread.thread_id)).map(
       (thread) => ({
         ...thread,
-        has_update: UPDATED_SET.has(thread.thread_id),
+        has_update: updatedSet.has(thread.thread_id),
       }),
     );
 
@@ -193,19 +202,22 @@ export const handlers: RequestHandler[] = [
     }
 
     const total = filtered.length;
-
+ 
     // 分页
     const start = offset;
     const end = start + limit;
     const paginatedThreads = filtered.slice(start, end);
-
-    // 为搜索结果补充“已关注/有更新”标记
+ 
+    // 为搜索结果补充“已关注/有更新”标记（使用当前 FOLLOWED_THREAD_IDS / UPDATED_THREAD_IDS 状态）
+    const followedSet = new Set(FOLLOWED_THREAD_IDS);
+    const updatedSet = new Set(UPDATED_THREAD_IDS);
+ 
     const paginatedThreadsWithFlags = paginatedThreads.map((thread) => ({
       ...thread,
-      is_following: FOLLOWED_SET.has(thread.thread_id),
-      has_update: UPDATED_SET.has(thread.thread_id),
+      is_following: followedSet.has(thread.thread_id),
+      has_update: updatedSet.has(thread.thread_id),
     }));
-
+ 
     // 根据当前结果生成 available_tags（用来填标签筛选区）
     const availableTagsSet = new Set<string>();
     filtered.forEach((thread) => {
@@ -236,5 +248,57 @@ export const handlers: RequestHandler[] = [
       // 未读数：等于有更新的关注帖子数量
       unread_count: UPDATED_THREAD_IDS.length,
     });
+  }),
+
+  // --- Dev-only mock control endpoints，用于本地快速造数据 ---
+  http.get('http://localhost:10810/v1/dev/mock/state', () => {
+    return HttpResponse.json(getMockState());
+  }),
+
+  http.post('http://localhost:10810/v1/dev/mock/add-thread', async ({ request }) => {
+    const body = (await request.json().catch(() => ({}))) as {
+      title?: string;
+      channel_id?: string;
+      tags?: string[];
+      markdown?: string;
+      follow?: boolean;
+      has_update?: boolean;
+    };
+
+    const newThread = createMockThread(body);
+    if (body.follow) {
+      followThread(newThread.thread_id);
+    }
+    if (body.has_update) {
+      markThreadUpdated(newThread.thread_id, true);
+    }
+
+    return HttpResponse.json(newThread);
+  }),
+
+  http.post('http://localhost:10810/v1/dev/mock/follow', async ({ request }) => {
+    const { thread_id } = (await request.json()) as { thread_id: string };
+    followThread(thread_id);
+    return HttpResponse.json({ ok: true });
+  }),
+
+  http.post('http://localhost:10810/v1/dev/mock/unfollow', async ({ request }) => {
+    const { thread_id } = (await request.json()) as { thread_id: string };
+    unfollowThread(thread_id);
+    return HttpResponse.json({ ok: true });
+  }),
+
+  http.post('http://localhost:10810/v1/dev/mock/mark-update', async ({ request }) => {
+    const { thread_id, has_update = true } = (await request.json()) as {
+      thread_id: string;
+      has_update?: boolean;
+    };
+    markThreadUpdated(thread_id, has_update);
+    return HttpResponse.json({ ok: true });
+  }),
+
+  http.post('http://localhost:10810/v1/dev/mock/reset', () => {
+    resetMockData();
+    return HttpResponse.json({ ok: true });
   }),
 ];

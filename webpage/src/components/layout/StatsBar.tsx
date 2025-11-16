@@ -5,6 +5,8 @@ interface StatsBarProps {
   perPage: number;
   openMode: 'app' | 'web';
   layoutMode: 'grid' | 'list';
+  currentPage?: number;
+  totalPages?: number;
   onPerPageChange: (value: number) => void;
   onOpenModeChange: (value: 'app' | 'web') => void;
   onLayoutModeChange: (value: 'grid' | 'list') => void;
@@ -15,6 +17,8 @@ export function StatsBar({
   perPage,
   openMode,
   layoutMode,
+  currentPage,
+  totalPages,
   onPerPageChange,
   onOpenModeChange,
   onLayoutModeChange,
@@ -24,6 +28,13 @@ export function StatsBar({
       {/* 结果统计 */}
       <div className="text-sm text-[var(--od-text-secondary)]">
         共 <span className="font-semibold text-[var(--od-text-primary)]">{totalCount}</span> 条结果
+        {typeof currentPage === 'number' &&
+          typeof totalPages === 'number' &&
+          totalPages > 0 && (
+            <span className="ml-2 text-xs text-[var(--od-text-tertiary)]">
+              第 {currentPage} / {totalPages} 页
+            </span>
+          )}
       </div>
 
       {/* 控制选项 */}

@@ -1,13 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
-import {
-  Search,
-  SlidersHorizontal,
-  X,
-  ChevronLeft,
-  ChevronRight,
-} from 'lucide-react';
+import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { ScrollToTop } from '@/components/common/ScrollToTop';
 import { ResizableSidebar } from '@/components/ResizableSidebar';
@@ -15,7 +9,7 @@ import { TopBar } from '@/components/layout/TopBar';
 import { BannerCarousel } from '@/components/layout/BannerCarousel';
 import { FilterBar } from '@/components/layout/FilterBar';
 import { StatsBar } from '@/components/layout/StatsBar';
-import { useSearchStore } from '@/features/search/store/searchStore';
+import { useSearchStore, TagState } from '@/features/search/store/searchStore';
 import { ThreadCard } from '@/features/threads/components/ThreadCard';
 import { ThreadListItem } from '@/features/threads/components/ThreadListItem';
 import { ThreadCardSkeleton } from '@/features/threads/components/ThreadCardSkeleton';
@@ -31,6 +25,245 @@ import bannerImage from '@/assets/images/banners/adfd891a-f9f7-4f9d-8d7c-975fb32
 interface ThreadPreviewOverlayProps {
   thread: Thread;
   onClose: () => void;
+}
+
+interface AdvancedSearchPanelProps {
+  isOpen: boolean;
+  timeFrom: string;
+  timeTo: string;
+  sortMethod: string;
+  tagLogic: 'and' | 'or';
+  tagMode: 'included' | 'excluded';
+  availableTags: string[];
+  tagStates: Map<string, TagState>;
+  onTimeFromChange: (value: string) => void;
+  onTimeToChange: (value: string) => void;
+  onSortMethodChange: (value: string) => void;
+  onTagLogicChange: (value: 'and' | 'or') => void;
+  onTagModeChange: (value: 'included' | 'excluded') => void;
+  onTagClick: (tag: string) => void;
+  onClearAllTags: () => void;
+  onQuickSearch?: (template: string) => void;
+  enableQuickFill?: boolean;
+}
+
+// TopBar 下方的折叠面板 - 标签可点击填充到搜索框
+function TopBarAdvancedPanel({
+  isOpen,
+  timeFrom,
+  timeTo,
+  sortMethod,
+  tagLogic,
+  tagMode,
+  availableTags,
+  tagStates,
+  onTimeFromChange,
+  onTimeToChange,
+  onSortMethodChange,
+  onTagLogicChange,
+  onTagModeChange,
+  onTagClick,
+  onClearAllTags,
+  onQuickSearch,
+}: AdvancedSearchPanelProps) {
+  const hasTags = availableTags.length > 0;
+
+  return (
+    <div
+      className={`bg-[var(--od-bg-secondary)] transition-[max-height,opacity] duration-300 ${
+        isOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
+      } overflow-hidden shadow-lg`}
+    >
+      <div className="px-4 pb-4 pt-2">
+        <div className="rounded-xl border border-[var(--od-border)] bg-[var(--od-bg-secondary)]/90 p-3 shadow-sm backdrop-blur-sm">
+          <FilterBar
+            timeFrom={timeFrom}
+            timeTo={timeTo}
+            sortMethod={sortMethod}
+            tagLogic={tagLogic}
+            onTimeFromChange={onTimeFromChange}
+            onTimeToChange={onTimeToChange}
+            onSortMethodChange={onSortMethodChange}
+            onTagLogicChange={onTagLogicChange}
+          />
+          {hasTags && (
+            <div className="mt-3 border-t border-[var(--od-border)] pt-3">
+              <div className="mb-3 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <span className="text-sm font-medium text-[var(--od-text-secondary)]">
+                    标签筛选
+                  </span>
+                  {tagStates.size > 0 && (
+                    <button
+                      type="button"
+                      onClick={onClearAllTags}
+                      className="flex items-center gap-1 text-xs text-[var(--od-text-tertiary)] hover:text-[var(--od-text-primary)]"
+                    >
+                      <X className="h-3 w-3" />
+                      清空
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 text-xs text-[var(--od-text-tertiary)]">
+                    <input
+                      type="checkbox"
+                      checked={tagMode === 'excluded'}
+                      onChange={(e) =>
+                        onTagModeChange(e.target.checked ? 'excluded' : 'included')
+                      }
+                      className="rounded"
+                    />
+                    排除模式
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => onTagLogicChange(tagLogic === 'and' ? 'or' : 'and')}
+                    className="flex items-center gap-2 text-xs text-[var(--od-text-tertiary)] hover:text-[var(--od-text-primary)]"
+                  >
+                    <SlidersHorizontal className="h-4 w-4" />
+                    {tagLogic === 'and' ? 'AND' : 'OR'}
+                  </button>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {availableTags.map((tag) => {
+                  const state = tagStates.get(tag);
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => onQuickSearch?.(tag)}
+                      title="点击填充到搜索框"
+                      className={`rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                        state === 'included'
+                          ? 'bg-[var(--od-accent)] text-white'
+                          : state === 'excluded'
+                          ? 'bg-[var(--od-error)] text-white'
+                          : 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-secondary)] hover:bg-[var(--od-card-hover)]'
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {!hasTags && (
+            <p className="mt-3 text-xs text-[var(--od-text-tertiary)]">
+              当前搜索结果暂时没有可用标签。
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 主页面的固定面板 - Banner下方，标签用于筛选
+function MainAdvancedPanel({
+  timeFrom,
+  timeTo,
+  sortMethod,
+  tagLogic,
+  tagMode,
+  availableTags,
+  tagStates,
+  onTimeFromChange,
+  onTimeToChange,
+  onSortMethodChange,
+  onTagLogicChange,
+  onTagModeChange,
+  onTagClick,
+  onClearAllTags,
+}: Omit<AdvancedSearchPanelProps, 'isOpen' | 'onQuickSearch' | 'enableQuickFill'>) {
+  const hasTags = availableTags.length > 0;
+
+  return (
+    <div className="px-4 animate-in fade-in slide-in-from-top-4 duration-500" style={{ animationDelay: '100ms' }}>
+      <div className="rounded-xl border border-[var(--od-border)] bg-[var(--od-bg-secondary)]/90 p-3 shadow-sm backdrop-blur-sm">
+        <FilterBar
+          timeFrom={timeFrom}
+          timeTo={timeTo}
+          sortMethod={sortMethod}
+          tagLogic={tagLogic}
+          onTimeFromChange={onTimeFromChange}
+          onTimeToChange={onTimeToChange}
+          onSortMethodChange={onSortMethodChange}
+          onTagLogicChange={onTagLogicChange}
+        />
+        {hasTags && (
+          <div className="mt-3 border-t border-[var(--od-border)] pt-3">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-medium text-[var(--od-text-secondary)]">
+                  标签筛选
+                </span>
+                {tagStates.size > 0 && (
+                  <button
+                    type="button"
+                    onClick={onClearAllTags}
+                    className="flex items-center gap-1 text-xs text-[var(--od-text-tertiary)] hover:text-[var(--od-text-primary)]"
+                  >
+                    <X className="h-3 w-3" />
+                    清空
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 text-xs text-[var(--od-text-tertiary)]">
+                  <input
+                    type="checkbox"
+                    checked={tagMode === 'excluded'}
+                    onChange={(e) =>
+                      onTagModeChange(e.target.checked ? 'excluded' : 'included')
+                    }
+                    className="rounded"
+                  />
+                  排除模式
+                </label>
+                <button
+                  type="button"
+                  onClick={() => onTagLogicChange(tagLogic === 'and' ? 'or' : 'and')}
+                  className="flex items-center gap-2 text-xs text-[var(--od-text-tertiary)] hover:text-[var(--od-text-primary)]"
+                >
+                  <SlidersHorizontal className="h-4 w-4" />
+                  {tagLogic === 'and' ? 'AND' : 'OR'}
+                </button>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {availableTags.map((tag) => {
+                const state = tagStates.get(tag);
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => onTagClick(tag)}
+                    className={`rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                      state === 'included'
+                        ? 'bg-[var(--od-accent)] text-white'
+                        : state === 'excluded'
+                        ? 'bg-[var(--od-error)] text-white'
+                        : 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-secondary)] hover:bg-[var(--od-card-hover)]'
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        {!hasTags && (
+          <p className="mt-3 text-xs text-[var(--od-text-tertiary)]">
+            当前搜索结果暂时没有可用标签。
+          </p>
+        )}
+      </div>
+    </div>
+  );
 }
 
 // 预览浮层组件：负责上浮卡片的进出场动画 & 独立滚动
@@ -252,7 +485,9 @@ export function SearchPage() {
   const [openMode, setOpenMode] = useState<'app' | 'web'>('app');
   const [previewThread, setPreviewThread] = useState<Thread | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const [mergedThreads, setMergedThreads] = useState<Thread[]>([]);
   const { settings, updateSettings } = useSettings();
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // 首次访问引导：仅在本设备第一次访问时展示
   useEffect(() => {
@@ -294,7 +529,7 @@ export function SearchPage() {
   }, [tagStates]);
 
   // 使用真实API获取搜索结果
-  const { data: searchData, isLoading, isError, refetch } = useQuery({
+  const { data: searchData, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ['search', query, selectedChannel, includedTags, excludedTags, tagLogic, sortMethod, page, perPage, timeFrom, timeTo],
     queryFn: () => searchApi.search({
       query: query || undefined,
@@ -318,6 +553,32 @@ export function SearchPage() {
   const totalResults = searchData?.total || 0;
   const availableTags = searchData?.available_tags || [];
   const totalPages = Math.ceil(totalResults / perPage);
+
+  // 合并多页搜索结果，实现无缝滚动
+  useEffect(() => {
+    if (!searchData) {
+      if (page === 1) {
+        setMergedThreads([]);
+      }
+      return;
+    }
+
+    const currentThreads = searchData.results || [];
+
+    if (page === 1) {
+      setMergedThreads(currentThreads);
+      return;
+    }
+
+    setMergedThreads((prev) => {
+      if (!prev || prev.length === 0) {
+        return currentThreads;
+      }
+      const existingIds = new Set(prev.map((t) => t.thread_id));
+      const newThreads = currentThreads.filter((t) => !existingIds.has(t.thread_id));
+      return [...prev, ...newThreads];
+    });
+  }, [searchData, page]);
 
   // 处理搜索
   const handleSearch = useCallback(() => {
@@ -351,6 +612,30 @@ export function SearchPage() {
       duration: 2000,
     });
   };
+
+  // 使用 IntersectionObserver 实现无缝滚动加载
+  useEffect(() => {
+    const currentRef = loadMoreRef.current;
+    if (!currentRef) return;
+    if (isLoading || isError || isFetching) return;
+    if (page >= totalPages) return;
+    if (mergedThreads.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // 只在元素可见且不在加载状态时触发
+        if (entries[0].isIntersecting && !isFetching && page < totalPages) {
+          setPage(page + 1);
+        }
+      },
+      { threshold: 0.1, rootMargin: '200px' }
+    );
+
+    observer.observe(currentRef);
+    return () => {
+      observer.disconnect();
+    };
+  }, [isLoading, isError, isFetching, page, totalPages, mergedThreads.length, setPage]);
 
   // 键盘快捷键
   useKeyboardShortcuts([
@@ -407,7 +692,7 @@ export function SearchPage() {
   const currentChannelName = selectedChannel || '全频道搜索';
 
   // 是否有活动的筛选条件
-  const hasActiveFilters = query || selectedChannel || tagStates.size > 0;
+  const hasActiveFilters = query || selectedChannel || tagStates.size > 0 || timeFrom || timeTo;
 
   return (
     <div className="flex min-h-screen bg-[var(--od-bg)]">
@@ -426,7 +711,7 @@ export function SearchPage() {
 
       {/* 主内容区 */}
       <main className="flex-1 bg-[var(--od-bg)] pb-20 lg:ml-[240px]">
-        {/* 顶部搜索栏 */}
+        {/* 顶部搜索栏 - 集成高级搜索面板 */}
         <TopBar
           searchValue={searchInput}
           onSearchChange={setSearchInput}
@@ -435,6 +720,20 @@ export function SearchPage() {
           onQuickSearch={handleQuickSearch}
           searchInputRef={searchInputRef}
           onSelectHistory={handleSelectHistory}
+          timeFrom={timeFrom}
+          timeTo={timeTo}
+          sortMethod={sortMethod}
+          tagLogic={tagLogic}
+          tagMode={tagMode}
+          availableTags={availableTags}
+          tagStates={tagStates}
+          onTimeFromChange={setTimeFrom}
+          onTimeToChange={setTimeTo}
+          onSortMethodChange={(value) => setSortMethod(value as any)}
+          onTagLogicChange={setTagLogic}
+          onTagModeChange={setTagMode}
+          onTagClick={handleTagClick}
+          onClearAllTags={clearAllTags}
         />
 
         {/* 频道标题栏 */}
@@ -451,91 +750,35 @@ export function SearchPage() {
           </div>
         )}
 
-        {/* 筛选器 */}
-        <div className="px-4 animate-in fade-in slide-in-from-top-4 duration-500" style={{ animationDelay: '100ms' }}>
-          <FilterBar
-            timeFrom={timeFrom}
-            timeTo={timeTo}
-            sortMethod={sortMethod}
-            tagLogic={tagLogic}
-            onTimeFromChange={setTimeFrom}
-            onTimeToChange={setTimeTo}
-            onSortMethodChange={(value) => setSortMethod(value as any)}
-            onTagLogicChange={setTagLogic}
-          />
-        </div>
-
-        {/* 标签筛选区 - 背景透明，让标签直接浮在页面背景上 */}
-        {availableTags.length > 0 && (
-          <div className="px-4 pb-4 pt-0 animate-in fade-in slide-in-from-top-2 duration-300">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <span className="text-sm font-medium text-[var(--od-text-secondary)]">标签筛选</span>
-                {tagStates.size > 0 && (
-                  <button
-                    onClick={clearAllTags}
-                    className="flex items-center gap-1 text-xs text-[var(--od-text-tertiary)] hover:text-[var(--od-text-primary)]"
-                  >
-                    <X className="h-3 w-3" />
-                    清空
-                  </button>
-                )}
-              </div>
-              <div className="flex items-center gap-3">
-                <label className="flex items-center gap-2 text-xs text-[var(--od-text-tertiary)]">
-                  <input
-                    type="checkbox"
-                    checked={tagMode === 'excluded'}
-                    onChange={(e) => setTagMode(e.target.checked ? 'excluded' : 'included')}
-                    className="rounded"
-                  />
-                  排除模式
-                </label>
-                <button
-                  onClick={() => setTagLogic(tagLogic === 'and' ? 'or' : 'and')}
-                  className="flex items-center gap-2 text-xs text-[var(--od-text-tertiary)] hover:text-[var(--od-text-primary)]"
-                >
-                  <SlidersHorizontal className="h-4 w-4" />
-                  {tagLogic === 'and' ? 'AND' : 'OR'}
-                </button>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {availableTags.length > 0 ? (
-                availableTags.map((tag) => {
-                  const state = tagStates.get(tag);
-                  return (
-                    <button
-                      key={tag}
-                      onClick={() => handleTagClick(tag)}
-                      className={`rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 hover:scale-105 ${
-                        state === 'included'
-                          ? 'bg-[var(--od-accent)] text-white'
-                          : state === 'excluded'
-                            ? 'bg-[var(--od-error)] text-white'
-                            : 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-secondary)] hover:bg-[var(--od-card-hover)]'
-                      }`}
-                    >
-                      {tag}
-                    </button>
-                  );
-                })
-              ) : (
-                <p className="text-sm text-[var(--od-text-tertiary)]">暂无可用标签</p>
-              )}
-            </div>
-          </div>
-        )}
+        {/* 主页面固定的高级搜索面板 - Banner 下方 */}
+        <MainAdvancedPanel
+          timeFrom={timeFrom}
+          timeTo={timeTo}
+          sortMethod={sortMethod}
+          tagLogic={tagLogic}
+          tagMode={tagMode}
+          availableTags={availableTags}
+          tagStates={tagStates}
+          onTimeFromChange={setTimeFrom}
+          onTimeToChange={setTimeTo}
+          onSortMethodChange={(value) => setSortMethod(value as any)}
+          onTagLogicChange={setTagLogic}
+          onTagModeChange={setTagMode}
+          onTagClick={handleTagClick}
+          onClearAllTags={clearAllTags}
+        />
 
         {/* 搜索结果 */}
         <div className="p-4">
-          {/* 统计信息栏 */}
+          {/* 统计信息栏 - 显示页数信息 */}
           <div className="animate-in fade-in duration-300">
             <StatsBar
               totalCount={totalResults}
               perPage={perPage}
               openMode={openMode}
               layoutMode={settings.layoutMode}
+              currentPage={page}
+              totalPages={totalPages}
               onPerPageChange={setPerPage}
               onOpenModeChange={setOpenMode}
               onLayoutModeChange={(mode) => updateSettings({ layoutMode: mode })}
@@ -554,7 +797,7 @@ export function SearchPage() {
             </div>
           )}
 
-          {/* 帖子网格/列表 - 添加淡入动画 */}
+          {/* 搜索结果列表 */}
           {isLoading ? (
             <div
               className={
@@ -586,39 +829,51 @@ export function SearchPage() {
                 </button>
               </div>
             </div>
-          ) : threads.length > 0 ? (
+          ) : mergedThreads.length > 0 ? (
             <div
-              className={`animate-in fade-in duration-500 ${
+              className={
                 settings.layoutMode === 'list'
-                  ? 'space-y-4'
-                  : 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
-              }`}
+                  ? 'space-y-4 animate-in fade-in duration-300'
+                  : 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 animate-in fade-in duration-300'
+              }
             >
-              {threads.map((thread, index) => (
+              {mergedThreads.map((thread) =>
+                settings.layoutMode === 'list' ? (
+                  <ThreadListItem
+                    key={thread.thread_id}
+                    thread={thread}
+                    onTagClick={handleTagClick}
+                    searchQuery={query}
+                    onAuthorClick={(authorName) => handleQuickSearch(`author:${authorName}`)}
+                    onPreview={setPreviewThread}
+                  />
+                ) : (
+                  <ThreadCard
+                    key={thread.thread_id}
+                    thread={thread}
+                    onTagClick={handleTagClick}
+                    searchQuery={query}
+                    onAuthorClick={(authorName) => handleQuickSearch(`author:${authorName}`)}
+                    onPreview={setPreviewThread}
+                  />
+                )
+              )}
+              {/* 无缝加载触发器 */}
+              {page < totalPages && (
                 <div
-                  key={thread.thread_id}
-                  className="animate-in fade-in slide-in-from-bottom-4"
-                  style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'backwards' }}
+                  ref={loadMoreRef}
+                  className="col-span-full flex items-center justify-center py-8"
                 >
-                  {settings.layoutMode === 'list' ? (
-                    <ThreadListItem
-                      thread={thread}
-                      onTagClick={handleTagClick}
-                      searchQuery={query}
-                      onAuthorClick={(authorName) => handleQuickSearch(`author:${authorName}`)}
-                      onPreview={setPreviewThread}
-                    />
+                  {isFetching ? (
+                    <div className="flex items-center gap-2 text-sm text-[var(--od-text-secondary)]">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--od-accent)] border-t-transparent" />
+                      <span>加载中...</span>
+                    </div>
                   ) : (
-                    <ThreadCard
-                      thread={thread}
-                      onTagClick={handleTagClick}
-                      searchQuery={query}
-                      onAuthorClick={(authorName) => handleQuickSearch(`author:${authorName}`)}
-                      onPreview={setPreviewThread}
-                    />
+                    <div className="h-1" />
                   )}
                 </div>
-              ))}
+              )}
             </div>
           ) : (
             <div className="flex min-h-[400px] items-center justify-center rounded-lg bg-[var(--od-card)] p-8 animate-in fade-in duration-300">
@@ -633,29 +888,6 @@ export function SearchPage() {
                     : '输入关键词或选择频道开始探索'}
                 </p>
               </div>
-            </div>
-          )}
-
-          {/* 分页 */}
-          {totalPages > 1 && (
-            <div className="mt-6 flex items-center justify-center gap-2 animate-in fade-in duration-300">
-              <button
-                onClick={() => setPage(Math.max(1, page - 1))}
-                disabled={page === 1}
-                className="rounded bg-[var(--od-border-strong)] p-2 text-[var(--od-text-primary)] transition-all duration-200 hover:scale-110 disabled:opacity-50 hover:bg-[var(--od-accent)]"
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </button>
-              <span className="text-sm text-[var(--od-text-secondary)] transition-all duration-200">
-                {page} / {totalPages}
-              </span>
-              <button
-                onClick={() => setPage(Math.min(totalPages, page + 1))}
-                disabled={page === totalPages}
-                className="rounded bg-[var(--od-border-strong)] p-2 text-[var(--od-text-primary)] transition-all duration-200 hover:scale-110 disabled:opacity-50 hover:bg-[var(--od-accent)]"
-              >
-                <ChevronRight className="h-5 w-5" />
-              </button>
             </div>
           )}
         </div>

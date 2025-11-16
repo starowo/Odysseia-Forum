@@ -126,13 +126,13 @@ export const tweakGrayDarkTheme: Theme = {
     textSecondary: 'oklch(0.7155 0 0)',         // --muted-foreground
     textTertiary: 'oklch(0.5510 0.0234 264.3637)', // 取接近的中灰
 
-    // 强调色
-    accent: 'oklch(0.6231 0.1880 259.8145)',    // --primary
-    accentHover: 'oklch(0.5461 0.2152 262.8809)', // chart-2 略深
+    // 强调色（偏紫色，和 Discord 蓝拉开差异）
+    accent: 'oklch(0.60 0.23 300)',             // 紫色主色
+    accentHover: 'oklch(0.55 0.23 300)',        // 略暗的紫色 hover
 
-    // 链接
-    link: 'oklch(0.7137 0.1434 254.6240)',      // chart-1
-    linkHover: 'oklch(0.6231 0.1880 259.8145)', // primary
+    // 链接（同一紫色系，略亮一点）
+    link: 'oklch(0.70 0.20 300)',
+    linkHover: 'oklch(0.65 0.20 300)',
 
     // 边框
     border: 'oklch(0.3715 0 0)',                // --border
@@ -164,13 +164,13 @@ export const tweakGrayLightTheme: Theme = {
     textSecondary: 'oklch(0.5510 0.0234 264.3637)', // --muted-foreground
     textTertiary: 'oklch(0.4461 0.0263 256.8018)',   // secondary-foreground
 
-    // 强调色
-    accent: 'oklch(0.6231 0.1880 259.8145)',    // --primary
-    accentHover: 'oklch(0.5461 0.2152 262.8809)', // chart-2
+    // 强调色（绿松石青色）
+    accent: 'oklch(0.70 0.12 210)',             // 青色主色（类似绿松石）
+    accentHover: 'oklch(0.65 0.14 210)',        // 略深一点的 hover
 
-    // 链接
-    link: 'oklch(0.4882 0.2172 264.3763)',      // chart-3
-    linkHover: 'oklch(0.4244 0.1809 265.6377)', // chart-4
+    // 链接（同一青色系）
+    link: 'oklch(0.75 0.11 210)',
+    linkHover: 'oklch(0.70 0.13 210)',
 
     // 边框
     border: 'oklch(0.9276 0.0058 264.5313)',    // --border

@@ -20,8 +20,8 @@ export function FilterBar({
   onTagLogicChange,
 }: FilterBarProps) {
   return (
-    // 背景透明，只保留左右间距，让文字和控件直接“浮在”页面背景上
-    <div className="mb-4 px-4">
+    // 由外层容器控制左右间距，这里只负责行内布局
+    <div className="mb-4">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
         {/* 发帖不早于 */}
         <div>

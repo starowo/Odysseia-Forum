@@ -5,6 +5,12 @@ export interface UserSettings {
   cardSize: 'compact' | 'normal' | 'large';
   layoutMode: 'grid' | 'list';
   compactMode: boolean;
+  /**
+   * 图片加载策略：
+   * - normal：正常加载所有图片
+   * - off：尽量不加载非必要图片（帖子缩略图等）
+   */
+  imageMode: 'normal' | 'off';
   // 主题选择：多套具体主题 + 自动
   theme:
     | 'discord-dark'
@@ -29,6 +35,7 @@ const defaultSettings: UserSettings = {
   cardSize: 'normal',
   layoutMode: 'grid',
   compactMode: false,
+  imageMode: 'normal',
   theme: 'discord-dark',
   notifications: {
     newPosts: true,
@@ -86,22 +93,25 @@ export function resetUserSettings(): void {
   saveUserSettings(defaultSettings);
 }
 
-// 字体大小映射
+// 字体大小映射（拉大差异，让设置切换有明显体感）
 export const fontSizeMap = {
   small: {
-    title: 'text-base', // 16px
-    content: 'text-sm', // 14px
-    meta: 'text-xs', // 12px
+    // 更紧凑
+    title: 'text-sm', // 14px
+    content: 'text-xs', // 12px
+    meta: 'text-[10px]', // ~10px
   },
   medium: {
+    // 默认
     title: 'text-lg', // 18px
     content: 'text-sm', // 14px
     meta: 'text-xs', // 12px
   },
   large: {
-    title: 'text-xl', // 20px
-    content: 'text-base', // 16px
-    meta: 'text-sm', // 14px
+    // 明显放大
+    title: 'text-2xl', // 24px
+    content: 'text-lg', // 18px
+    meta: 'text-base', // 16px
   },
 };
 
