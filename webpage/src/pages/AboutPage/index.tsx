@@ -1,24 +1,31 @@
-import { useEffect } from 'react';
+import { useRef } from 'react';
 import { Github } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import forumIcon from '@/assets/images/icon/A90C044F8DDF1959B2E9078CB629C239.png';
 import backgroundImage from '@/assets/images/background/winter.png';
 
 export function AboutPage() {
-  // 在 About 页面动态加载 oneko.js 彩蛋脚本
-  useEffect(() => {
+  const hasSpawnedRef = useRef(false);
+
+  // 点击服务器头像时才加载 oneko.js，小彩蛋
+  const handleSpawnNeko = () => {
+    // 已经触发过就不再重复注入
+    if (hasSpawnedRef.current) return;
+
+    // 如果页面上已经有 oneko 实例，也不再注入脚本
+    if (document.getElementById('oneko')) {
+      hasSpawnedRef.current = true;
+      return;
+    }
+
     const script = document.createElement('script');
     script.src = '/oneko/oneko.js';
     script.async = true;
     script.dataset.cat = '/oneko/oneko.gif';
 
     document.body.appendChild(script);
-
-    return () => {
-      // 卸载 About 页面时移除脚本，避免重复注入
-      document.body.removeChild(script);
-    };
-  }, []);
+    hasSpawnedRef.current = true;
+  };
 
   return (
     <MainLayout showTopBar={false}>
@@ -29,8 +36,12 @@ export function AboutPage() {
         <div className="max-w-2xl w-full">
           {/* 主卡片 - 调整透明度 */}
           <div className="rounded-2xl bg-[color-mix(in_oklab,var(--od-bg-secondary)_85%,transparent)] backdrop-blur-lg p-8 border border-[var(--od-border-strong)]/60 shadow-2xl">
-            {/* Logo */}
-            <div className="mb-8 flex justify-center">
+            {/* Logo - 点击触发 oneko 小猫彩蛋 */}
+            <div
+              className="mb-8 flex justify-center cursor-pointer select-none"
+              onClick={handleSpawnNeko}
+              title="试着点点我？"
+            >
               <img
                 src={forumIcon}
                 alt="类脑ΟΔΥΣΣΕΙΑ"
@@ -57,7 +68,7 @@ export function AboutPage() {
             </div>
 
             {/* GitHub链接 */}
-            <div className="mb-6 flex justify中心">
+            <div className="mb-6 flex justify-center">
               <a
                 href="https://github.com/starowo/Odysseia-Forum"
                 target="_blank"

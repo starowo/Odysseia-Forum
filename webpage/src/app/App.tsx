@@ -3,7 +3,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { RouterProvider } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { ThemeProvider } from '@/components/layout/ThemeProvider';
+import { ThemeProvider } from '../components/layout/ThemeProvider';
 import { router } from './router';
 
 const queryClient = new QueryClient({
