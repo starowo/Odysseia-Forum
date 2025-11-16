@@ -1,39 +1,62 @@
-import { http, HttpResponse } from 'msw';
+import { http, HttpResponse, type RequestHandler } from 'msw';
+import { MOCK_CHANNELS, MOCK_TAGS, MOCK_THREADS } from './data';
 
-// 从旧的 mockAuth.ts 导入模拟用户数据
 const MOCK_USER = {
   id: '123456789',
   username: 'demo_user',
   global_name: 'Demo User',
-  avatar: '1234567890abcdef',
+  avatar: null,
 };
 
-export const handlers = [
+export const handlers: RequestHandler[] = [
   // 拦截登录请求
-  http.post('/api/v1/auth/login', () => {
-    // 在 msw 里，我们不直接操作 localStorage，
-    // 而是模拟后端返回一个包含 token 的成功响应。
-    // 前端拿到 token 后自然会去存。
+  http.post('http://localhost:10810/v1/auth/login', () => {
     return HttpResponse.json({
       token: `mock_jwt_token_${Date.now()}`,
     });
   }),
 
   // 拦截检查用户状态的请求
-  http.get('/api/v1/auth/checkauth', () => {
-    // 这里模拟用户已登录的情况
+  http.get('http://localhost:10810/v1/auth/checkauth', () => {
     return HttpResponse.json({
       loggedIn: true,
       user: MOCK_USER,
     });
-
-    // 如果想模拟用户未登录，可以返回一个 401 错误
-    // return new HttpResponse(null, { status: 401 });
   }),
 
   // 拦截登出请求
-  http.post('/api/v1/auth/logout', () => {
-    // 模拟后端成功处理了登出
+  http.post('http://localhost:10810/v1/auth/logout', () => {
     return new HttpResponse(null, { status: 204 });
+  }),
+
+  // 拦截获取频道列表的请求
+  http.get('http://localhost:10810/v1/meta/channels', () => {
+    return HttpResponse.json(MOCK_CHANNELS);
+  }),
+
+  // 拦截获取标签列表的请求
+  http.get('http://localhost:10810/v1/meta/tags', () => {
+    return HttpResponse.json(MOCK_TAGS);
+  }),
+
+  // 拦截搜索请求
+  http.post('http://localhost:10810/v1/search', async ({ request }) => {
+    const reqBody = (await request.json()) as {
+      query?: string;
+      tags?: string[];
+      offset?: number;
+      limit?: number;
+    };
+    const { offset = 0, limit = 24 } = reqBody;
+
+    const start = offset;
+    const end = start + limit;
+
+    const paginatedThreads = MOCK_THREADS.slice(start, end);
+
+    return HttpResponse.json({
+      threads: paginatedThreads,
+      total: MOCK_THREADS.length,
+    });
   }),
 ];

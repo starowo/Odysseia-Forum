@@ -2,6 +2,8 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { DiscordIcon } from '@/components/icons/DiscordIcon';
 import { useRefreshAuth } from '@/features/auth/hooks/useAuth';
+import { apiClient } from '@/lib/api/client';
+import { toast } from 'sonner';
 import forumIcon from '@/assets/images/icon/A90C044F8DDF1959B2E9078CB629C239.png';
 import backgroundImage from '@/assets/images/background/winter.png';
 
@@ -9,10 +11,22 @@ export function LoginPage() {
   const navigate = useNavigate();
   const refreshAuth = useRefreshAuth();
 
-  const handleLogin = () => {
-    // 生产模式：跳转到真实的 Discord OAuth
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:10810/v1';
-    window.location.href = `${apiUrl}/auth/login`;
+  const handleLogin = async () => {
+    // 在 Mock 模式下，这将由 msw 拦截
+    try {
+      const response = await apiClient.post('/auth/login');
+      if (response.data.token) {
+        localStorage.setItem('auth_token', response.data.token);
+        toast.success('登录成功！');
+        refreshAuth();
+        setTimeout(() => navigate('/', { replace: true }), 300);
+      }
+    } catch (error) {
+      toast.error('登录失败，请稍后重试。');
+      // 在真实环境中，这里应该跳转到 Discord OAuth 页面
+      // const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:10810/v1';
+      // window.location.href = `${apiUrl}/auth/login`;
+    }
   };
 
   return (

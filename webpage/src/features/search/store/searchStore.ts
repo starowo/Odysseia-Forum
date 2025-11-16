@@ -56,17 +56,33 @@ export const useSearchStore = create<SearchState>()(
       perPage: 24,
 
       // Actions
-      setQuery: (query) => set({ query, page: 1 }),
+      setQuery: (query) => {
+        console.log('>>> Zustand: setQuery called, resetting page to 1', { query });
+        set({ query, page: 1 });
+      },
 
-      setChannel: (channelId) => set({ selectedChannel: channelId, page: 1 }),
+      setChannel: (channelId) => {
+        console.log('>>> Zustand: setChannel called, resetting page to 1', { channelId });
+        set({ selectedChannel: channelId, page: 1 });
+      },
 
-      setSortMethod: (method) => set({ sortMethod: method, page: 1 }),
+      setSortMethod: (method) => {
+        console.log('>>> Zustand: setSortMethod called, resetting page to 1', { method });
+        set({ sortMethod: method, page: 1 });
+      },
 
-      setTagLogic: (logic) => set({ tagLogic: logic, page: 1 }),
+      setTagLogic: (logic) => {
+        console.log('>>> Zustand: setTagLogic called, resetting page to 1', { logic });
+        set({ tagLogic: logic, page: 1 });
+      },
 
-      setTagMode: (mode) => set({ tagMode: mode }),
+      setTagMode: (mode) => {
+        console.log('>>> Zustand: setTagMode called', { mode });
+        set({ tagMode: mode });
+      },
 
-      toggleTag: (tag) =>
+      toggleTag: (tag) => {
+        console.log('>>> Zustand: toggleTag called, resetting page to 1', { tag });
         set((state) => {
           const newTagStates = new Map(state.tagStates);
           const current = newTagStates.get(tag);
@@ -78,24 +94,40 @@ export const useSearchStore = create<SearchState>()(
           }
 
           return { tagStates: newTagStates, page: 1 };
-        }),
+        });
+      },
 
-      clearTag: (tag) =>
+      clearTag: (tag) => {
+        console.log('>>> Zustand: clearTag called', { tag });
         set((state) => {
           const newTagStates = new Map(state.tagStates);
           newTagStates.delete(tag);
           return { tagStates: newTagStates };
-        }),
+        });
+      },
 
-      clearAllTags: () => set({ tagStates: new Map(), page: 1 }),
+      clearAllTags: () => {
+        console.log('>>> Zustand: clearAllTags called, resetting page to 1');
+        set({ tagStates: new Map(), page: 1 });
+      },
 
-      setTimeRange: (from, to) => set({ timeFrom: from, timeTo: to, page: 1 }),
+      setTimeRange: (from, to) => {
+        console.log('>>> Zustand: setTimeRange called, resetting page to 1', { from, to });
+        set({ timeFrom: from, timeTo: to, page: 1 });
+      },
 
-      setPage: (page) => set({ page }),
+      setPage: (page) => {
+        console.log('>>> Zustand: setPage called', { page });
+        set((state) => ({ ...state, page }));
+      },
 
-      setPerPage: (perPage) => set({ perPage, page: 1 }),
+      setPerPage: (perPage) => {
+        console.log('>>> Zustand: setPerPage called, resetting page to 1', { perPage });
+        set({ perPage, page: 1 });
+      },
 
-      clearFilters: () =>
+      clearFilters: () => {
+        console.log('>>> Zustand: clearFilters called, resetting page to 1');
         set({
           query: '',
           selectedChannel: null,
@@ -103,15 +135,15 @@ export const useSearchStore = create<SearchState>()(
           timeFrom: null,
           timeTo: null,
           page: 1,
-        }),
+        });
+      },
     }),
     {
       name: 'search-storage',
-      partialize: (state) => ({
-        sortMethod: state.sortMethod,
-        perPage: state.perPage,
-        tagLogic: state.tagLogic,
-      }),
+      partialize: (state) =>
+        Object.fromEntries(
+          Object.entries(state).filter(([key]) => !['tagStates'].includes(key))
+        ),
     }
   )
 );

@@ -199,3 +199,5 @@ webpage/coverage/
 *.local
 *.log
 .DS_Store
+# Test tool directory
+testtool/

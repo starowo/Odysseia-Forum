@@ -14,6 +14,11 @@ const queryClient = new QueryClient({
   },
 });
 
+// 方便调试
+if (import.meta.env.DEV) {
+  (window as any).queryClient = queryClient;
+}
+
 export function App() {
   return (
     <ErrorBoundary>

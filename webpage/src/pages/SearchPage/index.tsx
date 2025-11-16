@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -55,6 +55,10 @@ export function SearchPage() {
   } = useSearchStore();
 
   const [searchInput, setSearchInput] = useState(query);
+
+  useEffect(() => {
+    setSearchInput(query);
+  }, [query]);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [timeFrom, setTimeFrom] = useState('');
   const [timeTo, setTimeTo] = useState('');
@@ -105,24 +109,25 @@ export function SearchPage() {
       created_after: timeFrom || undefined,
       created_before: timeTo || undefined,
     }),
+    enabled: true, // 确保即使 queryKey 中有 null/undefined 也执行查询
     staleTime: 30 * 1000, // 30秒
   });
 
   // 从API响应中提取数据
-  const threads = searchData?.results || [];
+  const threads = searchData?.threads || [];
   const totalResults = searchData?.total || 0;
   const availableTags = searchData?.available_tags || [];
   const totalPages = Math.ceil(totalResults / perPage);
 
   // 处理搜索
-  const handleSearch = () => {
+  const handleSearch = useCallback(() => {
     const trimmedQuery = searchInput.trim();
     setQuery(trimmedQuery);
     // 保存到搜索历史
     if (trimmedQuery) {
       addSearchHistory(trimmedQuery);
     }
-  };
+  }, [searchInput, setQuery]);
 
   // 从历史记录选择搜索
   const handleSelectHistory = (historyQuery: string) => {
@@ -421,7 +426,7 @@ export function SearchPage() {
             }`}>
               {threads.map((thread, index) => (
                 <div
-                  key={thread.id}
+                  key={thread.thread_id}
                   className="animate-in fade-in slide-in-from-bottom-4"
                   style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'backwards' }}
                 >

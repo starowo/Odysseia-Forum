@@ -42,7 +42,7 @@ export interface SearchParams {
 }
 
 export interface SearchResponse {
-  results: Thread[];
+  threads: Thread[];
   total: number;
   available_tags: string[];
   banner_carousel?: BannerItem[];
