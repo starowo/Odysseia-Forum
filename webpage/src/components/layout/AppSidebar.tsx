@@ -1,4 +1,4 @@
-import { Globe, Bookmark, Settings, Info, LogOut, Search as SearchIcon } from 'lucide-react';
+import { Globe, Bookmark, Settings, Info, LogOut, Search as SearchIcon, Bell } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { UserCard } from '@/components/layout/UserCard';
@@ -9,7 +9,7 @@ import { apiClient } from '@/lib/api/client';
 import type { Channel } from '@/types/thread.types';
 
 export function AppSidebar() {
-  const { user, isAuthenticated, unreadCount } = useAuth();
+  const { user } = useAuth();
   const location = useLocation();
   const { selectedChannel, setChannel } = useSearchStore();
   const isSearchPage = location.pathname === '/';
@@ -131,6 +131,15 @@ export function AppSidebar() {
             <span className="truncate">搜索页面</span>
           </Link>
 
+          {/* 通知中心入口占位：目前仅作为导航按钮，后续接入通知中心功能 */}
+          <button
+            type="button"
+            className="flex w-full items-center gap-2 rounded-md border border-transparent px-2 py-1.5 text-sm text-[var(--od-text-tertiary)] transition-all duration-200 hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]"
+          >
+            <Bell className="h-4 w-4 flex-shrink-0" />
+            <span className="truncate">通知中心</span>
+          </button>
+
           <Link
             to="/follows"
             className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-sm transition-all duration-200 ${
@@ -143,11 +152,6 @@ export function AppSidebar() {
               className={`h-4 w-4 flex-shrink-0 ${isActive('/follows') ? 'text-[var(--od-accent)]' : ''}`}
             />
             <span className="truncate">我的关注</span>
-            {isAuthenticated && unreadCount > 0 && (
-              <span className="ml-auto rounded-full bg-[#f23f43] px-2 py-0.5 text-xs font-bold text-white">
-                {unreadCount}
-              </span>
-            )}
           </Link>
           <Link
             to="/settings"
