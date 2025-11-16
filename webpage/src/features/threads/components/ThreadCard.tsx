@@ -23,6 +23,12 @@ export function ThreadCard({ thread, onTagClick, searchQuery }: ThreadCardProps)
     locale: zhCN,
   });
 
+  const authorName =
+    thread.author?.display_name ??
+    thread.author?.global_name ??
+    thread.author?.name ??
+    '未知用户';
+
   // 构建Discord帖子链接
   // 如果guild_id不存在，使用环境变量中的GUILD_ID
   const guildId = thread.guild_id || import.meta.env.VITE_GUILD_ID || '@me';
@@ -54,7 +60,22 @@ export function ThreadCard({ thread, onTagClick, searchQuery }: ThreadCardProps)
           // 无图片时显示纯色背景
           <div className="h-full w-full bg-gradient-to-br from-[#18191c] to-[#1e1f22]" />
         )}
-        
+
+        {/* 关注红点（主要用于搜索结果中标记“已关注”） */}
+        {thread.is_following && (
+          <div className="absolute left-2 top-2 flex items-center gap-1 text-xs font-medium text-[#f23f43]">
+            <span className="inline-block h-2 w-2 rounded-full bg-[#f23f43]" />
+          </div>
+        )}
+
+        {/* 有更新徽章：绿色毛玻璃效果 */}
+        {thread.has_update && (
+          <div className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-[#23a55a]/90 px-2 py-0.5 text-xs font-semibold text-white shadow-sm backdrop-blur-sm">
+            <span className="inline-block h-2 w-2 rounded-full bg-white" />
+            <span>有更新</span>
+          </div>
+        )}
+
         {/* 标签悬浮在图片上（左下角） */}
         {thread.tags && thread.tags.length > 0 && (
           <div className="absolute bottom-2 left-2 flex flex-wrap gap-1.5">
@@ -89,7 +110,7 @@ export function ThreadCard({ thread, onTagClick, searchQuery }: ThreadCardProps)
         {/* 作者信息 */}
         <div className={`mb-2 flex items-center gap-2 text-[var(--od-text-tertiary)] ${fontSizes.meta}`}>
           <span className="font-medium">
-            {thread.author.display_name || thread.author.name}
+            {authorName}
           </span>
           <span>·</span>
           <span>{createdTime}</span>

@@ -16,6 +16,8 @@ export function useAuth() {
   return {
     user: data?.user,
     isAuthenticated: data?.loggedIn ?? false,
+    // 从后端 /auth/checkauth 获取的关注未读数量（MSW 也会模拟该字段）
+    unreadCount: data?.unread_count ?? 0,
     isLoading,
     error,
     refetch,

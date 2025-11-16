@@ -10,6 +10,8 @@ export interface User {
 export interface AuthResponse {
   loggedIn: boolean;
   user?: User;
+  // 当前用户关注列表的未读更新数量（来自 /auth/checkauth）
+  unread_count?: number;
 }
 
 export const authApi = {

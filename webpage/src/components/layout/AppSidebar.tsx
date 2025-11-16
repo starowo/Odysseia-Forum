@@ -9,7 +9,7 @@ import { apiClient } from '@/lib/api/client';
 import type { Channel } from '@/types/thread.types';
 
 export function AppSidebar() {
-  const { user } = useAuth();
+  const { user, isAuthenticated, unreadCount } = useAuth();
   const location = useLocation();
   const { selectedChannel, setChannel } = useSearchStore();
   const isSearchPage = location.pathname === '/';
@@ -135,8 +135,15 @@ export function AppSidebar() {
                 : 'border-transparent text-[var(--od-text-tertiary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
             }`}
           >
-            <Bookmark className={`h-4 w-4 flex-shrink-0 ${isActive('/follows') ? 'text-[var(--od-accent)]' : ''}`} />
-          <span className="truncate">我的关注</span>
+            <Bookmark
+              className={`h-4 w-4 flex-shrink-0 ${isActive('/follows') ? 'text-[var(--od-accent)]' : ''}`}
+            />
+            <span className="truncate">我的关注</span>
+            {isAuthenticated && unreadCount > 0 && (
+              <span className="ml-auto rounded-full bg-[#f23f43] px-2 py-0.5 text-xs font-bold text-white">
+                {unreadCount}
+              </span>
+            )}
           </Link>
           <Link
             to="/settings"

@@ -1,5 +1,14 @@
 import { http, HttpResponse, type RequestHandler } from 'msw';
-import { MOCK_META_CHANNELS, MOCK_TAGS, MOCK_THREADS } from './data';
+import {
+  MOCK_META_CHANNELS,
+  MOCK_TAGS,
+  MOCK_THREADS,
+  FOLLOWED_THREAD_IDS,
+  UPDATED_THREAD_IDS,
+} from './data';
+
+const FOLLOWED_SET = new Set(FOLLOWED_THREAD_IDS);
+const UPDATED_SET = new Set(UPDATED_THREAD_IDS);
 
 const MOCK_USER = {
   id: '123456789',
@@ -21,6 +30,8 @@ export const handlers: RequestHandler[] = [
     return HttpResponse.json({
       loggedIn: true,
       user: MOCK_USER,
+      // 模拟当前用户关注列表中的未读更新数量
+      unread_count: UPDATED_THREAD_IDS.length,
     });
   }),
 
@@ -41,10 +52,21 @@ export const handlers: RequestHandler[] = [
 
   // 拦截获取关注列表的请求（用于 FollowsPage）
   http.get('http://localhost:10810/v1/preferences/follows', () => {
+    const followedThreads = MOCK_THREADS.filter((thread) => FOLLOWED_SET.has(thread.thread_id)).map(
+      (thread) => ({
+        ...thread,
+        // 关注列表结果里补充 id 字段，方便用作 React key
+        id: thread.thread_id,
+        is_following: true,
+        has_update: UPDATED_SET.has(thread.thread_id),
+      }),
+    );
+
     return HttpResponse.json({
-      results: MOCK_THREADS.slice(0, 12),
-      total: MOCK_THREADS.length,
-      unread_count: 3,
+      results: followedThreads,
+      total: followedThreads.length,
+      // 与 has_update = true 的数量保持一致
+      unread_count: followedThreads.filter((t) => t.has_update).length,
     });
   }),
 
@@ -134,6 +156,13 @@ export const handlers: RequestHandler[] = [
     const end = start + limit;
     const paginatedThreads = filtered.slice(start, end);
 
+    // 为搜索结果补充“已关注/有更新”标记
+    const paginatedThreadsWithFlags = paginatedThreads.map((thread) => ({
+      ...thread,
+      is_following: FOLLOWED_SET.has(thread.thread_id),
+      has_update: UPDATED_SET.has(thread.thread_id),
+    }));
+
     // 根据当前结果生成 available_tags（用来填标签筛选区）
     const availableTagsSet = new Set<string>();
     filtered.forEach((thread) => {
@@ -158,10 +187,11 @@ export const handlers: RequestHandler[] = [
       total,
       limit,
       offset,
-      results: paginatedThreads,
+      results: paginatedThreadsWithFlags,
       available_tags,
       banner_carousel,
-      unread_count: 3,
+      // 未读数：等于有更新的关注帖子数量
+      unread_count: UPDATED_THREAD_IDS.length,
     });
   }),
 ];

@@ -108,7 +108,7 @@ function pickExcerpt(i: number): string | undefined {
   return undefined;
 }
 
-// 模拟帖子数据：混合不同频道、tag、多种文案
+ // 模拟帖子数据：混合不同频道、tag、多种文案
 export const MOCK_THREADS = Array.from({ length: 80 }, (_, i) => {
   const channelCategory = MOCK_CHANNELS[i % MOCK_CHANNELS.length];
   const channel = channelCategory.channels[i % channelCategory.channels.length];
@@ -147,3 +147,7 @@ export const MOCK_THREADS = Array.from({ length: 80 }, (_, i) => {
     thumbnail_url: thumbnail,
   };
 });
+
+// 约定：前 12 条帖子视为“已关注”，其中前 3 条有更新
+export const FOLLOWED_THREAD_IDS = MOCK_THREADS.slice(0, 12).map((t) => t.thread_id);
+export const UPDATED_THREAD_IDS = FOLLOWED_THREAD_IDS.slice(0, 3);

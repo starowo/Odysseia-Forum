@@ -234,8 +234,151 @@
   - `/v1/meta/channels` 从 `CacheService` 获取已索引频道与真实标签。
   - `/v1/preferences` 读写真实用户偏好数据。
   - Banner 数据由 `BannerService` 从数据库中读取。
+  - `/v1/follows` 及 `/v1/follows/unread-count` 提供关注列表与未读更新数量。
+  - `/v1/auth/checkauth` 在返回登录状态时也附带未读更新数量。
 - **本地开发环境（MSW）**：
   - 前端通过 MSW 模拟上述接口，只保证字段结构与真实接口一致，数据是有限的 Mock。
   - 某些值（如频道 ID、标签名、统计数字）是静态示例，不代表生产环境真实分布。
 
 前端在设计类型与交互时应以本文件描述的 **生产环境字段与语义** 为准，不应依赖 Mock 数据中的具体值。
+
+---
+
+## 7. 关注列表与“有更新”相关数据
+
+这一节补充说明和 **关注 / 更新状态** 相关、但在搜索结果里不一定直接出现的字段，方便前端在设计交互时统一参考。
+
+### 7.1 关注列表 `/v1/follows/`
+
+路由定义见 [`src/api/v1/routers/follows.py`](src/api/v1/routers/follows.py:15)，依赖 `get_current_user`：
+
+- 方法：`GET /v1/follows/`
+- 查询参数：
+  - `limit: int = 10000`
+  - `offset: int = 0`
+- 响应结构（非 Pydantic，手动构造的 JSON）：
+
+```jsonc
+{
+  "total": 123,
+  "threads": [
+    {
+      "thread_id": "1234567890",
+      "channel_id": "987654321",
+      "title": "帖子标题",
+      "author_id": "1122334455",
+      "created_at": "2024-01-01T12:00:00+00:00",
+      "last_active_at": "2024-01-02T12:00:00+00:00",
+      "latest_update_at": "2024-01-02T12:30:00+00:00",
+      "latest_update_link": "https://discord.com/...",
+      "reaction_count": 10,
+      "reply_count": 5,
+      "first_message_excerpt": "首条消息摘要……",
+      "thumbnail_url": "https://...",
+      "tags": ["标签A", "标签B"],
+      "followed_at": "2024-01-01T12:00:00+00:00",
+      "last_viewed_at": "2024-01-02T12:00:00+00:00",
+      "has_update": true
+    }
+  ],
+  "limit": 10000,
+  "offset": 0
+}
+```
+
+字段来源见 [`FollowService.get_user_follows`](src/ThreadManager/services/follow_service.py:227)：
+
+- 线程字段（来自 `Thread` 模型）：
+  - `thread_id: str`
+  - `channel_id: str`
+  - `title: str`
+  - `author_id: str`
+  - `created_at: datetime`
+  - `last_active_at: Optional[datetime]`
+  - `latest_update_at: Optional[datetime]`
+  - `latest_update_link: Optional[str]`
+  - `reaction_count: int`
+  - `reply_count: int`
+  - `first_message_excerpt: Optional[str]`
+  - `thumbnail_url: Optional[str]`
+  - `tags: List[str]`（从 `thread.tags` 映射而来）
+- 关注关系字段（来自 `ThreadFollow`）：
+  - `followed_at: datetime`
+  - `last_viewed_at: Optional[datetime]`
+  - `has_update: bool`
+    - 逻辑：`thread.latest_update_at` 存在且晚于 `last_viewed_at`，或者 `last_viewed_at` 为 `null` 时视为 `true`。
+
+前端典型用途（设计指引）：
+
+- **关注页卡片**：
+  - 使用 `has_update` 在卡片上加红点 / “有更新”标记。
+  - 使用 `latest_update_at` / `latest_update_link` 定位到最新回复（如果需要）。
+- **搜索结果页**：
+  - 当前的搜索结果 `ThreadDetail` **不包含** `has_update`/`followed_at` 等字段，因此:
+    - 搜索结果中无法直接知道某贴是否已关注或是否有未读更新；
+    - 若希望在搜索结果中显示“已关注/有更新”状态，需要后端扩展 `ThreadDetail` 或提供额外接口。
+
+### 7.2 未读更新数量 `unread_count`
+
+未读更新有三处来源，语义一致：
+
+1. 搜索接口 [`/v1/search`](src/api/v1/routers/search.py:189)：
+   - 返回的 [`SearchResponse`](src/api/v1/schemas/search/search_response.py:36) 中包含：
+
+     ```py
+     unread_count: int = Field(
+         default=0,
+         description="当前用户关注列表的未读更新数量"
+     )
+     ```
+
+   - 值来自 `FollowService.get_unread_count(user_id)`。
+
+2. 认证检查接口 [`/v1/auth/checkauth`](src/api/v1/routers/auth.py:198)：
+   - 返回 JSON 中同样包含 `unread_count` 字段：
+
+     ```jsonc
+     {
+       "loggedIn": true,
+       "user": { ... },
+       "unread_count": 3
+     }
+     ```
+
+   - 便于前端在全局导航（如登录后立刻）显示未读徽标。
+
+3. 关注路由 [`/v1/follows/unread-count`](src/api/v1/routers/follows.py:100)：
+   - 方法：`GET /v1/follows/unread-count`
+   - 响应：`{"unread_count": number}`
+
+前端可以根据实际需求选择数据来源：
+
+- **全局侧边栏徽标**：优先使用 `/auth/checkauth` 或 `/follows/unread-count`。
+- **搜索页头部统计**：直接使用 `SearchResponse.unread_count`，保持一次请求拿齐结果与未读数。
+
+### 7.3 当前文档 vs 前端使用情况说明
+
+- 本文件现在覆盖的内容：
+  - 搜索接口 `/v1/search`：`SearchRequest`、`SearchResponse`、`ThreadDetail` 的所有字段；
+  - 元数据 `/v1/meta/channels`：频道和标签结构；
+  - 用户偏好 `/v1/preferences/users/{user_id}`：全部字段；
+  - 关注列表 `/v1/follows/`：帖子 + 关注关系字段（含 `has_update` 等）；
+  - 未读更新数量：`/v1/search`、`/v1/auth/checkauth`、`/v1/follows/unread-count` 中的 `unread_count`。
+
+- 前端已经使用的字段（截至当前实现）：
+  - 搜索结果卡片/列表：
+    - `title`、`first_message_excerpt`、`thumbnail_url`、`tags`、
+      `created_at`、`reaction_count`、`reply_count`。
+  - 搜索页统计与筛选：
+    - `total`、`limit`、`offset`、`available_tags`、`banner_carousel`。
+  - 关注页：
+    - 关注列表接口的基础帖子字段（标题、摘要、封面、标签、计数等）。
+  - 未读数：
+    - 尚未在 UI 中展示，但可以从上述三个接口任一处接入。
+
+- 目前尚未在 UI 中利用、但已经有的有用数据：
+  - `has_update`：可用于关注页、未来的搜索结果中突出“有新内容”的帖子（红点/高亮）。
+  - `latest_update_at` / `latest_update_link`：可用于“跳转到最新更新”按钮。
+  - `display_count`：主要用于排序算法（UCB1），不建议直接展示，但可用于 debug / 实验性 UI。
+
+当后续前端实现“关注贴在搜索结果中显示红点/已关注状态”时，应协调后端在 `ThreadDetail` 中增加相应字段，并同步更新本文件，保证这里始终是前后端对齐的 **唯一权威说明**。
