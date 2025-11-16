@@ -104,7 +104,7 @@ function ThreadPreviewOverlay({ thread, onClose }: ThreadPreviewOverlayProps) {
 
           {thread.has_update && (
             <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-[#23a55a]/90 px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm backdrop-blur-sm">
-              <span className="inline-block h-2 w-2 rounded-full bg-white" />
+              <span className="inline-block h-2 w-2 rounded-full bg-white animate-[pulse_2.4s_ease-in-out_infinite]" />
               <span>有更新</span>
             </div>
           )}
@@ -146,10 +146,14 @@ function ThreadPreviewOverlay({ thread, onClose }: ThreadPreviewOverlayProps) {
           )}
 
           {/* 正文 Markdown */}
-          {thread.first_message_excerpt && (
+          {thread.first_message_excerpt && thread.first_message_excerpt.trim() !== '...' ? (
             <div className="od-md text-sm text-[var(--od-text-primary)]">
               <MarkdownText text={thread.first_message_excerpt} />
             </div>
+          ) : (
+            <p className="mt-2 text-sm text-[var(--od-text-tertiary)]">
+              当前接口只返回首条消息的摘要，完整内容请在 Discord 中查看。
+            </p>
           )}
 
           {/* 打开原帖按钮 */}
@@ -162,6 +166,52 @@ function ThreadPreviewOverlay({ thread, onClose }: ThreadPreviewOverlayProps) {
               在 Discord 中打开
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface SearchOnboardingOverlayProps {
+  onClose: () => void;
+}
+
+function SearchOnboardingOverlay({ onClose }: SearchOnboardingOverlayProps) {
+  return (
+    <div
+      className="fixed inset-0 z-[55] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-lg rounded-2xl border border-[var(--od-border-strong)]/60 bg-[var(--od-card)] p-6 shadow-2xl animate-in fade-in zoom-in duration-300"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="mb-3 text-xl font-bold text-[var(--od-text-primary)]">
+          欢迎来到类脑搜索
+        </h2>
+        <p className="mb-4 text-sm text-[var(--od-text-secondary)]">
+          这是 Odysseia 的新网页前端，你可以像在 Discord 一样探索帖子，但拥有更强的搜索与筛选能力。
+        </p>
+        <ul className="mb-5 list-disc space-y-2 pl-5 text-sm text-[var(--od-text-secondary)]">
+          <li>
+            使用顶部搜索框输入关键词，支持{' '}
+            <code className="rounded bg-[var(--od-bg-tertiary)] px-1 text-[0.8em]">author:</code>{' '}
+            等高级语法。
+          </li>
+          <li>左侧选择频道与标签，组合 AND / OR 条件精确筛选。</li>
+          <li>点击任意卡片或列表项，可以打开预览浮层阅读完整内容。</li>
+        </ul>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg bg-[var(--od-accent)] px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:scale-105 hover:bg-[var(--od-accent-hover)]"
+          >
+            知道了，开始探索
+          </button>
+          <p className="text-xs text-[var(--od-text-tertiary)]">
+            此引导只会在本设备第一次访问时出现。
+          </p>
         </div>
       </div>
     </div>
@@ -195,6 +245,7 @@ export function SearchPage() {
   useEffect(() => {
     setSearchInput(query);
   }, [query]);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [timeFrom, setTimeFrom] = useState('');
   const [timeTo, setTimeTo] = useState('');
@@ -202,6 +253,18 @@ export function SearchPage() {
   const [previewThread, setPreviewThread] = useState<Thread | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { settings, updateSettings } = useSettings();
+
+  // 首次访问引导：仅在本设备第一次访问时展示
+  useEffect(() => {
+    try {
+      const seen = localStorage.getItem('od_onboarding_seen');
+      if (!seen) {
+        setShowOnboarding(true);
+      }
+    } catch (error) {
+      console.error('Failed to read onboarding flag:', error);
+    }
+  }, []);
 
   // 默认Banner
   const defaultBanners = [
@@ -231,7 +294,7 @@ export function SearchPage() {
   }, [tagStates]);
 
   // 使用真实API获取搜索结果
-  const { data: searchData, isLoading } = useQuery({
+  const { data: searchData, isLoading, isError, refetch } = useQuery({
     queryKey: ['search', query, selectedChannel, includedTags, excludedTags, tagLogic, sortMethod, page, perPage, timeFrom, timeTo],
     queryFn: () => searchApi.search({
       query: query || undefined,
@@ -331,6 +394,15 @@ export function SearchPage() {
     setPreviewThread(null);
   };
 
+  const handleCloseOnboarding = () => {
+    try {
+      localStorage.setItem('od_onboarding_seen', '1');
+    } catch (error) {
+      console.error('Failed to save onboarding flag:', error);
+    }
+    setShowOnboarding(false);
+  };
+
   // 频道名称（暂时简化）
   const currentChannelName = selectedChannel || '全频道搜索';
 
@@ -393,9 +465,9 @@ export function SearchPage() {
           />
         </div>
 
-        {/* 标签筛选区 */}
+        {/* 标签筛选区 - 背景透明，让标签直接浮在页面背景上 */}
         {availableTags.length > 0 && (
-          <div className="border-b border-[var(--od-border)] bg-[var(--od-bg-secondary)] p-4 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="px-4 pb-4 pt-0 animate-in fade-in slide-in-from-top-2 duration-300">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <span className="text-sm font-medium text-[var(--od-text-secondary)]">标签筛选</span>
@@ -436,12 +508,12 @@ export function SearchPage() {
                     <button
                       key={tag}
                       onClick={() => handleTagClick(tag)}
-                      className={`rounded-md px-3 py-1.5 text-sm font-medium transition-all duration-200 hover:scale-105 ${
+                      className={`rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 hover:scale-105 ${
                         state === 'included'
-                          ? 'bg-[#248046] text-white'
+                          ? 'bg-[var(--od-accent)] text-white'
                           : state === 'excluded'
-                            ? 'bg-[#da373c] text-white'
-                            : 'bg-[#4e5058] text-[#dbdee1] hover:bg-[#6d6f78]'
+                            ? 'bg-[var(--od-error)] text-white'
+                            : 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-secondary)] hover:bg-[var(--od-card-hover)]'
                       }`}
                     >
                       {tag}
@@ -484,17 +556,44 @@ export function SearchPage() {
 
           {/* 帖子网格/列表 - 添加淡入动画 */}
           {isLoading ? (
-            <div className={settings.layoutMode === 'list' ? 'space-y-4 animate-in fade-in duration-300' : 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 animate-in fade-in duration-300'}>
+            <div
+              className={
+                settings.layoutMode === 'list'
+                  ? 'space-y-4 animate-in fade-in duration-300'
+                  : 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 animate-in fade-in duration-300'
+              }
+            >
               {Array.from({ length: perPage }).map((_, i) => (
                 <ThreadCardSkeleton key={i} />
               ))}
             </div>
+          ) : isError ? (
+            <div className="flex min-h-[400px] items-center justify-center rounded-lg bg-[var(--od-card)] p-8 animate-in fade-in duration-300">
+              <div className="text-center">
+                <Search className="mx-auto mb-4 h-16 w-16 text-[var(--od-text-tertiary)]" />
+                <h3 className="mb-2 text-xl font-bold text-[var(--od-text-primary)]">
+                  搜索出错
+                </h3>
+                <p className="mb-4 text-[var(--od-text-secondary)]">
+                  搜索服务暂时不可用，请稍后重试。
+                </p>
+                <button
+                  type="button"
+                  onClick={() => refetch()}
+                  className="rounded-lg bg-[var(--od-accent)] px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:scale-105 hover:bg-[var(--od-accent-hover)]"
+                >
+                  重试
+                </button>
+              </div>
+            </div>
           ) : threads.length > 0 ? (
-            <div className={`animate-in fade-in duration-500 ${
-              settings.layoutMode === 'list' 
-                ? 'space-y-4' 
-                : 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
-            }`}>
+            <div
+              className={`animate-in fade-in duration-500 ${
+                settings.layoutMode === 'list'
+                  ? 'space-y-4'
+                  : 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
+              }`}
+            >
               {threads.map((thread, index) => (
                 <div
                   key={thread.thread_id}
@@ -507,6 +606,7 @@ export function SearchPage() {
                       onTagClick={handleTagClick}
                       searchQuery={query}
                       onAuthorClick={(authorName) => handleQuickSearch(`author:${authorName}`)}
+                      onPreview={setPreviewThread}
                     />
                   ) : (
                     <ThreadCard
@@ -563,6 +663,11 @@ export function SearchPage() {
       {/* 预览浮层：选中的卡片会上浮居中放大，带淡入/缩放过渡动画，正文支持 Markdown 和独立滚动 */}
       {previewThread && (
         <ThreadPreviewOverlay thread={previewThread} onClose={handleClosePreview} />
+      )}
+
+      {/* 首次访问引导浮层 */}
+      {showOnboarding && (
+        <SearchOnboardingOverlay onClose={handleCloseOnboarding} />
       )}
     </div>
   );

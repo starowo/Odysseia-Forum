@@ -83,7 +83,10 @@ export function AboutPage() {
             {/* 版本信息 */}
             <div className="text-center">
               <p className="text-sm text-[var(--od-text-secondary)]">
-                Version 1.0.0 · Powered by Discord
+                前端版本 2.0.0 · Odysseia Forum New Webpage
+              </p>
+              <p className="mt-1 text-xs text-[var(--od-text-tertiary)]">
+                最近更新：新增帖子预览浮层、改进搜索体验与主题设置
               </p>
             </div>
           </div>

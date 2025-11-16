@@ -4,7 +4,18 @@ import { App } from './app/App';
 import './styles/globals.css';
 
 async function enableMocking() {
-  if (import.meta.env.VITE_API_MOCKING !== 'true') {
+  const isMockEnabled = import.meta.env.VITE_API_MOCKING === 'true';
+  const mode = import.meta.env.MODE;
+
+  if (!isMockEnabled) {
+    return;
+  }
+
+  // 仅在非生产环境下启用 MSW，避免生产环境误用 Mock
+  if (mode === 'production') {
+    console.warn(
+      '[MSW] VITE_API_MOCKING is true but current mode is production; skipping MSW worker startup.'
+    );
     return;
   }
 

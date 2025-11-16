@@ -6,7 +6,11 @@ export function DevNav() {
   const location = useLocation();
   
   const handleLogout = () => {
-    localStorage.clear();
+    try {
+      localStorage.removeItem('auth_token');
+    } catch (error) {
+      console.error('Failed to clear auth token on logout:', error);
+    }
     toast.success('已退出登录');
     window.location.href = '/login';
   };

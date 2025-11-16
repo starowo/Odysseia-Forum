@@ -26,7 +26,11 @@ export function AppSidebar() {
   });
 
   const handleLogout = () => {
-    localStorage.clear();
+    try {
+      localStorage.removeItem('auth_token');
+    } catch (error) {
+      console.error('Failed to clear auth token on logout:', error);
+    }
     window.location.href = '/login';
   };
 

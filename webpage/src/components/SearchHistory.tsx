@@ -74,17 +74,17 @@ export function SearchHistoryDropdown({
   return (
     <div
       ref={dropdownRef}
-      className="absolute left-0 right-0 top-full z-50 mt-2 rounded-lg bg-[#2b2d31] shadow-2xl border border-[#3f4147] animate-in fade-in slide-in-from-top-2 duration-200"
+      className="absolute left-0 right-0 top-full z-50 mt-2 rounded-lg bg-[var(--od-bg-secondary)] shadow-2xl border border-[var(--od-border-strong)] animate-in fade-in slide-in-from-top-2 duration-200"
     >
       {/* 标题栏 */}
-      <div className="flex items-center justify-between border-b border-[#3f4147] px-4 py-3">
+      <div className="flex items-center justify-between border-b border-[var(--od-border-strong)] px-4 py-3">
         <div className="flex items-center gap-2">
-          <History className="h-4 w-4 text-[#949ba4]" />
-          <span className="text-sm font-semibold text-[#f2f3f5]">搜索历史</span>
+          <History className="h-4 w-4 text-[var(--od-text-tertiary)]" />
+          <span className="text-sm font-semibold text-[var(--od-text-primary)]">搜索历史</span>
         </div>
         <button
           onClick={handleClearAll}
-          className="text-xs text-[#949ba4] transition-colors hover:text-[#f2f3f5]"
+          className="text-xs text-[var(--od-text-tertiary)] transition-colors hover:text-[var(--od-text-primary)]"
         >
           清空
         </button>
@@ -96,18 +96,18 @@ export function SearchHistoryDropdown({
           <button
             key={item.timestamp}
             onClick={() => handleSelect(item.query)}
-            className="group flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-[#35373c]"
+            className="group flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-[var(--od-bg-tertiary)]"
           >
-            <Clock className="h-4 w-4 flex-shrink-0 text-[#949ba4]" />
-            <span className="flex-1 truncate text-sm text-[#e3e5e8]">
+            <Clock className="h-4 w-4 flex-shrink-0 text-[var(--od-text-tertiary)]" />
+            <span className="flex-1 truncate text-sm text-[var(--od-text-primary)]">
               {item.query}
             </span>
             <button
               onClick={(e) => handleRemove(item.query, e)}
-              className="flex-shrink-0 rounded p-1 opacity-0 transition-all hover:bg-[#4e5058] group-hover:opacity-100"
+              className="flex-shrink-0 rounded p-1 opacity-0 transition-all hover:bg-[var(--od-card-hover)] group-hover:opacity-100"
               title="删除"
             >
-              <X className="h-3.5 w-3.5 text-[#949ba4]" />
+              <X className="h-3.5 w-3.5 text-[var(--od-text-tertiary)]" />
             </button>
           </button>
         ))}

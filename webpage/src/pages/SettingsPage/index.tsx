@@ -395,6 +395,23 @@ export function SettingsPage() {
             </button>
           </div>
 
+          {/* 版本与更新 */}
+          <div className="rounded-xl bg-[var(--od-card)] p-6">
+            <div className="mb-3 flex items-center gap-3">
+              <Settings className="h-5 w-5 text-[var(--od-accent)]" />
+              <h2 className="text-lg font-semibold text-[var(--od-text-primary)]">版本与更新</h2>
+            </div>
+            <p className="text-sm text-[var(--od-text-secondary)]">
+              当前前端版本：
+              <span className="ml-1 font-mono text-[var(--od-text-primary)]">2.0.0</span>
+            </p>
+            <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-[var(--od-text-tertiary)]">
+              <li>新增帖子预览浮层与 Markdown 展示体验</li>
+              <li>改进搜索筛选与列表/网格视图切换</li>
+              <li>优化登出、Mock 环境与错误提示的健壮性</li>
+            </ul>
+          </div>
+
           {/* 提示信息 */}
           <div className="rounded-xl border border-[color-mix(in_oklab,var(--od-accent)_20%,transparent)] bg-[color-mix(in_oklab,var(--od-accent)_10%,transparent)] p-4">
             <p className="text-sm text-[var(--od-text-secondary)]">

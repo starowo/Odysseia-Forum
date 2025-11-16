@@ -123,7 +123,9 @@ export const useSearchStore = create<SearchState>()(
 
       setPerPage: (perPage) => {
         console.log('>>> Zustand: setPerPage called, resetting page to 1', { perPage });
-        set({ perPage, page: 1 });
+        // 做一层防御式校验，避免出现 0 或极端大值
+        const safePerPage = Math.min(100, Math.max(1, perPage || 1));
+        set({ perPage: safePerPage, page: 1 });
       },
 
       clearFilters: () => {

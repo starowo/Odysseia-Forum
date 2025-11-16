@@ -1,6 +1,13 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:10810/v1';
+const DEFAULT_API_URL = 'http://localhost:10810/v1';
+const API_URL = import.meta.env.VITE_API_URL || DEFAULT_API_URL;
+
+// 在生产环境下如果未配置 VITE_API_URL，则给出警告，避免悄悄回退到本地地址
+if (!import.meta.env.VITE_API_URL && import.meta.env.MODE === 'production') {
+  // eslint-disable-next-line no-console
+  console.warn('[API] VITE_API_URL is not set in production; falling back to default URL:', DEFAULT_API_URL);
+}
 
 export const apiClient = axios.create({
   baseURL: API_URL,

@@ -51,7 +51,7 @@ export function TopBar({
   }, [searchValue, enableAutoSearch, autoSearchDelay, onSearch]);
 
   return (
-    <header className="sticky top-0 z-20 border-b border-[var(--od-border)] bg-[var(--od-bg)] shadow-lg">
+    <header className="sticky top-0 z-20 bg-[var(--od-bg-secondary)] shadow-lg">
       <div className="flex items-center gap-3 p-3">
         {/* 移动端菜单按钮 */}
         <button
@@ -73,7 +73,7 @@ export function TopBar({
             onKeyDown={(e) => e.key === 'Enter' && onSearch()}
             onFocus={() => setShowHistory(true)}
             placeholder="搜索标题、作者或内容..."
-            className="w-full rounded-md bg-[var(--od-bg-tertiary)] py-1.5 pl-9 pr-3 text-sm text-[var(--od-text-primary)] placeholder:text-[var(--od-text-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--od-accent)]/50"
+            className="w-full rounded-lg border-none bg-[var(--od-bg-secondary)] py-2 pl-9 pr-3 text-sm text-[var(--od-text-primary)] placeholder:text-[var(--od-text-tertiary)] focus:bg-[var(--od-bg-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--od-accent)]/60"
           />
           
           {/* 搜索历史下拉框 */}
@@ -97,8 +97,8 @@ export function TopBar({
         </button>
       </div>
 
-      {/* 搜索提示 - 可点击快捷填充 */}
-      <div className="border-t border-[var(--od-border)] bg-[var(--od-bg-secondary)] px-3 py-2">
+      {/* 搜索提示 - 可点击快捷填充（与搜索框融为一体的纯色区域） */}
+      <div className="bg-[var(--od-bg-secondary)] px-3 pb-3 pt-1">
         <div className="flex items-center gap-2 text-xs text-[var(--od-text-tertiary)]">
           <Lightbulb className="h-3.5 w-3.5 flex-shrink-0 text-[#f0b232]" />
           <span className="flex-shrink-0">高级搜索：</span>

@@ -64,7 +64,10 @@ export function StatsBar({
           <select
             id="perPage"
             value={perPage}
-            onChange={(e) => onPerPageChange(Number(e.target.value))}
+            onChange={(e) => {
+              const value = Number(e.target.value);
+              onPerPageChange(Number.isNaN(value) ? 24 : value);
+            }}
             className="rounded-md bg-[var(--od-bg-tertiary)] px-2 py-1 text-sm text-[var(--od-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--od-accent)]"
           >
             <option value={12}>12</option>

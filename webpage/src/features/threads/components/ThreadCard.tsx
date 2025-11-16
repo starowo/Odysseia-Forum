@@ -4,6 +4,7 @@ import { zhCN } from 'date-fns/locale';
 import { LazyImage } from '@/components/common/LazyImage';
 import { Tooltip } from '@/components/common/Tooltip';
 import { HighlightText } from '@/components/common/HighlightText';
+import { MarkdownText } from '@/components/common/MarkdownText';
 import type { Thread } from '@/types/thread.types';
 import { useSettings } from '@/hooks/useSettings';
 import { fontSizeMap, cardSizeMap } from '@/lib/settings';
@@ -34,6 +35,10 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
     thread.author?.global_name ??
     thread.author?.name ??
     '未知用户';
+
+  const hasExcerpt =
+    !!thread.first_message_excerpt &&
+    thread.first_message_excerpt.trim() !== '...';
 
   // 构建Discord帖子链接
   // 如果guild_id不存在，使用环境变量中的GUILD_ID
@@ -75,7 +80,7 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
         {/* 有更新徽章：绿色毛玻璃效果 */}
         {thread.has_update && (
           <div className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-[#23a55a]/90 px-2 py-0.5 text-xs font-semibold text-white shadow-sm backdrop-blur-sm">
-            <span className="inline-block h-2 w-2 rounded-full bg-white" />
+            <span className="inline-block h-2 w-2 rounded-full bg-white animate-[pulse_2.4s_ease-in-out_infinite]" />
             <span>有更新</span>
           </div>
         )}
@@ -111,7 +116,7 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
           className={`mb-2 flex items-center gap-1 font-bold leading-snug text-[var(--od-text-primary)] transition-colors duration-200 ${fontSizes.title} ${cardSizes.titleLines}`}
         >
           {thread.is_following && (
-            <span className="mr-1 inline-block h-2 w-2 rounded-full bg-[#f23f43]" />
+            <span className="mr-1 inline-block h-2 w-2 rounded-full bg-[#f23f43] animate-[pulse_2.4s_ease-in-out_infinite]" />
           )}
           <HighlightText text={thread.title} highlight={searchQuery} />
         </h3>
@@ -134,8 +139,8 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
           <span>{createdTime}</span>
         </div>
 
-        {/* 内容摘要 - 列表态仅展示固定高度的预览，全文阅读通过上层预览浮层完成 */}
-        {thread.first_message_excerpt ? (
+        {/* 内容摘要 - 使用 Markdown 渲染，保持固定高度预览；全文阅读走预览浮层 */}
+        {hasExcerpt ? (
           <div
             className={`mb-3 overflow-y-auto scrollbar-thin ${
               settings.cardSize === 'compact'
@@ -145,11 +150,11 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
                   : 'h-20'
             }`}
           >
-            <p
-              className={`leading-relaxed text-[var(--od-text-secondary)] ${fontSizes.content} ${cardSizes.contentLines}`}
+            <div
+              className={`od-md leading-relaxed text-[var(--od-text-secondary)] ${fontSizes.content} ${cardSizes.contentLines}`}
             >
-              <HighlightText text={thread.first_message_excerpt} highlight={searchQuery} />
-            </p>
+              <MarkdownText text={thread.first_message_excerpt!} />
+            </div>
           </div>
         ) : (
           <div
@@ -179,7 +184,7 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
           <Tooltip content="在Discord中打开" position="left">
             <button
               onClick={handleOpenThread}
-              className="flex items-center gap-1.5 rounded-lg bg-[var(--od-accent)] px-2.5 py-1 text-xs font-medium text-white transition-all duration-200 hover:scale-105 hover:bg-[var(--od-accent-hover)]"
+              className="flex items-center gap-1.5 rounded-lg bg-[var(--od-accent)] px-2.5 py-1 text-xs font-medium text-white opacity-0 translate-y-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0 hover:scale-105 hover:bg-[var(--od-accent-hover)]"
               aria-label="在Discord中打开"
             >
               <ExternalLink className="h-3.5 w-3.5" />

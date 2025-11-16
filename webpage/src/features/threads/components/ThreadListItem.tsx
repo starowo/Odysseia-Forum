@@ -4,6 +4,7 @@ import { zhCN } from 'date-fns/locale';
 import { LazyImage } from '@/components/common/LazyImage';
 import { Tooltip } from '@/components/common/Tooltip';
 import { HighlightText } from '@/components/common/HighlightText';
+import { MarkdownText } from '@/components/common/MarkdownText';
 import type { Thread } from '@/types/thread.types';
 import { useSettings } from '@/hooks/useSettings';
 import { fontSizeMap } from '@/lib/settings';
@@ -13,9 +14,10 @@ interface ThreadListItemProps {
   onTagClick?: (tag: string) => void;
   searchQuery?: string;
   onAuthorClick?: (authorName: string) => void;
+  onPreview?: (thread: Thread) => void;
 }
 
-export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick }: ThreadListItemProps) {
+export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick, onPreview }: ThreadListItemProps) {
   const { settings } = useSettings();
   const fontSizes = fontSizeMap[settings.fontSize];
 
@@ -30,6 +32,10 @@ export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick 
     thread.author?.name ??
     '未知用户';
 
+  const hasExcerpt =
+    !!thread.first_message_excerpt &&
+    thread.first_message_excerpt.trim() !== '...';
+
   const guildId = thread.guild_id || import.meta.env.VITE_GUILD_ID || '@me';
   const discordUrl = `https://discord.com/channels/${guildId}/${thread.channel_id}/${thread.thread_id}`;
 
@@ -40,7 +46,10 @@ export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick 
   };
 
   return (
-    <article className="group relative flex gap-0 overflow-hidden rounded-xl bg-[var(--od-card)] shadow-md transition-all duration-300 hover:bg-[var(--od-card-hover)] hover:shadow-xl">
+    <article
+      className="group relative flex gap-0 overflow-hidden rounded-xl bg-[var(--od-card)] shadow-md transition-all duration-300 hover:bg-[var(--od-card-hover)] hover:shadow-xl"
+      onClick={() => onPreview?.(thread)}
+    >
       {/* 左侧内容区 - 占据更多空间 */}
       <div className="flex flex-1 flex-col justify-between p-5">
         {/* 标题 */}
@@ -49,7 +58,7 @@ export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick 
             className={`mb-2 flex items-center gap-1 font-bold leading-snug text-[var(--od-text-primary)] transition-colors duration-200 ${fontSizes.title} line-clamp-2`}
           >
             {thread.is_following && (
-              <span className="mr-1 inline-block h-2 w-2 rounded-full bg-[#f23f43]" />
+              <span className="mr-1 inline-block h-2 w-2 rounded-full bg-[#f23f43] animate-[pulse_2.4s_ease-in-out_infinite]" />
             )}
             <HighlightText text={thread.title} highlight={searchQuery} />
           </h3>
@@ -72,11 +81,13 @@ export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick 
             <span>{createdTime}</span>
           </div>
 
-          {/* 内容摘要 */}
-          {thread.first_message_excerpt && (
-            <p className={`mb-3 leading-relaxed text-[var(--od-text-secondary)] ${fontSizes.content} line-clamp-3`}>
-              <HighlightText text={thread.first_message_excerpt} highlight={searchQuery} />
-            </p>
+          {/* 内容摘要 - 列表模式也使用 Markdown 渲染 */}
+          {hasExcerpt && (
+            <div
+              className={`mb-3 od-md leading-relaxed text-[var(--od-text-secondary)] ${fontSizes.content} line-clamp-3`}
+            >
+              <MarkdownText text={thread.first_message_excerpt!} />
+            </div>
           )}
         </div>
 
@@ -118,7 +129,7 @@ export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick 
             <Tooltip content="在 Discord 中打开" position="left">
               <button
                 onClick={handleOpenThread}
-                className="flex items-center gap-1.5 rounded-lg bg-[var(--od-accent)] px-3 py-1.5 text-sm font-medium text-white transition-all duration-200 hover:bg-[var(--od-accent-hover)]"
+                className="flex items-center gap-1.5 rounded-lg bg-[var(--od-accent)] px-3 py-1.5 text-sm font-medium text-white opacity-0 translate-y-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0 hover:bg-[var(--od-accent-hover)]"
               >
                 <ExternalLink className="h-4 w-4" />
                 <span>打开</span>

@@ -20,7 +20,8 @@ export function FilterBar({
   onTagLogicChange,
 }: FilterBarProps) {
   return (
-    <div className="mb-4 rounded-xl bg-[var(--od-card)] p-4">
+    // 背景透明，只保留左右间距，让文字和控件直接“浮在”页面背景上
+    <div className="mb-4 px-4">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
         {/* 发帖不早于 */}
         <div>
@@ -35,7 +36,7 @@ export function FilterBar({
             type="date"
             value={timeFrom}
             onChange={(e) => onTimeFromChange(e.target.value)}
-            className="w-full rounded-md bg-[var(--od-bg-tertiary)] px-3 py-2 text-sm text-[var(--od-text-primary)] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--od-accent)]"
+            className="w-full rounded-md border-none bg-[var(--od-bg-tertiary)] px-3 py-2 text-sm text-[var(--od-text-primary)] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--od-accent)]"
           />
         </div>
 
@@ -52,7 +53,7 @@ export function FilterBar({
             type="date"
             value={timeTo}
             onChange={(e) => onTimeToChange(e.target.value)}
-            className="w-full rounded-md bg-[var(--od-bg-tertiary)] px-3 py-2 text-sm text-[var(--od-text-primary)] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--od-accent)]"
+            className="w-full rounded-md border-none bg-[var(--od-bg-tertiary)] px-3 py-2 text-sm text-[var(--od-text-primary)] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--od-accent)]"
           />
         </div>
 
@@ -68,7 +69,7 @@ export function FilterBar({
             id="sortMethod"
             value={sortMethod}
             onChange={(e) => onSortMethodChange(e.target.value)}
-            className="w-full rounded-md bg-[var(--od-bg-tertiary)] px-3 py-2 text-sm text-[var(--od-text-primary)] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--od-accent)]"
+            className="w-full rounded-md border-none bg-[var(--od-bg-tertiary)] px-3 py-2 text-sm text-[var(--od-text-primary)] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--od-accent)]"
           >
             <option value="relevance">相关度</option>
             <option value="last_active_desc">最近活跃 ↓</option>
@@ -90,7 +91,7 @@ export function FilterBar({
             id="tagLogic"
             value={tagLogic}
             onChange={(e) => onTagLogicChange(e.target.value as 'and' | 'or')}
-            className="w-full rounded-md bg-[var(--od-bg-tertiary)] px-3 py-2 text-sm text-[var(--od-text-primary)] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--od-accent)]"
+            className="w-full rounded-md border-none bg-[var(--od-bg-tertiary)] px-3 py-2 text-sm text-[var(--od-text-primary)] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--od-accent)]"
           >
             <option value="and">全部包含 (AND)</option>
             <option value="or">任一即可 (OR)</option>
