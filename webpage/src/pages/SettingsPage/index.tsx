@@ -38,6 +38,20 @@ export function SettingsPage() {
       description: 'Tweak 灰调浅色配色',
     },
     {
+      id: 'paper-dark' as const,
+      label: '纸感深色',
+      icon: Moon,
+      themeKey: 'paperDark' as const,
+      description: '偏暖的纸感深色主题',
+    },
+    {
+      id: 'paper-light' as const,
+      label: '纸感浅色',
+      icon: Sun,
+      themeKey: 'paperLight' as const,
+      description: '淡黄色纸张风格浅色主题',
+    },
+    {
       id: 'auto' as const,
       label: '跟随系统',
       icon: Monitor,

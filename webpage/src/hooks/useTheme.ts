@@ -17,6 +17,10 @@ function mapSettingsThemeToKey(
       return 'tweakGrayDark';
     case 'tweak-gray-light':
       return 'tweakGrayLight';
+    case 'paper-dark':
+      return 'paperDark';
+    case 'paper-light':
+      return 'paperLight';
     case 'auto':
     default:
       // 自动模式下，跟随系统：深色用 Discord Dark，浅色用 Discord Light
@@ -35,6 +39,10 @@ function mapThemeNameToSettings(themeName: ThemeName): UserSettings['theme'] {
       return 'tweak-gray-dark';
     case 'tweakGrayLight':
       return 'tweak-gray-light';
+    case 'paperDark':
+      return 'paper-dark';
+    case 'paperLight':
+      return 'paper-light';
     default:
       return 'discord-dark';
   }
@@ -83,6 +91,10 @@ export function useTheme() {
         ? 'tweak-gray-light'
         : currentThemeName === 'tweakGrayLight'
         ? 'tweak-gray-dark'
+        : currentThemeName === 'paperDark'
+        ? 'paper-light'
+        : currentThemeName === 'paperLight'
+        ? 'paper-dark'
         : 'discord-dark';
 
     updateSettings({ theme: nextSettingsTheme });

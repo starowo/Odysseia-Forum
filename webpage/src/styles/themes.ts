@@ -106,7 +106,9 @@ export const discordLightTheme: Theme = {
   },
 };
 
-// Tweak 灰调深色主题（来自 tweakcn .dark 配色）
+/**
+ * Tweak 灰调主题（原有一深一浅）
+ */
 export const tweakGrayDarkTheme: Theme = {
   name: 'Tweak Gray Dark',
   colors: {
@@ -182,15 +184,98 @@ export const tweakGrayLightTheme: Theme = {
   },
 };
 
+/**
+ * Paper 纸感主题（淡黄色纸张风格）
+ * 复用了你给的 :root / .dark 配色，映射到现有 Theme 结构。
+ */
+
+// 深色纸感主题（对应 .dark）
+export const paperDarkTheme: Theme = {
+  name: 'Paper Dark',
+  colors: {
+    // 背景：整体偏深的暖灰
+    background: 'oklch(0.2679 0.0036 106.6427)',              // --background
+    backgroundSecondary: 'oklch(0.2357 0.0024 67.7077)',      // --sidebar
+    backgroundTertiary: 'oklch(0.2213 0.0038 106.7070)',      // --muted
+
+    // 卡片
+    card: 'oklch(0.2679 0.0036 106.6427)',                    // --card
+    cardHover: 'oklch(0.3085 0.0035 106.6039)',               // --popover
+
+    // 文本
+    textPrimary: 'oklch(0.8074 0.0142 93.0137)',              // --foreground
+    textSecondary: 'oklch(0.7713 0.0169 99.0657)',            // --muted-foreground
+    textTertiary: 'oklch(0.8074 0.0142 93.0137)',             // 轻微变化不大，可后续微调
+
+    // 强调色（主按钮、选中状态）
+    accent: 'oklch(0.6724 0.1308 38.7559)',                   // --primary
+    accentHover: 'oklch(0.5583 0.1276 42.9956)',              // --chart-1 略深
+
+    // 链接颜色（偏冷一点）
+    link: 'oklch(0.6898 0.1581 290.4107)',                    // --chart-2
+    linkHover: 'oklch(0.3074 0.0516 289.3230)',               // --chart-4
+
+    // 边框
+    border: 'oklch(0.3618 0.0101 106.8928)',                  // --border
+    borderStrong: 'oklch(0.4336 0.0113 100.2195)',            // --input 稍亮一点
+
+    // 状态色（先用主色系占位，后面你可以慢慢打磨）
+    success: 'oklch(0.6898 0.1581 290.4107)',                 // 冷色成功
+    warning: 'oklch(0.8816 0.0276 93.1280)',                  // --chart-3
+    error: 'oklch(0.6368 0.2078 25.3313)',                    // --destructive
+    info: 'oklch(0.6724 0.1308 38.7559)',                     // primary 作为信息色
+  },
+};
+
+// 浅色纸感主题（对应 :root）
+export const paperLightTheme: Theme = {
+  name: 'Paper Light',
+  colors: {
+    // 背景：淡黄色纸张
+    background: 'oklch(0.9818 0.0054 95.0986)',               // --background
+    backgroundSecondary: 'oklch(0.9663 0.0080 98.8792)',      // --sidebar
+    backgroundTertiary: 'oklch(0.9341 0.0153 90.2390)',       // --muted
+
+    // 卡片
+    card: 'oklch(0.9818 0.0054 95.0986)',                     // --card
+    cardHover: 'oklch(0.9245 0.0138 92.9892)',                // --secondary
+
+    // 文本
+    textPrimary: 'oklch(0.3438 0.0269 95.7226)',              // --foreground
+    textSecondary: 'oklch(0.6059 0.0075 97.4233)',            // --muted-foreground
+    textTertiary: 'oklch(0.4334 0.0177 98.6048)',             // --secondary-foreground
+
+    // 强调色（暖橙主色）
+    accent: 'oklch(0.6171 0.1375 39.0427)',                   // --primary
+    accentHover: 'oklch(0.5583 0.1276 42.9956)',              // --chart-1 略深
+
+    // 链接颜色（稍冷一点，便于区分）
+    link: 'oklch(0.6898 0.1581 290.4107)',                    // --chart-2
+    linkHover: 'oklch(0.8822 0.0403 298.1792)',               // --chart-4
+
+    // 边框
+    border: 'oklch(0.8847 0.0069 97.3627)',                   // --border
+    borderStrong: 'oklch(0.7621 0.0156 98.3528)',             // --input 稍深
+
+    // 状态色
+    success: 'oklch(0.6171 0.1375 39.0427)',                  // primary 复用
+    warning: 'oklch(0.8816 0.0276 93.1280)',                  // --chart-3
+    error: 'oklch(0.6368 0.2078 25.3313)',                    // --destructive
+    info: 'oklch(0.6898 0.1581 290.4107)',                    // 冷色信息
+  },
+};
+
 // 默认主题
 export const defaultTheme = discordDarkTheme;
 
-// 主题列表（4 套主题）
+ // 主题列表（6 套主题）
 export const themes = {
   discordDark: discordDarkTheme,
   discordLight: discordLightTheme,
   tweakGrayDark: tweakGrayDarkTheme,
   tweakGrayLight: tweakGrayLightTheme,
+  paperDark: paperDarkTheme,
+  paperLight: paperLightTheme,
 } as const;
 
 // 主题类型

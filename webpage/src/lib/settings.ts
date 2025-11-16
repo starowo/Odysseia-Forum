@@ -5,12 +5,14 @@ export interface UserSettings {
   cardSize: 'compact' | 'normal' | 'large';
   layoutMode: 'grid' | 'list';
   compactMode: boolean;
-  // 主题选择：4 套具体主题 + 自动
+  // 主题选择：多套具体主题 + 自动
   theme:
     | 'discord-dark'
     | 'discord-light'
     | 'tweak-gray-dark'
     | 'tweak-gray-light'
+    | 'paper-dark'
+    | 'paper-light'
     | 'auto';
   notifications: {
     newPosts: boolean;
