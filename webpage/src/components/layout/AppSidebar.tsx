@@ -1,10 +1,12 @@
 import { Globe, Bookmark, Settings, Info, LogOut, Search as SearchIcon, Bell } from 'lucide-react';
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { UserCard } from '@/components/layout/UserCard';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useSearchStore } from '@/features/search/store/searchStore';
+import { NotificationCenter } from '@/features/notifications/components/NotificationCenter';
 import { apiClient } from '@/lib/api/client';
 import type { Channel } from '@/types/thread.types';
 
@@ -13,6 +15,7 @@ export function AppSidebar() {
   const location = useLocation();
   const { selectedChannel, setChannel } = useSearchStore();
   const isSearchPage = location.pathname === '/';
+  const [notificationOpen, setNotificationOpen] = useState(false);
 
   // 频道列表：在搜索页左侧展示（生产环境走真实 API，本地走 MSW mock）
   // 后端 /v1/meta/channels 返回的是扁平的 Channel[] 列表
@@ -131,10 +134,12 @@ export function AppSidebar() {
             <span className="truncate">搜索页面</span>
           </Link>
 
-          {/* 通知中心入口占位：目前仅作为导航按钮，后续接入通知中心功能 */}
+          {/* 通知中心入口：打开侧边通知面板 */}
           <button
             type="button"
+            onClick={() => setNotificationOpen((prev) => !prev)}
             className="flex w-full items-center gap-2 rounded-md border border-transparent px-2 py-1.5 text-sm text-[var(--od-text-tertiary)] transition-all duration-200 hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]"
+            aria-label="打开通知中心"
           >
             <Bell className="h-4 w-4 flex-shrink-0" />
             <span className="truncate">通知中心</span>
@@ -188,6 +193,9 @@ export function AppSidebar() {
           <span className="truncate font-medium">登出</span>
         </button>
       </div>
+
+      {/* 通知中心面板：相对于侧边栏容器定位 */}
+      <NotificationCenter open={notificationOpen} onClose={() => setNotificationOpen(false)} />
     </div>
   );
 }

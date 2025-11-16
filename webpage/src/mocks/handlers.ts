@@ -50,8 +50,8 @@ export const handlers: RequestHandler[] = [
     return HttpResponse.json(MOCK_TAGS);
   }),
 
-  // 拦截获取关注列表的请求（用于 FollowsPage）
-  http.get('http://localhost:10810/v1/preferences/follows', () => {
+  // 拦截获取关注列表的请求（与 /v1/follows/ 对齐）
+  http.get('http://localhost:10810/v1/follows/', () => {
     const followedThreads = MOCK_THREADS.filter((thread) => FOLLOWED_SET.has(thread.thread_id)).map(
       (thread) => ({
         ...thread,
@@ -63,10 +63,26 @@ export const handlers: RequestHandler[] = [
     );
 
     return HttpResponse.json({
-      results: followedThreads,
       total: followedThreads.length,
-      // 与 has_update = true 的数量保持一致
-      unread_count: followedThreads.filter((t) => t.has_update).length,
+      threads: followedThreads,
+      limit: 10000,
+      offset: 0,
+    });
+  }),
+
+  // 拦截获取关注未读数量的请求（/v1/follows/unread-count）
+  http.get('http://localhost:10810/v1/follows/unread-count', () => {
+    const followedThreads = MOCK_THREADS.filter((thread) => FOLLOWED_SET.has(thread.thread_id)).map(
+      (thread) => ({
+        ...thread,
+        has_update: UPDATED_SET.has(thread.thread_id),
+      }),
+    );
+
+    const unreadCount = followedThreads.filter((t) => t.has_update).length;
+
+    return HttpResponse.json({
+      unread_count: unreadCount,
     });
   }),
 
