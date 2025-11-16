@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { ScrollToTop } from '@/components/common/ScrollToTop';
 import { ResizableSidebar } from '@/components/ResizableSidebar';
@@ -17,6 +18,7 @@ import { searchApi } from '@/features/search/api/searchApi';
 import { useSettings } from '@/hooks/useSettings';
 import { AppSidebar } from '@/components/layout/AppSidebar';
 import { addSearchHistory } from '@/lib/searchHistory';
+import { addToken, parseSearchQuery } from '@/lib/searchTokenizer';
 import { MarkdownText } from '@/components/common/MarkdownText';
 import { LazyImage } from '@/components/common/LazyImage';
 import type { Thread } from '@/types/thread.types';
@@ -473,13 +475,29 @@ export function SearchPage() {
     clearFilters,
   } = useSearchStore();
 
+  const location = useLocation();
+
   const [searchInput, setSearchInput] = useState(query);
 
+  // Zustand 中的 query 变化时，同步到本地输入框
   useEffect(() => {
     setSearchInput(query);
   }, [query]);
+
+  // 从 URL ?q= 参数同步搜索内容（用于标签页等跳转）
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const urlQuery = params.get('q');
+    if (urlQuery) {
+      const decoded = decodeURIComponent(urlQuery);
+      setSearchInput(decoded);
+      setQuery(decoded);
+    }
+  }, [location.search, setQuery]);
+
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [timeFrom, setTimeFrom] = useState('');
   const [timeTo, setTimeTo] = useState('');
   const [openMode, setOpenMode] = useState<'app' | 'web'>('app');
@@ -528,22 +546,56 @@ export function SearchPage() {
     return tags;
   }, [tagStates]);
 
+  // 基于查询字符串解析出 token（标签 / 作者）与纯文本关键字
+  const { keywordQuery, tokenIncludeTags, authorNameFromToken } = useMemo(() => {
+    if (!query) {
+      return {
+        keywordQuery: '',
+        tokenIncludeTags: [] as string[],
+        authorNameFromToken: undefined as string | undefined,
+      };
+    }
+
+    const tokens = parseSearchQuery(query);
+    const textParts: string[] = [];
+    const tagTokens: string[] = [];
+    let authorToken: string | undefined;
+
+    for (const token of tokens) {
+      if (token.type === 'text') {
+        textParts.push(token.value);
+      } else if (token.type === 'tag') {
+        tagTokens.push(token.value);
+      } else if (token.type === 'author' && !authorToken) {
+        authorToken = token.value;
+      }
+    }
+
+    return {
+      keywordQuery: textParts.join(' ').trim(),
+      tokenIncludeTags: tagTokens,
+      authorNameFromToken: authorToken,
+    };
+  }, [query]);
+
   // 使用真实API获取搜索结果
   const { data: searchData, isLoading, isError, isFetching, refetch } = useQuery({
     queryKey: ['search', query, selectedChannel, includedTags, excludedTags, tagLogic, sortMethod, page, perPage, timeFrom, timeTo],
-    queryFn: () => searchApi.search({
-      query: query || undefined,
-      channel_ids: selectedChannel ? [selectedChannel] : undefined,
-      include_tags: includedTags,
-      exclude_tags: excludedTags,
-      tag_logic: tagLogic,
-      // 与 SearchParams.sort_method 对齐：relevance / last_active_desc / created_desc / reply_desc / reaction_desc
-      sort_method: sortMethod,
-      limit: perPage,
-      offset: (page - 1) * perPage,
-      created_after: timeFrom || undefined,
-      created_before: timeTo || undefined,
-    }),
+    queryFn: () =>
+      searchApi.search({
+        query: keywordQuery || undefined,
+        channel_ids: selectedChannel ? [selectedChannel] : undefined,
+        include_tags: Array.from(new Set([...includedTags, ...tokenIncludeTags])),
+        exclude_tags: excludedTags,
+        tag_logic: tagLogic,
+        // 与 SearchParams.sort_method 对齐：relevance / last_active_desc / created_desc / reply_desc / reaction_desc
+        sort_method: sortMethod,
+        limit: perPage,
+        offset: (page - 1) * perPage,
+        created_after: timeFrom || undefined,
+        created_before: timeTo || undefined,
+        author_name: authorNameFromToken,
+      }),
     enabled: true, // 确保即使 queryKey 中有 null/undefined 也执行查询
     staleTime: 30 * 1000, // 30秒
   });
@@ -669,8 +721,18 @@ export function SearchPage() {
     },
   ]);
 
-  // 处理标签点击
+  // 处理标签点击 - 从卡片点击时添加到搜索框
   const handleTagClick = (tag: string) => {
+    const newQuery = addToken(searchInput, 'tag', tag);
+    setSearchInput(newQuery);
+    setQuery(newQuery);
+    toast.success(`已添加标签：${tag}`, {
+      duration: 2000,
+    });
+  };
+
+  // 处理高级面板中的标签点击 - 用于筛选
+  const handleFilterTagClick = (tag: string) => {
     toggleTag(tag);
   };
 
@@ -698,19 +760,22 @@ export function SearchPage() {
     <div className="flex min-h-screen bg-[var(--od-bg)]">
       {/* 回到顶部按钮 */}
       <ScrollToTop />
-      {/* 可调整大小的侧边栏 */}
+      {/* 侧边栏（支持移动端开关 + PC 折叠） */}
       <ResizableSidebar
-        defaultWidth={240}
-        minWidth={200}
-        maxWidth={400}
         isMobileOpen={isMobileOpen}
         setIsMobileOpen={setIsMobileOpen}
+        isCollapsed={isSidebarCollapsed}
+        setIsCollapsed={setIsSidebarCollapsed}
       >
         <AppSidebar />
       </ResizableSidebar>
 
-      {/* 主内容区 */}
-      <main className="flex-1 bg-[var(--od-bg)] pb-20 lg:ml-[240px]">
+      {/* 主内容区：根据侧边栏折叠状态调整左侧留白（PC 端） */}
+      <main
+        className={`flex-1 bg-[var(--od-bg)] pb-20 transition-all duration-300 ${
+          isSidebarCollapsed ? 'lg:ml-0' : 'lg:ml-[240px]'
+        }`}
+      >
         {/* 顶部搜索栏 - 集成高级搜索面板 */}
         <TopBar
           searchValue={searchInput}
@@ -732,7 +797,7 @@ export function SearchPage() {
           onSortMethodChange={(value) => setSortMethod(value as any)}
           onTagLogicChange={setTagLogic}
           onTagModeChange={setTagMode}
-          onTagClick={handleTagClick}
+          onTagClick={handleFilterTagClick}
           onClearAllTags={clearAllTags}
         />
 
@@ -764,7 +829,7 @@ export function SearchPage() {
           onSortMethodChange={(value) => setSortMethod(value as any)}
           onTagLogicChange={setTagLogic}
           onTagModeChange={setTagMode}
-          onTagClick={handleTagClick}
+          onTagClick={handleFilterTagClick}
           onClearAllTags={clearAllTags}
         />
 
@@ -844,7 +909,14 @@ export function SearchPage() {
                     thread={thread}
                     onTagClick={handleTagClick}
                     searchQuery={query}
-                    onAuthorClick={(authorName) => handleQuickSearch(`author:${authorName}`)}
+                    onAuthorClick={(authorName) => {
+                      const newQuery = addToken(searchInput, 'author', authorName);
+                      setSearchInput(newQuery);
+                      setQuery(newQuery);
+                      toast.success(`已添加作者：${authorName}`, {
+                        duration: 2000,
+                      });
+                    }}
                     onPreview={setPreviewThread}
                   />
                 ) : (
@@ -853,7 +925,14 @@ export function SearchPage() {
                     thread={thread}
                     onTagClick={handleTagClick}
                     searchQuery={query}
-                    onAuthorClick={(authorName) => handleQuickSearch(`author:${authorName}`)}
+                    onAuthorClick={(authorName) => {
+                      const newQuery = addToken(searchInput, 'author', authorName);
+                      setSearchInput(newQuery);
+                      setQuery(newQuery);
+                      toast.success(`已添加作者：${authorName}`, {
+                        duration: 2000,
+                      });
+                    }}
                     onPreview={setPreviewThread}
                   />
                 )

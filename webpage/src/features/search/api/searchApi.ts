@@ -19,6 +19,7 @@ function buildSearchRequest(params: SearchParams) {
     exclude_tags: params.exclude_tags || [],
     tag_logic: params.tag_logic || 'and',
     keywords: params.query || null,
+    author_name: params.author_name || undefined,
     created_after: params.created_after,
     created_before: params.created_before,
     sort_method: sortConfig.method,

@@ -1,6 +1,7 @@
-import { Search, Menu, ChevronUp, SlidersHorizontal, X } from 'lucide-react';
+import { Menu, ChevronUp, SlidersHorizontal, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { SearchHistoryDropdown } from '@/components/SearchHistory';
+import { SearchTokenInput } from '@/components/common/SearchTokenInput';
 
 interface TopBarProps {
   searchValue: string;
@@ -94,18 +95,13 @@ export function TopBar({
           <Menu className="h-5 w-5" />
         </button>
 
-        {/* 搜索框 */}
+        {/* 搜索框（带 Token 支持） */}
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--od-text-tertiary)]" />
-          <input
-            ref={searchInputRef}
-            type="search"
+          <SearchTokenInput
             value={searchValue}
-            onChange={(e) => onSearchChange(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && onSearch()}
-            onFocus={() => setShowHistory(true)}
-            placeholder="搜索标题、作者或内容..."
-            className="w-full rounded-lg border-none bg-[var(--od-bg-secondary)] py-2 pl-9 pr-3 text-sm text-[var(--od-text-primary)] placeholder:text-[var(--od-text-tertiary)] focus:bg-[var(--od-bg-tertiary)] focus:outline-none focus:ring-2 focus:ring-[var(--od-accent)]/60"
+            onChange={onSearchChange}
+            onSearch={onSearch}
+            placeholder="搜索标题、作者或内容... 💡 试试 $tag:标签$ 或 $author:作者$"
           />
           
           {/* 搜索历史下拉框 */}
@@ -154,11 +150,19 @@ export function TopBar({
           <div className="mb-3 flex items-center gap-2 overflow-x-auto text-xs text-[var(--od-text-tertiary)]">
             <span className="flex-shrink-0">💡 高级搜索：</span>
             <button
-              onClick={() => onQuickSearch?.('author:')}
+              onClick={() => onQuickSearch?.('$tag:$ ')}
               className="whitespace-nowrap rounded-md bg-[var(--od-bg-tertiary)] px-1.5 py-0.5 transition-all duration-200 hover:scale-105 hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-link)]"
               title="点击填充到搜索框"
             >
-              author:作者
+              $tag:标签$
+            </button>
+            <span className="flex-shrink-0">·</span>
+            <button
+              onClick={() => onQuickSearch?.('$author:$ ')}
+              className="whitespace-nowrap rounded-md bg-[var(--od-bg-tertiary)] px-1.5 py-0.5 transition-all duration-200 hover:scale-105 hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-link)]"
+              title="点击填充到搜索框"
+            >
+              $author:作者$
             </button>
             <span className="flex-shrink-0">·</span>
             <button

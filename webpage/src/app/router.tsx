@@ -3,6 +3,7 @@ import { LoginPage } from '@/pages/AuthPage/LoginPage';
 import { CallbackPage } from '@/pages/AuthPage/CallbackPage';
 import { SearchPage } from '@/pages/SearchPage';
 import { FollowsPage } from '@/pages/FollowsPage';
+import { TagsPage } from '@/pages/TagsPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { AboutPage } from '@/pages/AboutPage';
 import { TestPage } from '@/pages/TestPage';
@@ -19,6 +20,10 @@ const appChildren = [
   {
     path: 'follows',
     element: <FollowsPage />,
+  },
+  {
+    path: 'tags',
+    element: <TagsPage />,
   },
   {
     path: 'settings',

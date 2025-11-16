@@ -42,6 +42,14 @@ export const STATIC_NOTIFICATIONS: StaticNotificationDefinition[] = [
       '现在你可以在左侧「通知中心」里快速查看关注帖子是否有新的更新。后续会逐步加入站点更新公告和更多提示。',
     created_at: '2024-01-10T00:00:00.000Z',
   },
+  {
+    id: 'site-update-2025-advanced-search',
+    kind: 'site_announcement',
+    title: '搜索体验与布局全面升级',
+    message:
+      '本次更新带来了基于 $tag:xxx$ / $author:xxx$ 的高级搜索语法、标签总览页一键跳转搜索、PC 端侧边栏收起/展开，以及通知中心与无缝滚动加载的进一步打磨。欢迎体验，如有问题可在主服相关频道反馈。',
+    created_at: '2025-11-16T00:00:00.000Z',
+  },
 ];
 
 /**

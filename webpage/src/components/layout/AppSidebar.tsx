@@ -1,4 +1,4 @@
-import { Globe, Bookmark, Settings, Info, LogOut, Search as SearchIcon, Bell } from 'lucide-react';
+import { Globe, Bookmark, Settings, Info, LogOut, Search as SearchIcon, Bell, Tag as TagIcon } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -175,6 +175,19 @@ export function AppSidebar() {
               className={`h-4 w-4 flex-shrink-0 ${isActive('/follows') ? 'text-[var(--od-accent)]' : ''}`}
             />
             <span className="truncate">我的关注</span>
+          </Link>
+          <Link
+            to="/tags"
+            className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-sm transition-all duration-200 ${
+              isActive('/tags')
+                ? 'border-[var(--od-accent)] bg-[var(--od-card)] text-[var(--od-text-primary)]'
+                : 'border-transparent text-[var(--od-text-tertiary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
+            }`}
+          >
+            <TagIcon
+              className={`h-4 w-4 flex-shrink-0 ${isActive('/tags') ? 'text-[var(--od-accent)]' : ''}`}
+            />
+            <span className="truncate">标签总览</span>
           </Link>
           <Link
             to="/settings"

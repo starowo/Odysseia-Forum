@@ -12,6 +12,7 @@ interface MainLayoutProps {
 
 export function MainLayout({ children, showTopBar = true, enableAutoSearch }: MainLayoutProps) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [searchInput, setSearchInput] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
@@ -32,17 +33,20 @@ export function MainLayout({ children, showTopBar = true, enableAutoSearch }: Ma
     <div className="flex min-h-screen bg-[var(--od-bg)]">
       {/* 侧边栏 */}
       <ResizableSidebar
-        defaultWidth={240}
-        minWidth={200}
-        maxWidth={400}
         isMobileOpen={isMobileOpen}
         setIsMobileOpen={setIsMobileOpen}
+        isCollapsed={isSidebarCollapsed}
+        setIsCollapsed={setIsSidebarCollapsed}
       >
         <AppSidebar />
       </ResizableSidebar>
 
-      {/* 主内容区 */}
-      <main className="flex-1 bg-[var(--od-bg)] pb-20 lg:ml-[240px]">
+      {/* 主内容区：根据侧边栏折叠状态调整左侧留白（PC 端） */}
+      <main
+        className={`flex-1 bg-[var(--od-bg)] pb-20 transition-all duration-300 ${
+          isSidebarCollapsed ? 'lg:ml-0' : 'lg:ml-[240px]'
+        }`}
+      >
         {showTopBar && (
           <TopBar
             searchValue={searchInput}

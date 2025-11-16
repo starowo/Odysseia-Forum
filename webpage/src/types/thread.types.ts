@@ -37,6 +37,7 @@ export interface SearchParams {
   include_tags?: string[];
   exclude_tags?: string[];
   tag_logic?: 'and' | 'or';
+  author_name?: string;
   created_after?: string | null;
   created_before?: string | null;
   sort_method?: 'relevance' | 'last_active_desc' | 'created_desc' | 'reply_desc' | 'reaction_desc';
