@@ -3,7 +3,7 @@
  * 生产环境不会被打包到真实 API 逻辑中。
  */
 
-// 模拟频道数据（覆盖技术 / AI / 日常等几类）
+ // 模拟频道数据（覆盖技术 / AI / 日常等几类）
 export const MOCK_CHANNELS = [
   {
     name: '技术区',
@@ -36,6 +36,15 @@ export const MOCK_CHANNELS = [
     ],
   },
 ];
+
+// 与后端 /v1/meta/channels 对齐的扁平频道列表
+// 生产环境中该接口返回 Channel[]，这里只是用 MOCK_CHANNELS 展开模拟
+export const MOCK_META_CHANNELS = MOCK_CHANNELS.flatMap((category) =>
+  category.channels.map((ch) => ({
+    id: ch.id,
+    name: ch.name,
+  }))
+);
 
 // 模拟标签数据：技术 + 场景 + 状态
 export const MOCK_TAGS = [

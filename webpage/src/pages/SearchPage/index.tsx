@@ -95,7 +95,8 @@ export function SearchPage() {
       include_tags: includedTags,
       exclude_tags: excludedTags,
       tag_logic: tagLogic,
-      sort_method: sortMethod as any, // sortMethod会在searchApi中被转换
+      // 与 SearchParams.sort_method 对齐：relevance / last_active_desc / created_desc / reply_desc / reaction_desc
+      sort_method: sortMethod,
       limit: perPage,
       offset: (page - 1) * perPage,
       created_after: timeFrom || undefined,
@@ -105,8 +106,8 @@ export function SearchPage() {
     staleTime: 30 * 1000, // 30秒
   });
 
-  // 从API响应中提取数据
-  const threads = searchData?.threads || [];
+  // 从API响应中提取数据（与后端 SearchResponse.results 对齐）
+  const threads = searchData?.results || [];
   const totalResults = searchData?.total || 0;
   const availableTags = searchData?.available_tags || [];
   const totalPages = Math.ceil(totalResults / perPage);

@@ -2,8 +2,8 @@
 
 基于 **React 18 + TypeScript + Vite** 构建的现代化 Discord 论坛搜索前端，配合后端搜索 API，在浏览器中提供贴近 Discord 体验的搜索与浏览界面。
 
-> 上游仓库 / PR 说明可参考同目录下的
-> [`PROJECT_OVERVIEW.md`](webpage/PROJECT_OVERVIEW.md:1)。
+> 上游仓库 / PR 说明可参考 `docs` 目录下的
+> [`PROJECT_OVERVIEW.md`](webpage/docs/PROJECT_OVERVIEW.md:1)。
 
 ---
 
@@ -39,7 +39,7 @@ VITE_CLIENT_ID=your_discord_client_id
 > 说明：
 > - 开发过程中，如果只想使用本地 Mock 数据，可以保持 `VITE_API_URL` 指向本地测试后端或任意地址；
 > - 具体与后端的对接方式、生产环境变量示例可参考
->   [`PROJECT_OVERVIEW.md`](webpage/PROJECT_OVERVIEW.md:1)。
+>   [`PROJECT_OVERVIEW.md`](webpage/docs/PROJECT_OVERVIEW.md:1)。
 
 ### 3. 启动开发服务器
 
@@ -85,7 +85,7 @@ npm run dev
 ## 📁 项目结构（简要）
 
 > 更详细的结构说明参见
-> [`PROJECT_STRUCTURE.md`](webpage/PROJECT_STRUCTURE.md:1)。
+> [`PROJECT_STRUCTURE.md`](webpage/docs/PROJECT_STRUCTURE.md:1)。
 
 ```bash
 src/

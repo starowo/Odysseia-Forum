@@ -6,7 +6,7 @@ import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useSearchStore } from '@/features/search/store/searchStore';
 import { apiClient } from '@/lib/api/client';
-import type { ChannelCategory } from '@/types/thread.types';
+import type { Channel } from '@/types/thread.types';
 
 export function AppSidebar() {
   const { user } = useAuth();
@@ -15,10 +15,11 @@ export function AppSidebar() {
   const isSearchPage = location.pathname === '/';
 
   // 频道列表：在搜索页左侧展示（生产环境走真实 API，本地走 MSW mock）
-  const { data: channelCategories } = useQuery({
+  // 后端 /v1/meta/channels 返回的是扁平的 Channel[] 列表
+  const { data: channels } = useQuery({
     queryKey: ['meta', 'channels'],
     queryFn: async () => {
-      const res = await apiClient.get<ChannelCategory[]>('/meta/channels');
+      const res = await apiClient.get<Channel[]>('/meta/channels');
       return res.data;
     },
     staleTime: 5 * 60 * 1000,
@@ -46,7 +47,8 @@ export function AppSidebar() {
       {/* 频道（仅在搜索页显示） */}
       {isSearchPage && (
         <>
-          <div className="mb-6">
+          {/* 频道区：在从其他页面切回搜索页时做一个轻微滑入 + 淡入 */}
+          <div className="mb-6 animate-in fade-in slide-in-from-top-2 duration-300">
             <h2 className="mb-3 px-2 text-xs font-semibold uppercase tracking-wider text-[var(--od-text-tertiary)]">
               频道
             </h2>
@@ -69,36 +71,25 @@ export function AppSidebar() {
               </button>
             </div>
 
-            {/* 具体频道列表（从 /meta/channels 加载） */}
-            {channelCategories && (
-              <div className="mt-2 space-y-3">
-                {channelCategories.map((category) => (
-                  <div key={category.name} className="space-y-1 px-2">
-                    {/* 主频道名：更小、更灰，类似 Discord 分组标题 */}
-                    <p className="text-xs font-semibold text-[var(--od-text-tertiary)]">
-                      {category.name}
-                    </p>
-                    {/* 子频道：更大、更亮 */}
-                    <div className="space-y-0.5">
-                      {category.channels.map((ch) => {
-                        const active = selectedChannel === ch.id;
-                        return (
-                          <button
-                            key={ch.id}
-                            onClick={() => setChannel(ch.id)}
-                            className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-sm transition-all duration-200 ${
-                              active
-                                ? 'border-[var(--od-accent)] bg-[var(--od-card)] text-[var(--od-text-primary)]'
-                                : 'border-transparent text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
-                            }`}
-                          >
-                            <span className="truncate">{ch.name}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
+            {/* 具体频道列表（从 /meta/channels 加载，后端返回的是扁平 Channel[]） */}
+            {channels && channels.length > 0 && (
+              <div className="mt-2 space-y-0.5 px-2">
+                {channels.map((ch) => {
+                  const active = selectedChannel === ch.id;
+                  return (
+                    <button
+                      key={ch.id}
+                      onClick={() => setChannel(ch.id)}
+                      className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-sm transition-all duration-200 ${
+                        active
+                          ? 'border-[var(--od-accent)] bg-[var(--od-card)] text-[var(--od-text-primary)]'
+                          : 'border-transparent text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
+                      }`}
+                    >
+                      <span className="truncate">{ch.name}</span>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>

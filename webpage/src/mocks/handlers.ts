@@ -1,5 +1,5 @@
 import { http, HttpResponse, type RequestHandler } from 'msw';
-import { MOCK_CHANNELS, MOCK_TAGS, MOCK_THREADS } from './data';
+import { MOCK_META_CHANNELS, MOCK_TAGS, MOCK_THREADS } from './data';
 
 const MOCK_USER = {
   id: '123456789',
@@ -29,9 +29,9 @@ export const handlers: RequestHandler[] = [
     return new HttpResponse(null, { status: 204 });
   }),
 
-  // 拦截获取频道列表的请求
+  // 拦截获取频道列表的请求（与 /v1/meta/channels: List[Channel] 对齐）
   http.get('http://localhost:10810/v1/meta/channels', () => {
-    return HttpResponse.json(MOCK_CHANNELS);
+    return HttpResponse.json(MOCK_META_CHANNELS);
   }),
 
   // 拦截获取标签列表的请求
@@ -43,12 +43,14 @@ export const handlers: RequestHandler[] = [
   http.get('http://localhost:10810/v1/preferences/follows', () => {
     return HttpResponse.json({
       results: MOCK_THREADS.slice(0, 12),
+      total: MOCK_THREADS.length,
       unread_count: 3,
     });
   }),
 
   // 拦截搜索请求（本地 Mock）。生产环境不会启用 MSW。
-  http.post('http://localhost:10810/v1/search', async ({ request }) => {
+  // 注意：路径与 apiClient.post('/search/') 拼出的完整 URL 精确对齐
+  http.post('http://localhost:10810/v1/search/', async ({ request }) => {
     const reqBody = (await request.json()) as {
       // 实际后端使用 "keywords"，我们同时兼容 "query"
       query?: string | null;
@@ -150,11 +152,16 @@ export const handlers: RequestHandler[] = [
         cover_image_url: t.thumbnail_url!,
       }));
 
+    // 按后端 SearchResponse 结构返回：
+    // total, limit, offset, results, available_tags, banner_carousel, unread_count
     return HttpResponse.json({
-      threads: paginatedThreads,
       total,
+      limit,
+      offset,
+      results: paginatedThreads,
       available_tags,
       banner_carousel,
+      unread_count: 3,
     });
   }),
 ];

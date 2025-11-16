@@ -9,20 +9,24 @@ export interface Author {
 }
 
 export interface Thread {
-  id: string;
+  // 后端 ThreadDetail 必备字段
   thread_id: string;
   channel_id: string;
-  guild_id: string;
   title: string;
-  author: Author;
-  author_id: string;
-  tags: string[];
+  author?: Author;
   created_at: string;
-  last_active_at: string;
-  reply_count: number;
+  last_active_at?: string | null;
   reaction_count: number;
-  thumbnail_url?: string;
-  first_message_excerpt?: string;
+  reply_count: number;
+  display_count?: number;
+  first_message_excerpt?: string | null;
+  thumbnail_url?: string | null;
+  tags: string[];
+
+  // 部分接口中的扩展字段（例如关注列表等）
+  id?: string;
+  guild_id?: string;
+  author_id?: string;
   is_following?: boolean;
   has_update?: boolean;
 }
@@ -35,17 +39,19 @@ export interface SearchParams {
   tag_logic?: 'and' | 'or';
   created_after?: string | null;
   created_before?: string | null;
-  sort_method?: 'comprehensive' | 'last_active' | 'created_at' | 'reply_count' | 'reaction_count';
-  sort_order?: 'asc' | 'desc';
+  sort_method?: 'relevance' | 'last_active_desc' | 'created_desc' | 'reply_desc' | 'reaction_desc';
   limit?: number;
   offset?: number;
 }
 
 export interface SearchResponse {
-  threads: Thread[];
+  results: Thread[];
   total: number;
+  limit: number;
+  offset: number;
   available_tags: string[];
   banner_carousel?: BannerItem[];
+  unread_count?: number;
 }
 
 export interface BannerItem {
@@ -55,9 +61,15 @@ export interface BannerItem {
   cover_image_url: string;
 }
 
+export interface TagDetail {
+  id: string;
+  name: string;
+}
+
 export interface Channel {
   id: string;
   name: string;
+  tags?: TagDetail[];
 }
 
 export interface ChannelCategory {
