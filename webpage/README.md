@@ -1,80 +1,235 @@
-# Odysseia Forum 网页前端
+# Odysseia Forum - 前端项目
 
-简易静态文件服务器，用于本地开发和测试。
+基于 **React 18 + TypeScript + Vite** 构建的现代化 Discord 论坛搜索前端，配合后端搜索 API，在浏览器中提供贴近 Discord 体验的搜索与浏览界面。
 
-## 快速开始
+> 上游仓库 / PR 说明可参考 `docs` 目录下的
+> [`PROJECT_OVERVIEW.md`](webpage/docs/PROJECT_OVERVIEW.md:1)。
 
-### Windows 用户
+---
 
-双击 `start.bat` 即可启动服务器。
+## 🚀 本地快速开始（开发环境）
 
-### 所有平台
+在 `webpage` 目录下执行以下步骤：
+
+### 1. 安装依赖
 
 ```bash
-cd webpage
-python server.py
+npm install
 ```
 
-服务器将在 `http://localhost:3000` 启动。
+### 2. 配置环境变量
 
-## 配置说明
+复制 `.env.example` 为 `.env` 并填写配置：
 
-启动前端服务器后，需要在 `config.json` 中配置以下内容：
-
-```json
-{
-  "auth": {
-    "frontend_url": "http://localhost:3000",
-    "redirect_uri": "http://localhost:8000/v1/auth/callback"
-  }
-}
+```bash
+cp .env.example .env
 ```
 
-### Discord 开发者后台配置
+编辑 `.env` 文件（示例）：
 
-1. 访问 https://discord.com/developers/applications
-2. 选择你的应用
-3. 进入 **OAuth2** → **Redirects**
-4. 添加重定向URL：`http://localhost:8000/v1/auth/callback`
-5. 保存更改
+```env
+# 本地 / 测试后端地址
+VITE_API_URL=http://localhost:10810/v1
 
-## 服务器特性
-
-- ✅ 自动CORS支持
-- ✅ 禁用缓存（便于开发）
-- ✅ 简洁的日志输出
-- ✅ 支持所有静态文件类型
-
-## 端口说明
-
-- **前端服务器**: `http://localhost:3000` （此服务器）
-- **后端API**: `http://localhost:8000` （FastAPI服务）
-
-## 故障排查
-
-### 端口被占用
-
-如果3000端口被占用，编辑 `server.py` 修改 `PORT` 变量：
-
-```python
-PORT = 3001  # 或其他可用端口
+# Discord 相关配置（如需联通真实 OAuth）
+VITE_GUILD_ID=your_guild_id
+VITE_CLIENT_ID=your_discord_client_id
 ```
 
-然后同步更新 `config.json` 中的 `frontend_url`。
+> 说明：
+> - 开发过程中，如果只想使用本地 Mock 数据，可以保持 `VITE_API_URL` 指向本地测试后端或任意地址；
+> - 具体与后端的对接方式、生产环境变量示例可参考
+>   [`PROJECT_OVERVIEW.md`](webpage/docs/PROJECT_OVERVIEW.md:1)。
 
-### OAuth 登录失败
+### 3. 启动开发服务器
 
-确保：
-1. ✅ 前端服务器正在运行
-2. ✅ 后端API正在运行
-3. ✅ `config.json` 配置正确
-4. ✅ Discord开发者后台的redirect_uri完全匹配
+```bash
+npm run dev
+```
 
-## 生产部署
+默认访问地址：<http://localhost:3000>
 
-生产环境建议使用专业的Web服务器：
-- **Nginx** - 推荐用于生产环境
-- **Caddy** - 自动HTTPS
-- **Cloudflare Pages** - 免费CDN和静态托管
+---
 
-参考 `src/webpage/README.md` 了解如何部署到Cloudflare Pages。
+## 📦 技术栈
+
+### 核心框架
+
+- **React 18** - UI 框架
+- **TypeScript 5** - 类型安全
+- **Vite 5** - 构建工具
+
+### 状态管理
+
+- **Zustand** - 客户端状态管理（搜索条件、UI 状态等）
+- **TanStack Query** - 服务端状态管理（搜索结果、关注列表等）
+
+### UI 与交互
+
+- **Tailwind CSS** - 原子化 CSS，配合自定义 CSS 变量实现主题系统
+- **Framer Motion**（可选）- 动画库
+- **Lucide React** - 图标库
+- **Sonner** - Toast 通知
+- 自研布局组件（侧边栏、顶栏、统计栏等）
+
+### 开发辅助
+
+- **React Router v6** - 路由管理
+- **Axios** - HTTP 客户端
+- **date-fns** - 日期处理
+- **ahooks** - React Hooks 辅助库
+- **MSW (Mock Service Worker)** - 本地接口模拟（搜索、元数据、关注等）
+
+---
+
+## 📁 项目结构（简要）
+
+> 更详细的结构说明参见
+> [`PROJECT_STRUCTURE.md`](webpage/docs/PROJECT_STRUCTURE.md:1)。
+
+```bash
+src/
+├── app/                          # 应用入口
+│   ├── App.tsx                   # 根组件（Provider、路由容器）
+│   └── router.tsx                # 路由配置
+│
+├── pages/                        # 页面
+│   ├── SearchPage/               # 搜索首页
+│   ├── FollowsPage/              # 关注列表页
+│   ├── SettingsPage/             # 设置页
+│   ├── AboutPage/                # 关于 / 说明页（含彩蛋）
+│   └── AuthPage/                 # 登录 / OAuth 回调
+│
+├── features/                     # 按业务拆分的功能模块
+│   ├── auth/                     # 认证相关
+│   ├── search/                   # 搜索逻辑与 API
+│   ├── follows/                  # 关注相关 API
+│   └── threads/                  # 帖子卡片等
+│
+├── components/                   # 复用组件
+│   ├── layout/                   # 布局组件（侧边栏、主布局等）
+│   ├── common/                   # 通用小组件（按钮、滚动条、懒加载图片等）
+│   ├── icons/                    # 图标封装
+│   └── DevNav.tsx               # 开发调试用导航
+│
+├── hooks/                        # 通用 Hooks（主题、设置、快捷键等）
+│   ├── useTheme.ts
+│   ├── useSettings.ts
+│   └── useKeyboardShortcuts.ts
+│
+├── lib/                          # 工具与设置
+│   └── settings.ts               # 用户设置持久化等
+│
+├── mocks/                        # MSW mock 定义
+│   ├── browser.ts
+│   ├── handlers.ts               # 各业务接口的 mock
+│   └── data.ts                   # mock 数据
+│
+├── styles/                       # 样式
+│   ├── globals.css               # 全局样式 & 主题变量
+│   └── themes.ts                 # 主题配置（多套主题）
+│
+├── assets/                       # 静态资源（背景图 / banner / icon 等）
+└── main.tsx                      # React 入口
+```
+
+---
+
+## 🛠️ 常用命令
+
+```bash
+# 启动开发服务器（含 HMR）
+npm run dev
+
+# 构建生产版本（输出到 dist/）
+npm run build
+
+# 本地预览构建结果
+npm run preview
+
+# 代码检查
+npm run lint
+
+# 代码格式化
+npm run format
+```
+
+---
+
+## 🔧 配置与环境说明
+
+### 环境变量
+
+- `VITE_API_URL`：后端 API 基础地址（本地 / 测试 / 生产各不相同）
+- `VITE_GUILD_ID`：Discord 服务器 ID（如需与真实服务器联动）
+- `VITE_CLIENT_ID`：Discord OAuth 应用 Client ID
+
+开发 / 测试 / 生产环境差异，以及在 Cloudflare 上的部署方式，见
+[`PROJECT_OVERVIEW.md`](webpage/PROJECT_OVERVIEW.md:1)。
+
+### Vite / TS / Tailwind
+
+- 路径别名：`@` 指向 `src` 目录
+- TypeScript 开启严格模式，使用路径映射与 ESNext 模块
+- Tailwind 配合自定义 `--od-*` CSS 变量实现深浅色多主题，并支持平滑主题切换动画
+
+---
+
+## 📝 开发规范
+
+### 代码风格
+
+- 使用 **ESLint** 进行代码检查
+- 使用 **Prettier** 进行代码格式化
+- 遵循 React Hooks 规则，避免在条件语句中调用 Hook
+- 尽量使用 TypeScript 类型约束组件 props 与函数返回值
+
+### 命名规范
+
+- 组件：`PascalCase`（如 `SearchBar.tsx`）
+- 函数 / Hook：`camelCase`（如 `useSearchStore.ts`）
+- 常量：`UPPER_SNAKE_CASE`（如 `API_URL`）
+
+### Git 提交前缀建议
+
+- `feat`: 新功能
+- `fix`: 修复 bug
+- `docs`: 文档更新
+- `style`: 仅样式 / 格式调整
+- `refactor`: 代码重构（无功能变更）
+- `test`: 测试相关
+- `chore`: 构建 / 工具 / 依赖调整
+
+---
+
+## ✅ 功能概览（当前进度）
+
+- [x] 搜索页面布局与交互
+- [x] 高级搜索与筛选
+  - 顶栏折叠的「高级搜索」面板 + 页面内固定筛选面板（双面板设计）
+  - 支持 `$tag:xxx$` / `$author:xxx$` 语法，自动解析为标签 / 作者筛选条件
+  - 搜索框内的语法 token 以「标签块」形式展示，可快速删除 / 编辑
+  - 帖子卡片和标签总览页中的标签点击后，会自动注入搜索框并触发搜索
+  - 频道选择、排序设置、时间范围等常用条件
+- [x] 无缝滚动加载
+  - 基于 IntersectionObserver 实现自动加载下一页，保持单一滚动条
+  - 保留页码与加载状态指示，方便了解当前进度
+  - 对重复 thread_id 做去重处理
+- [x] 帖子卡片组件（含 skeleton、统计信息等）
+- [x] 关注列表页面
+- [x] Banner 轮播与推荐位
+- [x] 标签系统与偏好设置
+- [x] 标签总览页（按标签展示帖子数量，可一键跳转到带预填搜索条件的搜索页）
+- [x] 通知中心与站点公告
+  - 左侧栏入口，展示关注帖子更新与静态站点公告
+  - 支持「全部已读」以及单条关闭，静态公告支持本地持久化不再显示
+- [x] 多主题支持（深色 / 浅色 + 自定义主题）
+- [x] 多列网格布局（响应式：1/2/3 列自适应）
+- [x] PC 端侧边栏收起 / 展开（主内容区自适应宽度）
+- [ ] 移动端进一步适配与优化
+
+---
+
+## 📄 许可证
+
+MIT License

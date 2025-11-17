@@ -1,0 +1,401 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+:root {
+  --background: 222.2 84% 4.9%;
+  --foreground: 210 40% 98%;
+  --card: 222.2 84% 4.9%;
+  --card-foreground: 210 40% 98%;
+  --popover: 222.2 84% 4.9%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 263 70% 50%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 217.2 32.6% 17.5%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 217.2 32.6% 17.5%;
+  --muted-foreground: 215 20.2% 65.1%;
+  --accent: 217.2 32.6% 17.5%;
+  --accent-foreground: 210 40% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 217.2 32.6% 17.5%;
+  --input: 217.2 32.6% 17.5%;
+  --ring: 263 70% 50%;
+  --radius: 0.5rem;
+
+  /* Odysseia runtime theme variables（由 JS 根据 Theme 动态覆盖） */
+  --od-bg: #282a2e;
+  --od-bg-secondary: #2b2d31;
+  --od-bg-tertiary: #1e1f22;
+  --od-card: #1e1f22;
+  --od-card-hover: #232428;
+  --od-text-primary: #f2f3f5;
+  --od-text-secondary: #b5bac1;
+  --od-text-tertiary: #949ba4;
+  --od-accent: #5865f2;
+  --od-accent-hover: #4752c4;
+  --od-link: #00a8fc;
+  --od-link-hover: #00c7fc;
+  --od-border: #2b2d31;
+  --od-border-strong: #3f4147;
+  --od-success: #23a55a;
+  --od-warning: #f0b232;
+  --od-error: #f23f42;
+  --od-info: #00a8fc;
+}
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .od-md {
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--od-text-secondary);
+  }
+
+  .od-md h1,
+  .od-md h2,
+  .od-md h3 {
+    font-weight: 700;
+    color: var(--od-text-primary);
+    margin: 0.5rem 0 0.3rem;
+  }
+
+  .od-md h1 {
+    font-size: 1.05rem;
+    border-bottom: 1px solid var(--od-border);
+    padding-bottom: 0.25rem;
+  }
+
+  .od-md strong {
+    color: var(--od-text-primary);
+    font-weight: 700;
+  }
+
+  .od-md em {
+    color: var(--od-text-secondary);
+  }
+
+  .od-md code {
+    background: var(--od-bg-secondary);
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    font-size: 0.85em;
+    color: var(--od-text-primary);
+    border: 1px solid var(--od-border);
+  }
+
+  .od-md pre {
+    background: var(--od-bg-secondary);
+    padding: 10px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 8px 0;
+    border: 1px solid var(--od-border);
+  }
+
+  .od-md blockquote {
+    border-left: 4px solid var(--od-accent);
+    padding-left: 10px;
+    color: var(--od-text-secondary);
+    background: color-mix(in_oklab, var(--od-accent) 8%, var(--od-bg) 92%);
+    padding-top: 2px;
+    padding-bottom: 2px;
+    margin: 4px 0;
+    border-radius: 0 4px 4px 0;
+  }
+
+  .od-md a {
+    color: var(--od-link);
+    text-decoration: none;
+  }
+
+  .od-md a:hover {
+    color: var(--od-link-hover);
+    text-decoration: underline;
+  }
+
+  .od-md ul {
+    list-style-type: disc;
+    padding-left: 20px;
+  }
+}
+
+/* 自定义滚动条样式（使用动态主题变量） */
+@layer utilities {
+  /* Webkit 浏览器（Chrome, Safari, Edge） */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: var(--od-bg);
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: var(--od-border-strong);
+    border-radius: 4px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in_oklab, var(--od-border-strong) 80%, var(--od-bg) 20%);
+  }
+
+  /* Firefox */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--od-border-strong) transparent;
+  }
+
+  /* 全局滚动条也跟随主题，保持风格统一 */
+  body::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  body::-webkit-scrollbar-track {
+    background: var(--od-bg);
+  }
+
+  body::-webkit-scrollbar-thumb {
+    background: var(--od-border-strong);
+    border-radius: 6px;
+  }
+
+  body::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in_oklab, var(--od-border-strong) 80%, var(--od-bg) 20%);
+  }
+
+  body {
+    scrollbar-width: thin;
+    scrollbar-color: var(--od-border-strong) var(--od-bg);
+  }
+}
+
+
+/* 自定义动画 */
+@layer utilities {
+  /* 淡入动画 */
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* 从上滑入 */
+  @keyframes slide-in-from-top {
+    from {
+      transform: translateY(-10px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  /* 从下滑入 */
+  @keyframes slide-in-from-bottom {
+    from {
+      transform: translateY(10px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  /* 动画类 */
+  .animate-in {
+    animation-duration: 0.3s;
+    animation-timing-function: ease-out;
+    animation-fill-mode: both;
+  }
+
+  .fade-in {
+    animation-name: fade-in;
+  }
+
+  .slide-in-from-top-2 {
+    animation-name: slide-in-from-top;
+  }
+
+  .slide-in-from-top-4 {
+    animation-name: slide-in-from-top;
+  }
+
+  .slide-in-from-bottom-4 {
+    animation-name: slide-in-from-bottom;
+  }
+
+  .duration-300 {
+    animation-duration: 0.3s;
+  }
+
+  .duration-500 {
+    animation-duration: 0.5s;
+  }
+
+  /* 通知铃铛左右摆动动画（有未读提醒时使用） */
+  @keyframes notification-bell-swing {
+    0% {
+      transform: rotate(0deg);
+    }
+    15% {
+      transform: rotate(-12deg);
+    }
+    30% {
+      transform: rotate(10deg);
+    }
+    45% {
+      transform: rotate(-8deg);
+    }
+    60% {
+      transform: rotate(6deg);
+    }
+    75% {
+      transform: rotate(-4deg);
+    }
+    100% {
+      transform: rotate(0deg);
+    }
+  }
+
+  .notification-bell-wiggle {
+    transform-origin: top center;
+    animation: notification-bell-swing 900ms ease-in-out infinite;
+  }
+
+  /* 主题切换圆形扩散/收回动画 */
+  @keyframes theme-radial-expand {
+    0% {
+      transform: scale(0);
+      opacity: 0.35;
+    }
+    80% {
+      transform: scale(1.05);
+      opacity: 0.18;
+    }
+    100% {
+      transform: scale(1.1);
+      opacity: 0;
+    }
+  }
+
+  @keyframes theme-radial-collapse {
+    0% {
+      transform: scale(1.1);
+      opacity: 0.3;
+    }
+    70% {
+      transform: scale(0.2);
+      opacity: 0.15;
+    }
+    100% {
+      transform: scale(0);
+      opacity: 0;
+    }
+  }
+
+  .theme-radial-overlay {
+    position: fixed;
+    border-radius: 9999px;
+    background: var(--od-bg);
+    pointer-events: none;
+    z-index: 9999;
+    mix-blend-mode: lighten;
+  }
+
+  .theme-radial-overlay-expand {
+    transform: scale(0);
+    animation: theme-radial-expand 900ms ease-out forwards;
+  }
+
+  .theme-radial-overlay-collapse {
+    transform: scale(1.1);
+    animation: theme-radial-collapse 900ms ease-out forwards;
+  }
+
+  /* 主题切换时的全局颜色平滑过渡（约 1 秒从亮到暗/从暗到亮） */
+  html.od-theme-transition,
+  html.od-theme-transition * {
+    transition-property: background-color, color, border-color, box-shadow, fill, stroke;
+    transition-duration: 0.8s;
+    transition-timing-function: ease-in-out;
+  }
+}
+
+
+/* 搜索输入统一样式，避免浏览器默认白色背景 */
+input[type='search'] {
+  -webkit-appearance: none;
+  appearance: none;
+  background-color: var(--od-bg-secondary);
+  color: var(--od-text-primary);
+}
+
+input[type='search']::-webkit-search-decoration,
+input[type='search']::-webkit-search-cancel-button,
+input[type='search']::-webkit-search-results-button,
+input[type='search']::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+}
+
+/* 日期选择器样式统一 */
+input[type='date'] {
+  color-scheme: dark;
+}
+
+input[type='date']::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
+  cursor: pointer;
+}
+
+
+/* 波纹效果动画 */
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+.animate-ripple {
+  animation: ripple 600ms ease-out;
+}
+
+/* 焦点指示器增强 */
+*:focus-visible {
+  outline: 2px solid var(--od-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* 键盘导航焦点样式 */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--od-accent);
+  outline-offset: 2px;
+}

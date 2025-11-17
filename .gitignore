@@ -14,7 +14,9 @@ dist/
 downloads/
 eggs/
 .eggs/
+# 忽略所有 lib/ 文件夹，但是 webpage/src/lib/ 除外
 lib/
+!webpage/src/lib/
 lib64/
 parts/
 sdist/
@@ -189,3 +191,13 @@ data/
 temp/
 webpage/index.json
 config_production.json
+# Frontend specific ignores
+webpage/node_modules/
+webpage/dist/
+webpage/.vite/
+webpage/coverage/
+*.local
+*.log
+.DS_Store
+# Test tool directory
+testtool/
