@@ -1,162 +1,80 @@
-# Odysseia Forum - 前端项目
+# Odysseia Forum 网页前端
 
-基于 React 18 + TypeScript + Vite 构建的现代化 Discord 论坛搜索前端。
+简易静态文件服务器，用于本地开发和测试。
 
-## 🚀 快速开始
+## 快速开始
 
-### 1. 安装依赖
+### Windows 用户
 
-```bash
-npm install
-```
+双击 `start.bat` 即可启动服务器。
 
-### 2. 配置环境变量
-
-复制 `.env.example` 为 `.env` 并填写配置：
+### 所有平台
 
 ```bash
-cp .env.example .env
+cd webpage
+python server.py
 ```
 
-编辑 `.env` 文件：
+服务器将在 `http://localhost:3000` 启动。
 
-```env
-VITE_API_URL=http://localhost:8000/v1
-VITE_GUILD_ID=your_guild_id
-VITE_CLIENT_ID=your_discord_client_id
+## 配置说明
+
+启动前端服务器后，需要在 `config.json` 中配置以下内容：
+
+```json
+{
+  "auth": {
+    "frontend_url": "http://localhost:3000",
+    "redirect_uri": "http://localhost:8000/v1/auth/callback"
+  }
+}
 ```
 
-### 3. 启动开发服务器
+### Discord 开发者后台配置
 
-```bash
-npm run dev
+1. 访问 https://discord.com/developers/applications
+2. 选择你的应用
+3. 进入 **OAuth2** → **Redirects**
+4. 添加重定向URL：`http://localhost:8000/v1/auth/callback`
+5. 保存更改
+
+## 服务器特性
+
+- ✅ 自动CORS支持
+- ✅ 禁用缓存（便于开发）
+- ✅ 简洁的日志输出
+- ✅ 支持所有静态文件类型
+
+## 端口说明
+
+- **前端服务器**: `http://localhost:3000` （此服务器）
+- **后端API**: `http://localhost:8000` （FastAPI服务）
+
+## 故障排查
+
+### 端口被占用
+
+如果3000端口被占用，编辑 `server.py` 修改 `PORT` 变量：
+
+```python
+PORT = 3001  # 或其他可用端口
 ```
 
-访问 http://localhost:3000
+然后同步更新 `config.json` 中的 `frontend_url`。
 
-## 📦 技术栈
+### OAuth 登录失败
 
-### 核心框架
-- **React 18** - UI 框架
-- **TypeScript 5** - 类型安全
-- **Vite 5** - 构建工具
+确保：
+1. ✅ 前端服务器正在运行
+2. ✅ 后端API正在运行
+3. ✅ `config.json` 配置正确
+4. ✅ Discord开发者后台的redirect_uri完全匹配
 
-### 状态管理
-- **Zustand** - 客户端状态管理
-- **TanStack Query** - 服务端状态管理
+## 生产部署
 
-### UI 组件
-- **Tailwind CSS** - 原子化 CSS
-- **Framer Motion** - 动画库
-- **Lucide React** - 图标库
-- **Sonner** - Toast 通知
+生产环境建议使用专业的Web服务器：
+- **Nginx** - 推荐用于生产环境
+- **Caddy** - 自动HTTPS
+- **Cloudflare Pages** - 免费CDN和静态托管
 
-### 工具库
-- **React Router v6** - 路由管理
-- **Axios** - HTTP 客户端
-- **date-fns** - 日期处理
-- **ahooks** - React Hooks 工具库
-
-## 📁 项目结构
-
-```
-src/
-├── app/                    # 应用入口
-│   ├── App.tsx            # 根组件
-│   └── router.tsx         # 路由配置
-│
-├── pages/                 # 页面组件
-│   ├── AuthPage/         # 认证页面
-│   ├── SearchPage/       # 搜索页面
-│   └── FollowsPage/      # 关注列表页面
-│
-├── features/             # 功能模块
-│   └── auth/            # 认证功能
-│       ├── api/         # API 接口
-│       └── hooks/       # 自定义 Hooks
-│
-├── components/          # 通用组件
-│   ├── layout/         # 布局组件
-│   ├── ui/             # UI 组件
-│   └── icons/          # 图标组件
-│
-├── lib/                # 工具库
-│   ├── api/           # API 客户端
-│   └── utils.ts       # 工具函数
-│
-├── hooks/             # 全局 Hooks
-├── types/             # 类型定义
-└── styles/            # 样式文件
-```
-
-## 🛠️ 开发命令
-
-```bash
-# 启动开发服务器
-npm run dev
-
-# 构建生产版本
-npm run build
-
-# 预览生产构建
-npm run preview
-
-# 代码检查
-npm run lint
-
-# 代码格式化
-npm run format
-```
-
-## 🔧 配置说明
-
-### Vite 配置
-- 路径别名：`@` 指向 `src` 目录
-- 开发服务器端口：3000
-- 自动打开浏览器
-
-### TypeScript 配置
-- 严格模式
-- 路径映射
-- ESNext 模块
-
-### Tailwind CSS 配置
-- 深色主题
-- 自定义颜色系统
-- 动画支持
-
-## 📝 开发规范
-
-### 代码风格
-- 使用 ESLint 进行代码检查
-- 使用 Prettier 进行代码格式化
-- 遵循 React Hooks 规则
-
-### 命名规范
-- 组件：PascalCase（如 `SearchBar.tsx`）
-- 函数：camelCase（如 `useAuth.ts`）
-- 常量：UPPER_SNAKE_CASE（如 `API_URL`）
-
-### Git 提交规范
-- feat: 新功能
-- fix: 修复 bug
-- docs: 文档更新
-- style: 代码格式调整
-- refactor: 代码重构
-- test: 测试相关
-- chore: 构建/工具相关
-
-## 🚧 待开发功能
-
-- [ ] 搜索页面
-- [ ] 筛选器组件
-- [ ] 帖子卡片组件
-- [ ] 关注列表页面
-- [ ] Banner 轮播
-- [ ] 标签系统
-- [ ] 虚拟滚动
-- [ ] 移动端适配
-
-## 📄 许可证
-
-MIT License
+参考 `src/webpage/README.md` 了解如何部署到Cloudflare Pages。
