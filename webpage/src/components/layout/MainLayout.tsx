@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ResizableSidebar } from '@/components/ResizableSidebar';
 import { TopBar } from '@/components/layout/TopBar';
 import { AppSidebar } from '@/components/layout/AppSidebar';
+import { useSettings } from '@/hooks/useSettings';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -12,7 +13,7 @@ interface MainLayoutProps {
 
 export function MainLayout({ children, showTopBar = true, enableAutoSearch }: MainLayoutProps) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const { settings, updateSettings } = useSettings();
   const [searchInput, setSearchInput] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
@@ -35,8 +36,8 @@ export function MainLayout({ children, showTopBar = true, enableAutoSearch }: Ma
       <ResizableSidebar
         isMobileOpen={isMobileOpen}
         setIsMobileOpen={setIsMobileOpen}
-        isCollapsed={isSidebarCollapsed}
-        setIsCollapsed={setIsSidebarCollapsed}
+        isCollapsed={settings.sidebarCollapsed}
+        setIsCollapsed={(collapsed) => updateSettings({ sidebarCollapsed: collapsed })}
       >
         <AppSidebar />
       </ResizableSidebar>
@@ -44,7 +45,7 @@ export function MainLayout({ children, showTopBar = true, enableAutoSearch }: Ma
       {/* 主内容区：根据侧边栏折叠状态调整左侧留白（PC 端） */}
       <main
         className={`flex-1 bg-[var(--od-bg)] pb-20 transition-all duration-300 ${
-          isSidebarCollapsed ? 'lg:ml-0' : 'lg:ml-[240px]'
+          settings.sidebarCollapsed ? 'lg:ml-0' : 'lg:ml-[240px]'
         }`}
       >
         {showTopBar && (

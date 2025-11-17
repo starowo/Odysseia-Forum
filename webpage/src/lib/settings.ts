@@ -20,6 +20,7 @@ export interface UserSettings {
     | 'paper-dark'
     | 'paper-light'
     | 'auto';
+  sidebarCollapsed: boolean;
   notifications: {
     newPosts: boolean;
     replies: boolean;
@@ -37,6 +38,7 @@ const defaultSettings: UserSettings = {
   compactMode: false,
   imageMode: 'normal',
   theme: 'discord-dark',
+  sidebarCollapsed: false,
   notifications: {
     newPosts: true,
     replies: true,
