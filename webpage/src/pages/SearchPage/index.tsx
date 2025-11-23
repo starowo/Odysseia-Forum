@@ -497,7 +497,6 @@ export function SearchPage() {
 
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [timeFrom, setTimeFrom] = useState('');
   const [timeTo, setTimeTo] = useState('');
   const [openMode, setOpenMode] = useState<'app' | 'web'>('app');
@@ -764,8 +763,8 @@ export function SearchPage() {
       <ResizableSidebar
         isMobileOpen={isMobileOpen}
         setIsMobileOpen={setIsMobileOpen}
-        isCollapsed={isSidebarCollapsed}
-        setIsCollapsed={setIsSidebarCollapsed}
+        isCollapsed={settings.sidebarCollapsed}
+        setIsCollapsed={(collapsed) => updateSettings({ sidebarCollapsed: collapsed })}
       >
         <AppSidebar />
       </ResizableSidebar>
@@ -773,7 +772,7 @@ export function SearchPage() {
       {/* 主内容区：根据侧边栏折叠状态调整左侧留白（PC 端） */}
       <main
         className={`flex-1 bg-[var(--od-bg)] pb-20 transition-all duration-300 ${
-          isSidebarCollapsed ? 'lg:ml-0' : 'lg:ml-[240px]'
+          settings.sidebarCollapsed ? 'lg:ml-0' : 'lg:ml-[240px]'
         }`}
       >
         {/* 顶部搜索栏 - 集成高级搜索面板 */}

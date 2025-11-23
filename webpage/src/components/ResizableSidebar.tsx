@@ -34,7 +34,7 @@ export function ResizableSidebar({
         className={`
           fixed left-0 top-0 z-50 h-screen border-r border-[var(--od-border)] bg-[var(--od-bg-secondary)] transition-transform duration-300
           ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
-          lg:${isCollapsed ? '-translate-x-full' : 'translate-x-0'}
+          ${isCollapsed ? 'lg:-translate-x-full' : 'lg:translate-x-0'}
         `}
       >
         {/* 移动端关闭按钮 */}
