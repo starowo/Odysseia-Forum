@@ -559,7 +559,7 @@ export function SearchPage() {
 
       {/* 主内容区：根据侧边栏折叠状态调整左侧留白（PC 端） */}
       <main
-        className={`flex-1 bg-[var(--od-bg)] pb-20 transition-all duration-300 ${settings.sidebarCollapsed ? 'lg:ml-0' : 'lg:ml-[240px]'
+        className={`flex-1 bg-[var(--od-bg)] pb-20 transition-all duration-300 ${settings.sidebarCollapsed ? 'lg:ml-0' : 'lg:ml-[210px]'
           }`}
       >
         {/* 顶部搜索栏 - 集成高级搜索面板 */}

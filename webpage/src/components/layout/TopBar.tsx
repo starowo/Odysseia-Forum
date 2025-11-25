@@ -88,7 +88,7 @@ export function TopBar({
 
   return (
     <header className="sticky top-0 z-20 bg-[var(--od-bg-secondary)] shadow-lg">
-      <div className="flex items-center gap-3 p-3">
+      <div className="flex items-center gap-3 p-3 lg:pl-0">
         {/* 移动端菜单按钮 */}
         <button
           onClick={onMenuClick}
