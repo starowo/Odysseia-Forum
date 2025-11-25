@@ -14,7 +14,6 @@ export function AppSidebar() {
   const { user } = useAuth();
   const location = useLocation();
   const { selectedChannel, setChannel } = useSearchStore();
-  const isSearchPage = location.pathname === '/';
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
 
@@ -75,46 +74,44 @@ export function AppSidebar() {
 
       {/* 滚动区域 */}
       <div className="flex-1 overflow-y-auto px-3 py-2 scrollbar-hide">
-        {/* 频道列表 (仅在搜索页显示) */}
-        {isSearchPage && (
-          <div className="mb-6">
-            <div className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-[var(--od-text-tertiary)]">
-              频道
-            </div>
-
-            <div className="space-y-0.5">
-              {/* 全频道 */}
-              <button
-                onClick={() => setChannel(null)}
-                className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${!selectedChannel
-                  ? 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-primary)] font-medium'
-                  : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
-                  }`}
-              >
-                <span className={`h-1.5 w-1.5 rounded-full ${!selectedChannel ? 'bg-[var(--od-accent)]' : 'bg-[var(--od-text-tertiary)]'}`} />
-                <span>全频道</span>
-              </button>
-
-              {/* 动态频道列表 */}
-              {channels?.map((ch) => {
-                const active = selectedChannel === ch.id;
-                return (
-                  <button
-                    key={ch.id}
-                    onClick={() => setChannel(ch.id)}
-                    className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${active
-                      ? 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-primary)] font-medium'
-                      : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
-                      }`}
-                  >
-                    <span className={`h-1.5 w-1.5 rounded-full ${active ? 'bg-[var(--od-accent)]' : 'bg-[var(--od-text-tertiary)]'}`} />
-                    <span className="truncate">{ch.name}</span>
-                  </button>
-                );
-              })}
-            </div>
+        {/* 频道列表 - 全局显示 */}
+        <div className="mb-6">
+          <div className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-[var(--od-text-tertiary)]">
+            频道
           </div>
-        )}
+
+          <div className="space-y-0.5">
+            {/* 全频道 */}
+            <button
+              onClick={() => setChannel(null)}
+              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${!selectedChannel
+                ? 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-primary)] font-medium'
+                : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
+                }`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${!selectedChannel ? 'bg-[var(--od-accent)]' : 'bg-[var(--od-text-tertiary)]'}`} />
+              <span>全频道</span>
+            </button>
+
+            {/* 动态频道列表 */}
+            {channels?.map((ch) => {
+              const active = selectedChannel === ch.id;
+              return (
+                <button
+                  key={ch.id}
+                  onClick={() => setChannel(ch.id)}
+                  className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${active
+                    ? 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-primary)] font-medium'
+                    : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
+                    }`}
+                >
+                  <span className={`h-1.5 w-1.5 rounded-full ${active ? 'bg-[var(--od-accent)]' : 'bg-[var(--od-text-tertiary)]'}`} />
+                  <span className="truncate">{ch.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         {/* 快捷操作 */}
         <div className="mb-6">

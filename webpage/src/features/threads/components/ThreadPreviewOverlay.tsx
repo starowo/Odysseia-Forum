@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { MarkdownText } from '@/components/common/MarkdownText';
 import { LazyImage } from '@/components/common/LazyImage';
 import type { Thread } from '@/types/thread.types';
@@ -67,17 +67,15 @@ export function ThreadPreviewOverlay({
 
   return createPortal(
     <div
-      className={`fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm px-3 sm:px-6 transition-opacity duration-250 ${
-        closing || !visible ? 'opacity-0' : 'opacity-100'
-      }`}
+      className={`fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm px-3 sm:px-6 transition-opacity duration-250 ${closing || !visible ? 'opacity-0' : 'opacity-100'
+        }`}
       onClick={handleStartClose}
     >
       <div
-        className={`relative my-4 flex w-full max-w-4xl max-h-[90vh] flex-col overflow-hidden rounded-xl bg-[var(--od-card)] shadow-2xl sm:my-6 sm:rounded-2xl transform transition-all duration-250 ease-out ${
-          closing || !visible
-            ? 'scale-95 translate-y-4 opacity-0'
-            : 'scale-100 translate-y-0 opacity-100'
-        }`}
+        className={`relative my-4 flex w-full max-w-4xl h-[85vh] flex-col overflow-hidden rounded-xl bg-[var(--od-card)] shadow-2xl sm:my-6 sm:rounded-2xl transform transition-all duration-250 ease-out ${closing || !visible
+          ? 'scale-95 translate-y-4 opacity-0'
+          : 'scale-100 translate-y-0 opacity-100'
+          }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* 关闭按钮 */}
@@ -90,9 +88,11 @@ export function ThreadPreviewOverlay({
           <X className="h-4 w-4" />
         </button>
 
-        {/* 顶部大图 */}
-        <div className="relative h-52 w-full overflow-hidden bg-[var(--od-bg-tertiary)] sm:h-64">
-          {thread.thumbnail_url ? (
+        {/* 顶部大图 / 轮播 */}
+        <div className="relative h-[45%] w-full flex-shrink-0 overflow-hidden bg-[var(--od-bg-tertiary)] group/carousel">
+          {thread.thumbnail_urls && thread.thumbnail_urls.length > 0 ? (
+            <Carousel images={thread.thumbnail_urls} alt={thread.title} />
+          ) : thread.thumbnail_url ? (
             <LazyImage
               src={thread.thumbnail_url}
               alt={thread.title}
@@ -103,7 +103,7 @@ export function ThreadPreviewOverlay({
           )}
 
           {thread.has_update && (
-            <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-[#23a55a]/90 px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm backdrop-blur-sm">
+            <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-[#23a55a]/90 px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm backdrop-blur-sm z-20">
               <span className="inline-block h-2 w-2 rounded-full bg-white animate-[pulse_2.4s_ease-in-out_infinite]" />
               <span>有更新</span>
             </div>
@@ -172,5 +172,87 @@ export function ThreadPreviewOverlay({
       </div>
     </div>,
     document.body,
+  );
+}
+
+function Carousel({ images, alt }: { images: string[]; alt: string }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const next = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const prev = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  const goTo = (index: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentIndex(index);
+  };
+
+  if (images.length === 0) return null;
+  if (images.length === 1) {
+    return (
+      <LazyImage
+        src={images[0]}
+        alt={alt}
+        className="h-full w-full bg-black object-contain"
+      />
+    );
+  }
+
+  return (
+    <div className="relative h-full w-full">
+      {/* Slides */}
+      <div className="h-full w-full relative">
+        {images.map((src, idx) => (
+          <div
+            key={idx}
+            className={`absolute inset-0 transition-opacity duration-300 ${idx === currentIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
+              }`}
+          >
+            <LazyImage
+              src={src}
+              alt={`${alt} ${idx + 1}`}
+              className="h-full w-full bg-black object-contain"
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Controls */}
+      <button
+        onClick={prev}
+        className="absolute left-2 top-1/2 -translate-y-1/2 z-30 rounded-full bg-black/50 p-1.5 text-white transition-colors hover:bg-black/70 pointer-events-auto"
+      >
+        <ChevronLeft className="h-6 w-6" />
+      </button>
+      <button
+        onClick={next}
+        className="absolute right-2 top-1/2 -translate-y-1/2 z-30 rounded-full bg-black/50 p-1.5 text-white transition-colors hover:bg-black/70 pointer-events-auto"
+      >
+        <ChevronRight className="h-6 w-6" />
+      </button>
+
+      {/* Indicators */}
+      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
+        {images.map((_, idx) => (
+          <button
+            key={idx}
+            onClick={(e) => goTo(idx, e)}
+            className={`h-1.5 rounded-full transition-all ${idx === currentIndex ? 'w-4 bg-white' : 'w-1.5 bg-white/50 hover:bg-white/80'
+              }`}
+          />
+        ))}
+      </div>
+
+      {/* Counter */}
+      <div className="absolute bottom-3 right-3 z-20 rounded-full bg-black/50 px-2 py-0.5 text-xs text-white backdrop-blur-sm">
+        {currentIndex + 1} / {images.length}
+      </div>
+    </div>
   );
 }

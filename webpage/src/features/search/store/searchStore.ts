@@ -25,6 +25,10 @@ interface SearchState {
   page: number;
   perPage: number;
 
+  // UI 状态
+  isMainBannerVisible: boolean;
+  activeBanner: { image: string; title: string; description: string } | null;
+
   // Actions
   setQuery: (query: string) => void;
   setChannel: (channelId: string | null) => void;
@@ -37,6 +41,8 @@ interface SearchState {
   setTimeRange: (from: Date | null, to: Date | null) => void;
   setPage: (page: number) => void;
   setPerPage: (perPage: number) => void;
+  setMainBannerVisible: (visible: boolean) => void;
+  setActiveBanner: (banner: { image: string; title: string; description: string } | null) => void;
   clearFilters: () => void;
 }
 
@@ -54,6 +60,8 @@ export const useSearchStore = create<SearchState>()(
       timeTo: null,
       page: 1,
       perPage: 24,
+      isMainBannerVisible: true,
+      activeBanner: null,
 
       // Actions
       setQuery: (query) => {
@@ -126,6 +134,14 @@ export const useSearchStore = create<SearchState>()(
         // 做一层防御式校验，避免出现 0 或极端大值
         const safePerPage = Math.min(100, Math.max(1, perPage || 1));
         set({ perPage: safePerPage, page: 1 });
+      },
+
+      setMainBannerVisible: (visible) => {
+        set({ isMainBannerVisible: visible });
+      },
+
+      setActiveBanner: (banner) => {
+        set({ activeBanner: banner });
       },
 
       clearFilters: () => {

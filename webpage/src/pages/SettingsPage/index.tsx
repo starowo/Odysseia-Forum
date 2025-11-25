@@ -14,6 +14,7 @@ import {
   Minimize2,
   Scan,
   Maximize2,
+  Megaphone,
 } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useSettings } from '@/hooks/useSettings';
@@ -123,28 +124,25 @@ export function SettingsPage() {
                       <button
                         key={size}
                         onClick={() => updateSettings({ fontSize: size })}
-                        className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all ${
-                          isActive
-                            ? 'border-[var(--od-accent)] bg-[color-mix(in_oklab,var(--od-accent)_10%,transparent)]'
-                            : 'border-[var(--od-border-strong)] hover:border-[var(--od-accent)]/60'
-                        }`}
+                        className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all ${isActive
+                          ? 'border-[var(--od-accent)] bg-[color-mix(in_oklab,var(--od-accent)_10%,transparent)]'
+                          : 'border-[var(--od-border-strong)] hover:border-[var(--od-accent)]/60'
+                          }`}
                       >
                         {/* 用不同字号的 Aa 代替图标，让差异更直观 */}
                         <span
-                          className={`font-semibold leading-none ${sampleSizeClass} ${
-                            isActive
-                              ? 'text-[var(--od-accent)]'
-                              : 'text-[var(--od-text-secondary)]'
-                          }`}
+                          className={`font-semibold leading-none ${sampleSizeClass} ${isActive
+                            ? 'text-[var(--od-accent)]'
+                            : 'text-[var(--od-text-secondary)]'
+                            }`}
                         >
                           Aa
                         </span>
                         <span
-                          className={`text-sm ${
-                            isActive
-                              ? 'text-[var(--od-text-primary)] font-medium'
-                              : 'text-[var(--od-text-primary)]'
-                          }`}
+                          className={`text-sm ${isActive
+                            ? 'text-[var(--od-text-primary)] font-medium'
+                            : 'text-[var(--od-text-primary)]'
+                            }`}
                         >
                           {size === 'small' ? '小' : size === 'medium' ? '中' : '大'}
                         </span>
@@ -169,25 +167,22 @@ export function SettingsPage() {
                       <button
                         key={size}
                         onClick={() => updateSettings({ cardSize: size })}
-                        className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all ${
-                          isActive
-                            ? 'border-[var(--od-accent)] bg-[color-mix(in_oklab,var(--od-accent)_10%,transparent)]'
-                            : 'border-[var(--od-border-strong)] hover:border-[var(--od-accent)]/60'
-                        }`}
+                        className={`flex flex-col items-center gap-2 rounded-lg border-2 p-4 transition-all ${isActive
+                          ? 'border-[var(--od-accent)] bg-[color-mix(in_oklab,var(--od-accent)_10%,transparent)]'
+                          : 'border-[var(--od-border-strong)] hover:border-[var(--od-accent)]/60'
+                          }`}
                       >
                         <Icon
-                          className={`h-5 w-5 ${
-                            isActive
-                              ? 'text-[var(--od-accent)]'
-                              : 'text-[var(--od-text-secondary)]'
-                          }`}
+                          className={`h-5 w-5 ${isActive
+                            ? 'text-[var(--od-accent)]'
+                            : 'text-[var(--od-text-secondary)]'
+                            }`}
                         />
                         <span
-                          className={`text-sm ${
-                            isActive
-                              ? 'text-[var(--od-text-primary)] font-medium'
-                              : 'text-[var(--od-text-primary)]'
-                          }`}
+                          className={`text-sm ${isActive
+                            ? 'text-[var(--od-text-primary)] font-medium'
+                            : 'text-[var(--od-text-primary)]'
+                            }`}
                         >
                           {size === 'compact' ? '紧凑' : size === 'normal' ? '标准' : '宽松'}
                         </span>
@@ -205,18 +200,16 @@ export function SettingsPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => updateSettings({ layoutMode: 'grid' })}
-                    className={`flex items-center gap-3 rounded-lg border-2 p-4 transition-all ${
-                      settings.layoutMode === 'grid'
-                        ? 'border-[var(--od-accent)] bg-[color-mix(in_oklab,var(--od-accent)_10%,transparent)]'
-                        : 'border-[var(--od-border-strong)] hover:border-[var(--od-accent)]/60'
-                    }`}
+                    className={`flex items-center gap-3 rounded-lg border-2 p-4 transition-all ${settings.layoutMode === 'grid'
+                      ? 'border-[var(--od-accent)] bg-[color-mix(in_oklab,var(--od-accent)_10%,transparent)]'
+                      : 'border-[var(--od-border-strong)] hover:border-[var(--od-accent)]/60'
+                      }`}
                   >
                     <Grid
-                      className={`h-5 w-5 ${
-                        settings.layoutMode === 'grid'
-                          ? 'text-[var(--od-accent)]'
-                          : 'text-[var(--od-text-secondary)]'
-                      }`}
+                      className={`h-5 w-5 ${settings.layoutMode === 'grid'
+                        ? 'text-[var(--od-accent)]'
+                        : 'text-[var(--od-text-secondary)]'
+                        }`}
                     />
                     <div className="text-left">
                       <div className="text-sm font-medium text-[var(--od-text-primary)]">
@@ -227,18 +220,16 @@ export function SettingsPage() {
                   </button>
                   <button
                     onClick={() => updateSettings({ layoutMode: 'list' })}
-                    className={`flex items-center gap-3 rounded-lg border-2 p-4 transition-all ${
-                      settings.layoutMode === 'list'
-                        ? 'border-[var(--od-accent)] bg-[color-mix(in_oklab,var(--od-accent)_10%,transparent)]'
-                        : 'border-[var(--od-border-strong)] hover:border-[var(--od-accent)]/60'
-                    }`}
+                    className={`flex items-center gap-3 rounded-lg border-2 p-4 transition-all ${settings.layoutMode === 'list'
+                      ? 'border-[var(--od-accent)] bg-[color-mix(in_oklab,var(--od-accent)_10%,transparent)]'
+                      : 'border-[var(--od-border-strong)] hover:border-[var(--od-accent)]/60'
+                      }`}
                   >
                     <List
-                      className={`h-5 w-5 ${
-                        settings.layoutMode === 'list'
-                          ? 'text-[var(--od-accent)]'
-                          : 'text-[var(--od-text-secondary)]'
-                      }`}
+                      className={`h-5 w-5 ${settings.layoutMode === 'list'
+                        ? 'text-[var(--od-accent)]'
+                        : 'text-[var(--od-text-secondary)]'
+                        }`}
                     />
                     <div className="text-left">
                       <div className="text-sm font-medium text-[var(--od-text-primary)]">
@@ -258,18 +249,16 @@ export function SettingsPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => updateSettings({ imageMode: 'normal' })}
-                    className={`flex items-center gap-3 rounded-lg border-2 p-4 transition-all ${
-                      settings.imageMode === 'normal'
-                        ? 'border-[var(--od-accent)] bg-[color-mix(in_oklab,var(--od-accent)_10%,transparent)]'
-                        : 'border-[var(--od-border-strong)] hover:border-[var(--od-accent)]/60'
-                    }`}
+                    className={`flex items-center gap-3 rounded-lg border-2 p-4 transition-all ${settings.imageMode === 'normal'
+                      ? 'border-[var(--od-accent)] bg-[color-mix(in_oklab,var(--od-accent)_10%,transparent)]'
+                      : 'border-[var(--od-border-strong)] hover:border-[var(--od-accent)]/60'
+                      }`}
                   >
                     <ImageIcon
-                      className={`h-5 w-5 ${
-                        settings.imageMode === 'normal'
-                          ? 'text-[var(--od-accent)]'
-                          : 'text-[var(--od-text-secondary)]'
-                      }`}
+                      className={`h-5 w-5 ${settings.imageMode === 'normal'
+                        ? 'text-[var(--od-accent)]'
+                        : 'text-[var(--od-text-secondary)]'
+                        }`}
                     />
                     <div className="text-left">
                       <div className="text-sm font-medium text-[var(--od-text-primary)]">
@@ -282,18 +271,16 @@ export function SettingsPage() {
                   </button>
                   <button
                     onClick={() => updateSettings({ imageMode: 'off' })}
-                    className={`flex items-center gap-3 rounded-lg border-2 p-4 transition-all ${
-                      settings.imageMode === 'off'
-                        ? 'border-[var(--od-accent)] bg-[color-mix(in_oklab,var(--od-accent)_10%,transparent)]'
-                        : 'border-[var(--od-border-strong)] hover:border-[var(--od-accent)]/60'
-                    }`}
+                    className={`flex items-center gap-3 rounded-lg border-2 p-4 transition-all ${settings.imageMode === 'off'
+                      ? 'border-[var(--od-accent)] bg-[color-mix(in_oklab,var(--od-accent)_10%,transparent)]'
+                      : 'border-[var(--od-border-strong)] hover:border-[var(--od-accent)]/60'
+                      }`}
                   >
                     <ImageOff
-                      className={`h-5 w-5 ${
-                        settings.imageMode === 'off'
-                          ? 'text-[var(--od-accent)]'
-                          : 'text-[var(--od-text-secondary)]'
-                      }`}
+                      className={`h-5 w-5 ${settings.imageMode === 'off'
+                        ? 'text-[var(--od-accent)]'
+                        : 'text-[var(--od-text-secondary)]'
+                        }`}
                     />
                     <div className="text-left">
                       <div className="text-sm font-medium text-[var(--od-text-primary)]">
@@ -324,20 +311,18 @@ export function SettingsPage() {
                       <button
                         key={option.id}
                         onClick={() => updateSettings({ theme: option.id })}
-                        className={`flex flex-col gap-2 rounded-lg border-2 p-3 text-left transition-all ${
-                          isSelected
-                            ? 'border-[var(--od-accent)] bg-[color-mix(in_oklab,var(--od-accent)_10%,transparent)]'
-                            : 'border-[var(--od-border-strong)] hover:border-[var(--od-accent)]/60'
-                        }`}
+                        className={`flex flex-col gap-2 rounded-lg border-2 p-3 text-left transition-all ${isSelected
+                          ? 'border-[var(--od-accent)] bg-[color-mix(in_oklab,var(--od-accent)_10%,transparent)]'
+                          : 'border-[var(--od-border-strong)] hover:border-[var(--od-accent)]/60'
+                          }`}
                       >
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2">
                             <option.icon
-                              className={`h-5 w-5 ${
-                                isSelected
-                                  ? 'text-[var(--od-accent)]'
-                                  : 'text-[var(--od-text-secondary)]'
-                              }`}
+                              className={`h-5 w-5 ${isSelected
+                                ? 'text-[var(--od-accent)]'
+                                : 'text-[var(--od-text-secondary)]'
+                                }`}
                             />
                             <div className="flex flex-col">
                               <span className="text-xs text-[var(--od-text-primary)]">
@@ -379,17 +364,39 @@ export function SettingsPage() {
                 </div>
                 <button
                   onClick={() => updateSettings({ compactMode: !settings.compactMode })}
-                  className={`relative h-6 w-11 rounded-full transition-colors ${
-                    settings.compactMode ? 'bg-[var(--od-accent)]' : 'bg-[var(--od-border-strong)]'
-                  }`}
+                  className={`relative h-6 w-11 rounded-full transition-colors ${settings.compactMode ? 'bg-[var(--od-accent)]' : 'bg-[var(--od-border-strong)]'
+                    }`}
                 >
                   <div
-                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                      settings.compactMode ? 'translate-x-5' : 'translate-x-0.5'
-                    }`}
+                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${settings.compactMode ? 'translate-x-5' : 'translate-x-0.5'
+                      }`}
                   />
                 </button>
               </div>
+            </div>
+          </div>
+
+          {/* 欢迎横幅 */}
+          <div className="rounded-xl bg-[var(--od-card)] p-6">
+            <div className="mb-4 flex items-center gap-3">
+              <Megaphone className="h-5 w-5 text-[var(--od-accent)]" />
+              <h2 className="text-lg font-semibold text-[var(--od-text-primary)]">横幅</h2>
+            </div>
+            <div className="flex items-center justify-between rounded-lg bg-[var(--od-bg-tertiary)] p-4">
+              <div>
+                <p className="text-sm font-medium text-[var(--od-text-primary)]">显示欢迎横幅</p>
+                <p className="text-xs text-[var(--od-text-tertiary)]">在右下角显示一个可折叠的欢迎横幅</p>
+              </div>
+              <button
+                onClick={() => updateSettings({ showFloatingBanner: !settings.showFloatingBanner })}
+                className={`relative h-6 w-11 rounded-full transition-colors ${settings.showFloatingBanner ? 'bg-[var(--od-accent)]' : 'bg-[var(--od-border-strong)]'
+                  }`}
+              >
+                <div
+                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${settings.showFloatingBanner ? 'translate-x-5' : 'translate-x-0.5'
+                    }`}
+                />
+              </button>
             </div>
           </div>
 
@@ -415,14 +422,12 @@ export function SettingsPage() {
                       },
                     })
                   }
-                  className={`relative h-6 w-11 rounded-full transition-colors ${
-                    settings.notifications.newPosts ? 'bg-[var(--od-accent)]' : 'bg-[var(--od-border-strong)]'
-                  }`}
+                  className={`relative h-6 w-11 rounded-full transition-colors ${settings.notifications.newPosts ? 'bg-[var(--od-accent)]' : 'bg-[var(--od-border-strong)]'
+                    }`}
                 >
                   <div
-                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                      settings.notifications.newPosts ? 'translate-x-5' : 'translate-x-0.5'
-                    }`}
+                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${settings.notifications.newPosts ? 'translate-x-5' : 'translate-x-0.5'
+                      }`}
                   />
                 </button>
               </div>
@@ -441,14 +446,12 @@ export function SettingsPage() {
                       },
                     })
                   }
-                  className={`relative h-6 w-11 rounded-full transition-colors ${
-                    settings.notifications.replies ? 'bg-[var(--od-accent)]' : 'bg-[var(--od-border-strong)]'
-                  }`}
+                  className={`relative h-6 w-11 rounded-full transition-colors ${settings.notifications.replies ? 'bg-[var(--od-accent)]' : 'bg-[var(--od-border-strong)]'
+                    }`}
                 >
                   <div
-                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                      settings.notifications.replies ? 'translate-x-5' : 'translate-x-0.5'
-                    }`}
+                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${settings.notifications.replies ? 'translate-x-5' : 'translate-x-0.5'
+                      }`}
                   />
                 </button>
               </div>
@@ -467,14 +470,12 @@ export function SettingsPage() {
                       },
                     })
                   }
-                  className={`relative h-6 w-11 rounded-full transition-colors ${
-                    settings.notifications.mentions ? 'bg-[var(--od-accent)]' : 'bg-[var(--od-border-strong)]'
-                  }`}
+                  className={`relative h-6 w-11 rounded-full transition-colors ${settings.notifications.mentions ? 'bg-[var(--od-accent)]' : 'bg-[var(--od-border-strong)]'
+                    }`}
                 >
                   <div
-                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                      settings.notifications.mentions ? 'translate-x-5' : 'translate-x-0.5'
-                    }`}
+                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${settings.notifications.mentions ? 'translate-x-5' : 'translate-x-0.5'
+                      }`}
                   />
                 </button>
               </div>

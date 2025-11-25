@@ -1,5 +1,5 @@
 import { apiClient } from '@/lib/api/client';
-import type { SearchParams, SearchResponse } from '@/types/thread.types';
+import type { SearchParams, SearchResponse, Channel } from '@/types/thread.types';
 
 // 构建搜索请求参数
 function buildSearchRequest(params: SearchParams) {
@@ -37,11 +37,9 @@ export const searchApi = {
     return response.data;
   },
 
-  // 获取可用标签
-  getAvailableTags: async (channelId?: string): Promise<string[]> => {
-    const response = await apiClient.get<string[]>('/tags', {
-      params: { channelId },
-    });
+  // 获取所有频道及其可用标签
+  getChannels: async (): Promise<Channel[]> => {
+    const response = await apiClient.get<Channel[]>('/meta/channels');
     return response.data;
   },
 };

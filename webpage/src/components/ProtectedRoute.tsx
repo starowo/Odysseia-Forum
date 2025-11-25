@@ -1,12 +1,35 @@
+import { useEffect, useState } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
-import { useAuth } from '@/features/auth/hooks/useAuth';
+import { useAuth, useRefreshAuth } from '@/features/auth/hooks/useAuth';
 
 export function ProtectedRoute() {
   const { isAuthenticated, isLoading } = useAuth();
+  const refreshAuth = useRefreshAuth();
+  const [isProcessingToken, setIsProcessingToken] = useState(false);
 
-  // 显示加载界面直到认证检查完成
-  if (isLoading) {
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && hash.includes('token=')) {
+      setIsProcessingToken(true);
+      const params = new URLSearchParams(hash.substring(1)); // remove #
+      const token = params.get('token');
+
+      if (token) {
+        localStorage.setItem('auth_token', token);
+        // 清除 URL hash
+        window.history.replaceState(null, '', window.location.pathname);
+        // 刷新认证状态
+        refreshAuth();
+      }
+
+      // 给一点时间让状态更新
+      setTimeout(() => setIsProcessingToken(false), 500);
+    }
+  }, [refreshAuth]);
+
+  // 显示加载界面直到认证检查完成或正在处理 Token
+  if (isLoading || isProcessingToken) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--od-bg)]">
         <div className="text-center">
@@ -17,9 +40,11 @@ export function ProtectedRoute() {
     );
   }
 
-  // 如果未认证，跳转到登录页
+  // If not authenticated, save redirect URL and navigate to login
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    const currentUrl = window.location.href;
+    sessionStorage.setItem('login_redirect', currentUrl);
+    return <Navigate to={`/login?redirect=${encodeURIComponent(currentUrl)}`} replace />;
   }
 
   // 已认证，显示内容

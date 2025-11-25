@@ -21,6 +21,7 @@ export interface Thread {
   display_count?: number;
   first_message_excerpt?: string | null;
   thumbnail_url?: string | null;
+  thumbnail_urls?: string[] | null;
   tags: string[];
 
   // 部分接口中的扩展字段（例如关注列表等）

@@ -19,9 +19,10 @@ import { useSettings } from '@/hooks/useSettings';
 import { AppSidebar } from '@/components/layout/AppSidebar';
 import { addSearchHistory } from '@/lib/searchHistory';
 import { addToken, parseSearchQuery } from '@/lib/searchTokenizer';
-import type { Thread } from '@/types/thread.types';
+import type { Thread, Channel } from '@/types/thread.types';
 import bannerImage from '@/assets/images/banners/adfd891a-f9f7-4f9d-8d7c-975fb32a7f0d.png';
 import { ThreadPreviewOverlay } from '@/features/threads/components/ThreadPreviewOverlay';
+import { apiClient } from '@/lib/api/client';
 
 
 interface AdvancedSearchPanelProps {
@@ -250,6 +251,16 @@ export function SearchPage() {
   const [mergedThreads, setMergedThreads] = useState<Thread[]>([]);
   const { settings, updateSettings } = useSettings();
   const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  // 获取频道列表用于搜索建议
+  const { data: channels } = useQuery({
+    queryKey: ['meta', 'channels'],
+    queryFn: async () => {
+      const res = await apiClient.get<Channel[]>('/meta/channels');
+      return res.data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   // 首次访问引导：仅在本设备第一次访问时展示
   useEffect(() => {
@@ -567,6 +578,7 @@ export function SearchPage() {
           tagMode={tagMode}
           availableTags={availableTags}
           tagStates={tagStates}
+          channels={channels || []}
           onTimeFromChange={setTimeFrom}
           onTimeToChange={setTimeTo}
           onSortMethodChange={(value) => setSortMethod(value as any)}

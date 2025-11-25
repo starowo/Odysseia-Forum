@@ -1,7 +1,6 @@
 import { http, HttpResponse, type RequestHandler } from 'msw';
 import {
   MOCK_META_CHANNELS,
-  MOCK_TAGS,
   MOCK_THREADS,
   FOLLOWED_THREAD_IDS,
   UPDATED_THREAD_IDS,
@@ -21,26 +20,26 @@ const MOCK_USER = {
 };
 
 export const handlers: RequestHandler[] = [
-  // 拦截登录请求
-  http.post('http://localhost:10810/v1/auth/login', () => {
-    return HttpResponse.json({
-      token: `mock_jwt_token_${Date.now()}`,
-    });
+  // Intercept login request - redirect with hash token
+  http.get('http://localhost:10810/v1/auth/login', () => {
+    const token = `mock_jwt_token_${Date.now()}`;
+    // Simulate redirect to callback with hash (matching Worker behavior)
+    return HttpResponse.redirect(`http://localhost:5173/auth/callback#token=${token}`, 302);
   }),
 
-  // 拦截检查用户状态的请求
+  // Intercept auth check request
   http.get('http://localhost:10810/v1/auth/checkauth', () => {
     return HttpResponse.json({
       loggedIn: true,
       user: MOCK_USER,
-      // 模拟当前用户关注列表中的未读更新数量
+      // Simulate unread count from followed threads
       unread_count: UPDATED_THREAD_IDS.length,
     });
   }),
 
-  // 拦截登出请求
-  http.post('http://localhost:10810/v1/auth/logout', () => {
-    return new HttpResponse(null, { status: 204 });
+  // Intercept logout request - should be GET
+  http.get('http://localhost:10810/v1/auth/logout', () => {
+    return new HttpResponse(null, { status: 200 });
   }),
 
   // 拦截获取频道列表的请求（与 /v1/meta/channels: List[Channel] 对齐）
@@ -48,10 +47,6 @@ export const handlers: RequestHandler[] = [
     return HttpResponse.json(MOCK_META_CHANNELS);
   }),
 
-  // 拦截获取标签列表的请求
-  http.get('http://localhost:10810/v1/meta/tags', () => {
-    return HttpResponse.json(MOCK_TAGS);
-  }),
 
   // 拦截获取关注列表的请求（与 /v1/follows/ 对齐）
   http.get('http://localhost:10810/v1/follows/', () => {
@@ -173,7 +168,6 @@ export const handlers: RequestHandler[] = [
 
     // 标签包含过滤
     if (include_tags.length > 0) {
-      const includeSet = new Set(include_tags);
       filtered = filtered.filter((thread) => {
         const threadTagSet = new Set(thread.tags);
         if (tag_logic === 'and') {
@@ -202,22 +196,22 @@ export const handlers: RequestHandler[] = [
     }
 
     const total = filtered.length;
- 
+
     // 分页
     const start = offset;
     const end = start + limit;
     const paginatedThreads = filtered.slice(start, end);
- 
+
     // 为搜索结果补充“已关注/有更新”标记（使用当前 FOLLOWED_THREAD_IDS / UPDATED_THREAD_IDS 状态）
     const followedSet = new Set(FOLLOWED_THREAD_IDS);
     const updatedSet = new Set(UPDATED_THREAD_IDS);
- 
+
     const paginatedThreadsWithFlags = paginatedThreads.map((thread) => ({
       ...thread,
       is_following: followedSet.has(thread.thread_id),
       has_update: updatedSet.has(thread.thread_id),
     }));
- 
+
     // 根据当前结果生成 available_tags（用来填标签筛选区）
     const availableTagsSet = new Set<string>();
     filtered.forEach((thread) => {

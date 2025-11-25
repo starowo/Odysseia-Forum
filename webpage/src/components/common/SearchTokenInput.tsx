@@ -6,6 +6,8 @@ interface SearchTokenInputProps {
   value: string;
   onChange: (value: string) => void;
   onSearch?: () => void;
+  onFocus?: () => void;
+  onBlur?: () => void;
   placeholder?: string;
   className?: string;
 }
@@ -14,14 +16,19 @@ export function SearchTokenInput({
   value,
   onChange,
   onSearch,
+  onFocus,
+  onBlur,
   placeholder = '搜索...',
   className = '',
 }: SearchTokenInputProps) {
   const [tokens, setTokens] = useState<SearchToken[]>([]);
   const [inputValue, setInputValue] = useState('');
+  const [editingTokenIndex, setEditingTokenIndex] = useState<number | null>(null);
+  const [editingValue, setEditingValue] = useState('');
 
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const editInputRefs = useRef<Map<number, HTMLInputElement>>(new Map());
 
   // 解析 value 到 tokens
   useEffect(() => {
@@ -61,21 +68,40 @@ export function SearchTokenInput({
     onChange(newQuery);
   };
 
-  // 点击 Token：将其转回文本并聚焦，以便编辑
+  // 点击 Token：进入编辑模式，在 token 位置显示输入框
   const handleTokenClick = (token: SearchToken) => {
-    // 1. 从当前 query 中移除该 token
-    const queryWithoutToken = removeToken(value, token);
+    const nonTextTokens = tokens.filter(t => t.type !== 'text');
+    const tokenIndex = nonTextTokens.indexOf(token);
 
-    // 2. 将 token 的原始内容 (e.g. $tag:value$) 放入输入框
-    // 我们将其放在最后，或者尝试保留位置？
-    // 简单起见，放在最后，用户体验也还可以
-    const newQuery = `${queryWithoutToken} ${token.raw}`.trim();
-    onChange(newQuery);
+    setEditingTokenIndex(tokenIndex);
+    setEditingValue(token.value);
 
-    // 3. 聚焦输入框 (需要等待渲染更新)
+    // 聚焦到编辑输入框
     setTimeout(() => {
-      inputRef.current?.focus();
+      const editInput = editInputRefs.current.get(tokenIndex);
+      editInput?.focus();
+      editInput?.select();
     }, 0);
+  };
+
+  // 完成 token 编辑
+  const handleFinishEdit = (token: SearchToken, newValue: string) => {
+    if (!newValue.trim()) {
+      // 如果值为空，删除 token
+      handleRemoveToken(token);
+    } else {
+      // 更新 token 值
+      const newQuery = value.replace(token.raw, `$${token.type}:${newValue}$`);
+      onChange(newQuery);
+    }
+    setEditingTokenIndex(null);
+    setEditingValue('');
+  };
+
+  // 取消编辑
+  const handleCancelEdit = () => {
+    setEditingTokenIndex(null);
+    setEditingValue('');
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -140,31 +166,67 @@ export function SearchTokenInput({
       {/* 显示 token chips */}
       {tokens
         .filter(token => token.type !== 'text')
-        .map((token, index) => (
-          <div
-            key={`${token.type}-${token.value}-${index}`}
-            className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all duration-200 hover:scale-105 cursor-pointer ${getTokenColor(token.type)}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleTokenClick(token);
-            }}
-            title="点击修改"
-          >
-            {getTokenIcon(token.type)}
-            <span className="max-w-[120px] truncate">{token.value || '(空)'}</span>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleRemoveToken(token);
-              }}
-              className="rounded-full p-0.5 transition-colors hover:bg-black/10 dark:hover:bg-white/10"
-              aria-label={`移除 ${token.type}: ${token.value}`}
+        .map((token, index) => {
+          const isEditing = editingTokenIndex === index;
+
+          return (
+            <div
+              key={`${token.type}-${token.value}-${index}`}
+              className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all duration-200 ${isEditing ? 'ring-2 ring-[var(--od-accent)]' : 'hover:scale-105'
+                } ${getTokenColor(token.type)}`}
             >
-              <X className="h-3 w-3" />
-            </button>
-          </div>
-        ))}
+              {getTokenIcon(token.type)}
+
+              {isEditing ? (
+                <input
+                  ref={(el) => {
+                    if (el) editInputRefs.current.set(index, el);
+                  }}
+                  type="text"
+                  value={editingValue}
+                  onChange={(e) => setEditingValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleFinishEdit(token, editingValue);
+                    } else if (e.key === 'Escape') {
+                      e.preventDefault();
+                      handleCancelEdit();
+                    }
+                  }}
+                  onBlur={() => handleFinishEdit(token, editingValue)}
+                  className="min-w-[60px] max-w-[120px] bg-transparent outline-none"
+                  style={{ width: `${Math.max(60, editingValue.length * 8)}px` }}
+                />
+              ) : (
+                <span
+                  className="max-w-[120px] truncate cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleTokenClick(token);
+                  }}
+                  title="点击修改"
+                >
+                  {token.value || '(空)'}
+                </span>
+              )}
+
+              {!isEditing && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemoveToken(token);
+                  }}
+                  className="rounded-full p-0.5 transition-colors hover:bg-black/10 dark:hover:bg-white/10"
+                  aria-label={`移除 ${token.type}: ${token.value}`}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+          );
+        })}
 
       {/* 输入框 */}
       <input
@@ -173,6 +235,8 @@ export function SearchTokenInput({
         value={inputValue}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
+        onFocus={onFocus}
+        onBlur={onBlur}
         placeholder={tokens.length === 0 ? placeholder : ''}
         className="min-w-[120px] flex-1 bg-transparent text-[var(--od-text-primary)] placeholder:text-[var(--od-text-tertiary)] focus:outline-none"
       />
