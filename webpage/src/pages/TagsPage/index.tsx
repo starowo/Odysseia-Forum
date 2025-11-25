@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { searchApi } from '@/features/search/api/searchApi';
 import { addToken } from '@/lib/searchTokenizer';
+import { useSettings } from '@/hooks/useSettings';
 
 interface TagWithCount {
   name: string;
@@ -14,26 +15,31 @@ interface TagWithCount {
 export function TagsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
+  const { settings } = useSettings();
 
-  // 获取所有标签（通过空搜索获取 available_tags）
-  const { data: searchData, isLoading } = useQuery({
-    queryKey: ['all-tags'],
-    queryFn: () => searchApi.search({
-      query: '',
-      limit: 1,
-    }),
-    staleTime: 5 * 60 * 1000, // 5分钟缓存
+  // 获取所有频道及其标签
+  const { data: channels, isLoading } = useQuery({
+    queryKey: ['meta', 'channels'],
+    queryFn: searchApi.getChannels,
+    staleTime: 5 * 60 * 1000,
   });
 
-  // 为每个标签获取帖子数量
-  const availableTags = searchData?.available_tags || [];
+  // 聚合所有标签
+  const availableTags = useMemo(() => {
+    if (!channels) return [];
+    const tags = new Set<string>();
+    channels.forEach((ch) => {
+      ch.tags?.forEach((t) => tags.add(t.name));
+    });
+    return Array.from(tags);
+  }, [channels]);
 
   // 获取每个标签的帖子数量
   const { data: tagCounts } = useQuery({
     queryKey: ['tag-counts', availableTags],
     queryFn: async () => {
       const counts: Record<string, number> = {};
-      
+
       // 并行获取所有标签的数量
       await Promise.all(
         availableTags.map(async (tag) => {
@@ -49,7 +55,7 @@ export function TagsPage() {
           }
         })
       );
-      
+
       return counts;
     },
     enabled: availableTags.length > 0,
@@ -59,7 +65,7 @@ export function TagsPage() {
   // 组合标签和数量
   const tagsWithCounts: TagWithCount[] = useMemo(() => {
     if (!tagCounts) return [];
-    
+
     return availableTags
       .map((tag) => ({
         name: tag,
@@ -71,7 +77,7 @@ export function TagsPage() {
   // 过滤标签
   const filteredTags = useMemo(() => {
     if (!searchQuery.trim()) return tagsWithCounts;
-    
+
     const query = searchQuery.toLowerCase();
     return tagsWithCounts.filter((tag) =>
       tag.name.toLowerCase().includes(query)
@@ -144,7 +150,7 @@ export function TagsPage() {
               <div className="rounded-xl border border-[var(--od-border)] bg-[var(--od-card)] p-5 shadow-sm transition-all duration-200 hover:shadow-md sm:col-span-2 lg:col-span-1">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-[var(--od-text-secondary)]">平均每标签</p>
+                    <p className="text-sm text-[var(--od-text-secondary)]">平均帖子/每标签</p>
                     <p className="mt-1 text-3xl font-bold text-[var(--od-text-primary)]">
                       {totalTags > 0 ? Math.round(totalThreads / totalTags) : 0}
                     </p>
@@ -173,7 +179,7 @@ export function TagsPage() {
 
             {/* 标签网格 */}
             {isLoading ? (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              <div className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${settings.sidebarCollapsed ? 'lg:grid-cols-4 xl:grid-cols-5' : 'lg:grid-cols-3 xl:grid-cols-4'}`}>
                 {Array.from({ length: 12 }).map((_, i) => (
                   <div
                     key={i}
@@ -183,7 +189,7 @@ export function TagsPage() {
               </div>
             ) : filteredTags.length > 0 ? (
               <div
-                className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-in fade-in duration-500"
+                className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${settings.sidebarCollapsed ? 'lg:grid-cols-4 xl:grid-cols-5' : 'lg:grid-cols-3 xl:grid-cols-4'} animate-in fade-in duration-500`}
                 style={{ animationDelay: '300ms' }}
               >
                 {filteredTags.map((tag, index) => (
@@ -200,8 +206,7 @@ export function TagsPage() {
 
                     <div className="relative flex items-start justify-between">
                       <div className="flex-1 overflow-hidden">
-                        <div className="mb-2 flex items-center gap-2">
-                          <TagIcon className="h-4 w-4 flex-shrink-0 text-[var(--od-accent)]" />
+                        <div className="mb-2 flex items-center">
                           <h3 className="truncate font-semibold text-[var(--od-text-primary)] transition-colors group-hover:text-[var(--od-accent)]">
                             {tag.name}
                           </h3>

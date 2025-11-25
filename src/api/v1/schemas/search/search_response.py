@@ -26,6 +26,8 @@ class ThreadDetail(BaseModel):
         description="帖子首楼图片 URL 列表（按出现顺序）"
     )
     tags: List[str] = Field(description="帖子关联的标签列表")
+    is_following: bool = Field(default=False, description="当前用户是否关注")
+    has_update: bool = Field(default=False, description="是否有未读更新")
 
     @field_serializer('thread_id', 'channel_id')
     def serialize_id(self, value: int) -> str:

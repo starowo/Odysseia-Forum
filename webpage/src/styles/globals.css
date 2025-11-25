@@ -3,54 +3,59 @@
 @tailwind utilities;
 
 @layer base {
-:root {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-  --card: 222.2 84% 4.9%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222.2 84% 4.9%;
-  --popover-foreground: 210 40% 98%;
-  --primary: 263 70% 50%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 217.2 32.6% 17.5%;
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 263 70% 50%;
-  --radius: 0.5rem;
+  :root {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 263 70% 50%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 263 70% 50%;
+    --radius: 0.5rem;
 
-  /* Odysseia runtime theme variables（由 JS 根据 Theme 动态覆盖） */
-  --od-bg: #282a2e;
-  --od-bg-secondary: #2b2d31;
-  --od-bg-tertiary: #1e1f22;
-  --od-card: #1e1f22;
-  --od-card-hover: #232428;
-  --od-text-primary: #f2f3f5;
-  --od-text-secondary: #b5bac1;
-  --od-text-tertiary: #949ba4;
-  --od-accent: #5865f2;
-  --od-accent-hover: #4752c4;
-  --od-link: #00a8fc;
-  --od-link-hover: #00c7fc;
-  --od-border: #2b2d31;
-  --od-border-strong: #3f4147;
-  --od-success: #23a55a;
-  --od-warning: #f0b232;
-  --od-error: #f23f42;
-  --od-info: #00a8fc;
-}
+    /* Odysseia runtime theme variables（由 JS 根据 Theme 动态覆盖） */
+    --od-bg: #313338;
+    --od-bg-secondary: #1e1f22;
+    --od-bg-tertiary: #2b2d31;
+    --od-card: #2b2d31;
+    --od-card-hover: #232428;
+    --od-text-primary: #f2f3f5;
+    --od-text-secondary: #b5bac1;
+    --od-text-tertiary: #949ba4;
+    --od-accent: #5865f2;
+    --od-accent-hover: #4752c4;
+    --od-accent-secondary: #4752c4;
+    /* 次要按钮色(稍浅) */
+    --od-accent-secondary-hover: #3c44a8;
+    /* 次要按钮hover */
+    --od-link: #00a8fc;
+    --od-link-hover: #00c7fc;
+    --od-border: #2b2d31;
+    --od-border-strong: #3f4147;
+    --od-success: #23a55a;
+    --od-warning: #f0b232;
+    --od-error: #f23f42;
+    --od-info: #00a8fc;
+  }
 }
 
 @layer base {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -105,15 +110,93 @@
     border: 1px solid var(--od-border);
   }
 
-  .od-md blockquote {
-    border-left: 4px solid var(--od-accent);
-    padding-left: 10px;
-    color: var(--od-text-secondary);
-    background: color-mix(in_oklab, var(--od-accent) 8%, var(--od-bg) 92%);
-    padding-top: 2px;
-    padding-bottom: 2px;
+  /* Discord markdown扩展样式 */
+
+  /* Discord标题样式 */
+  .od-md .discord-h1 {
+    font-size: 1.2em;
+    font-weight: 700;
+    color: var(--od-text-primary);
+    margin: 0.5rem 0 0.3rem;
+  }
+
+  .od-md .discord-h2 {
+    font-size: 1.1em;
+    font-weight: 700;
+    color: var(--od-text-primary);
+    margin: 0.4rem 0 0.25rem;
+  }
+
+  .od-md .discord-h3 {
+    font-size: 1em;
+    font-weight: 700;
+    color: var(--od-text-primary);
+    margin: 0.3rem 0 0.2rem;
+  }
+
+  /* Discord链接样式 */
+  .od-md .discord-link {
+    color: var(--od-link);
+    text-decoration: none;
+    transition: text-decoration 0.15s ease;
+  }
+
+  .od-md .discord-link:hover {
+    text-decoration: underline;
+  }
+
+  /* Discord引用样式 */
+  .od-md .discord-quote {
+    display: block;
+    border-left: 4px solid #4e5058;
+    padding-left: 12px;
     margin: 4px 0;
-    border-radius: 0 4px 4px 0;
+    color: var(--od-text-secondary);
+  }
+
+  /* Discord行内代码 */
+  .od-md .inline-code {
+    background: rgba(79, 84, 92, 0.38);
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 0.875em;
+    color: var(--od-text-primary);
+  }
+
+  /* Discord Spoiler遮罩样式 */
+  .od-md .spoiler {
+    background-color: #2d2d30;
+    color: transparent;
+    border-radius: 3px;
+    padding: 0 2px;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.1s ease, color 0.1s ease;
+  }
+
+  .od-md .spoiler:hover {
+    background-color: #3a3a3d;
+  }
+
+  /* 下划线样式 */
+  .od-md u {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  /* 删除线样式 */
+  .od-md del {
+    text-decoration: line-through;
+    opacity: 0.7;
+  }
+
+  .od-md blockquote {
+    border-left: 3px solid var(--od-border);
+    padding-left: 0.75rem;
+    margin: 0.5rem 0;
+    color: var(--od-text-tertiary);
+    font-style: italic;
   }
 
   .od-md a {
@@ -134,6 +217,7 @@
 
 /* 自定义滚动条样式（使用动态主题变量） */
 @layer utilities {
+
   /* Webkit 浏览器（Chrome, Safari, Edge） */
   .scrollbar-thin::-webkit-scrollbar {
     width: 8px;
@@ -182,16 +266,44 @@
     scrollbar-width: thin;
     scrollbar-color: var(--od-border-strong) var(--od-bg);
   }
+
+  /* 对所有滚动容器应用主题滚动条 */
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: var(--od-bg-secondary);
+    /* 使用主题背景色 */
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: var(--od-border-strong);
+    border-radius: 4px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in_oklab, var(--od-text-tertiary) 60%, transparent 40%);
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--od-border-strong) var(--od-bg-secondary);
+    /* Firefox 也使用主题色 */
+  }
 }
 
 
 /* 自定义动画 */
 @layer utilities {
+
   /* 淡入动画 */
   @keyframes fade-in {
     from {
       opacity: 0;
     }
+
     to {
       opacity: 1;
     }
@@ -203,6 +315,7 @@
       transform: translateY(-10px);
       opacity: 0;
     }
+
     to {
       transform: translateY(0);
       opacity: 1;
@@ -215,6 +328,7 @@
       transform: translateY(10px);
       opacity: 0;
     }
+
     to {
       transform: translateY(0);
       opacity: 1;
@@ -257,21 +371,27 @@
     0% {
       transform: rotate(0deg);
     }
+
     15% {
       transform: rotate(-12deg);
     }
+
     30% {
       transform: rotate(10deg);
     }
+
     45% {
       transform: rotate(-8deg);
     }
+
     60% {
       transform: rotate(6deg);
     }
+
     75% {
       transform: rotate(-4deg);
     }
+
     100% {
       transform: rotate(0deg);
     }
@@ -288,10 +408,12 @@
       transform: scale(0);
       opacity: 0.35;
     }
+
     80% {
       transform: scale(1.05);
       opacity: 0.18;
     }
+
     100% {
       transform: scale(1.1);
       opacity: 0;
@@ -303,10 +425,12 @@
       transform: scale(1.1);
       opacity: 0.3;
     }
+
     70% {
       transform: scale(0.2);
       opacity: 0.15;
     }
+
     100% {
       transform: scale(0);
       opacity: 0;
@@ -374,6 +498,7 @@ input[type='date']::-webkit-calendar-picker-indicator {
     transform: scale(0);
     opacity: 1;
   }
+
   100% {
     transform: scale(4);
     opacity: 0;

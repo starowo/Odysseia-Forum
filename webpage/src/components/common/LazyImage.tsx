@@ -54,8 +54,7 @@ export function LazyImage({ src, alt, className = '', placeholder }: LazyImagePr
                 <img src={placeholder} alt="" className="h-full w-full object-cover opacity-50" />
               ) : (
                 <div className="flex flex-col items-center gap-2">
-                  <div className="h-12 w-12 animate-spin rounded-full border-4 border-[var(--od-border-strong)] border-t-[var(--od-accent)]" />
-                  <span className="text-xs text-[var(--od-text-tertiary)]">加载中...</span>
+                  {/* Spinner removed as per user request */}
                 </div>
               )}
             </div>
@@ -66,9 +65,8 @@ export function LazyImage({ src, alt, className = '', placeholder }: LazyImagePr
             <img
               src={src}
               alt={alt}
-              className={`h-full w-full object-cover transition-opacity duration-300 ${
-                isLoaded ? 'opacity-100' : 'opacity-0'
-              }`}
+              className={`h-full w-full object-cover transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'
+                }`}
               onLoad={() => setIsLoaded(true)}
               loading="lazy"
             />

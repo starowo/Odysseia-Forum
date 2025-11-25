@@ -16,14 +16,14 @@ export function ResizableSidebar({
   isCollapsed = false,
   setIsCollapsed,
 }: ResizableSidebarProps) {
-  const sidebarWidth = 240;
+  const sidebarWidth = 210;
 
   return (
     <>
       {/* 移动端遮罩 */}
       {isMobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-all duration-300 lg:hidden animate-in fade-in"
           onClick={() => setIsMobileOpen?.(false)}
         />
       )}
@@ -58,7 +58,7 @@ export function ResizableSidebar({
         )}
 
         {/* 侧边栏内容 */}
-        <div className="flex h-full flex-col overflow-y-auto p-4">{children}</div>
+        <div className="flex h-full flex-col overflow-y-auto">{children}</div>
       </aside>
 
       {/* PC端折叠状态下的展开按钮：固定在页面左侧中点，侧边栏完全隐藏时可点击 */}

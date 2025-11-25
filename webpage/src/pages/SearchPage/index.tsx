@@ -1,16 +1,15 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
-import { Search, SlidersHorizontal, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, Eye } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { ScrollToTop } from '@/components/common/ScrollToTop';
 import { ResizableSidebar } from '@/components/ResizableSidebar';
 import { TopBar } from '@/components/layout/TopBar';
 import { BannerCarousel } from '@/components/layout/BannerCarousel';
-import { FilterBar } from '@/components/layout/FilterBar';
 import { StatsBar } from '@/components/layout/StatsBar';
-import { useSearchStore, TagState } from '@/features/search/store/searchStore';
+import { useSearchStore } from '@/features/search/store/searchStore';
 import { ThreadCard } from '@/features/threads/components/ThreadCard';
 import { ThreadListItem } from '@/features/threads/components/ThreadListItem';
 import { ThreadCardSkeleton } from '@/features/threads/components/ThreadCardSkeleton';
@@ -19,439 +18,14 @@ import { useSettings } from '@/hooks/useSettings';
 import { AppSidebar } from '@/components/layout/AppSidebar';
 import { addSearchHistory } from '@/lib/searchHistory';
 import { addToken, parseSearchQuery } from '@/lib/searchTokenizer';
-import { MarkdownText } from '@/components/common/MarkdownText';
-import { LazyImage } from '@/components/common/LazyImage';
-import type { Thread } from '@/types/thread.types';
+import type { Thread, Channel } from '@/types/thread.types';
 import bannerImage from '@/assets/images/banners/adfd891a-f9f7-4f9d-8d7c-975fb32a7f0d.png';
+import { apiClient } from '@/lib/api/client';
 
-interface ThreadPreviewOverlayProps {
-  thread: Thread;
-  onClose: () => void;
-}
 
-interface AdvancedSearchPanelProps {
-  isOpen: boolean;
-  timeFrom: string;
-  timeTo: string;
-  sortMethod: string;
-  tagLogic: 'and' | 'or';
-  tagMode: 'included' | 'excluded';
-  availableTags: string[];
-  tagStates: Map<string, TagState>;
-  onTimeFromChange: (value: string) => void;
-  onTimeToChange: (value: string) => void;
-  onSortMethodChange: (value: string) => void;
-  onTagLogicChange: (value: 'and' | 'or') => void;
-  onTagModeChange: (value: 'included' | 'excluded') => void;
-  onTagClick: (tag: string) => void;
-  onClearAllTags: () => void;
-  onQuickSearch?: (template: string) => void;
-  enableQuickFill?: boolean;
-}
 
-// TopBar 下方的折叠面板 - 标签可点击填充到搜索框
-function TopBarAdvancedPanel({
-  isOpen,
-  timeFrom,
-  timeTo,
-  sortMethod,
-  tagLogic,
-  tagMode,
-  availableTags,
-  tagStates,
-  onTimeFromChange,
-  onTimeToChange,
-  onSortMethodChange,
-  onTagLogicChange,
-  onTagModeChange,
-  onTagClick,
-  onClearAllTags,
-  onQuickSearch,
-}: AdvancedSearchPanelProps) {
-  const hasTags = availableTags.length > 0;
-
-  return (
-    <div
-      className={`bg-[var(--od-bg-secondary)] transition-[max-height,opacity] duration-300 ${
-        isOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
-      } overflow-hidden shadow-lg`}
-    >
-      <div className="px-4 pb-4 pt-2">
-        <div className="rounded-xl border border-[var(--od-border)] bg-[var(--od-bg-secondary)]/90 p-3 shadow-sm backdrop-blur-sm">
-          <FilterBar
-            timeFrom={timeFrom}
-            timeTo={timeTo}
-            sortMethod={sortMethod}
-            tagLogic={tagLogic}
-            onTimeFromChange={onTimeFromChange}
-            onTimeToChange={onTimeToChange}
-            onSortMethodChange={onSortMethodChange}
-            onTagLogicChange={onTagLogicChange}
-          />
-          {hasTags && (
-            <div className="mt-3 border-t border-[var(--od-border)] pt-3">
-              <div className="mb-3 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <span className="text-sm font-medium text-[var(--od-text-secondary)]">
-                    标签筛选
-                  </span>
-                  {tagStates.size > 0 && (
-                    <button
-                      type="button"
-                      onClick={onClearAllTags}
-                      className="flex items-center gap-1 text-xs text-[var(--od-text-tertiary)] hover:text-[var(--od-text-primary)]"
-                    >
-                      <X className="h-3 w-3" />
-                      清空
-                    </button>
-                  )}
-                </div>
-                <div className="flex items-center gap-3">
-                  <label className="flex items-center gap-2 text-xs text-[var(--od-text-tertiary)]">
-                    <input
-                      type="checkbox"
-                      checked={tagMode === 'excluded'}
-                      onChange={(e) =>
-                        onTagModeChange(e.target.checked ? 'excluded' : 'included')
-                      }
-                      className="rounded"
-                    />
-                    排除模式
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => onTagLogicChange(tagLogic === 'and' ? 'or' : 'and')}
-                    className="flex items-center gap-2 text-xs text-[var(--od-text-tertiary)] hover:text-[var(--od-text-primary)]"
-                  >
-                    <SlidersHorizontal className="h-4 w-4" />
-                    {tagLogic === 'and' ? 'AND' : 'OR'}
-                  </button>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {availableTags.map((tag) => {
-                  const state = tagStates.get(tag);
-                  return (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => onQuickSearch?.(tag)}
-                      title="点击填充到搜索框"
-                      className={`rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 hover:scale-105 ${
-                        state === 'included'
-                          ? 'bg-[var(--od-accent)] text-white'
-                          : state === 'excluded'
-                          ? 'bg-[var(--od-error)] text-white'
-                          : 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-secondary)] hover:bg-[var(--od-card-hover)]'
-                      }`}
-                    >
-                      {tag}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-          {!hasTags && (
-            <p className="mt-3 text-xs text-[var(--od-text-tertiary)]">
-              当前搜索结果暂时没有可用标签。
-            </p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// 主页面的固定面板 - Banner下方，标签用于筛选
-function MainAdvancedPanel({
-  timeFrom,
-  timeTo,
-  sortMethod,
-  tagLogic,
-  tagMode,
-  availableTags,
-  tagStates,
-  onTimeFromChange,
-  onTimeToChange,
-  onSortMethodChange,
-  onTagLogicChange,
-  onTagModeChange,
-  onTagClick,
-  onClearAllTags,
-}: Omit<AdvancedSearchPanelProps, 'isOpen' | 'onQuickSearch' | 'enableQuickFill'>) {
-  const hasTags = availableTags.length > 0;
-
-  return (
-    <div className="px-4 animate-in fade-in slide-in-from-top-4 duration-500" style={{ animationDelay: '100ms' }}>
-      <div className="rounded-xl border border-[var(--od-border)] bg-[var(--od-bg-secondary)]/90 p-3 shadow-sm backdrop-blur-sm">
-        <FilterBar
-          timeFrom={timeFrom}
-          timeTo={timeTo}
-          sortMethod={sortMethod}
-          tagLogic={tagLogic}
-          onTimeFromChange={onTimeFromChange}
-          onTimeToChange={onTimeToChange}
-          onSortMethodChange={onSortMethodChange}
-          onTagLogicChange={onTagLogicChange}
-        />
-        {hasTags && (
-          <div className="mt-3 border-t border-[var(--od-border)] pt-3">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <span className="text-sm font-medium text-[var(--od-text-secondary)]">
-                  标签筛选
-                </span>
-                {tagStates.size > 0 && (
-                  <button
-                    type="button"
-                    onClick={onClearAllTags}
-                    className="flex items-center gap-1 text-xs text-[var(--od-text-tertiary)] hover:text-[var(--od-text-primary)]"
-                  >
-                    <X className="h-3 w-3" />
-                    清空
-                  </button>
-                )}
-              </div>
-              <div className="flex items-center gap-3">
-                <label className="flex items-center gap-2 text-xs text-[var(--od-text-tertiary)]">
-                  <input
-                    type="checkbox"
-                    checked={tagMode === 'excluded'}
-                    onChange={(e) =>
-                      onTagModeChange(e.target.checked ? 'excluded' : 'included')
-                    }
-                    className="rounded"
-                  />
-                  排除模式
-                </label>
-                <button
-                  type="button"
-                  onClick={() => onTagLogicChange(tagLogic === 'and' ? 'or' : 'and')}
-                  className="flex items-center gap-2 text-xs text-[var(--od-text-tertiary)] hover:text-[var(--od-text-primary)]"
-                >
-                  <SlidersHorizontal className="h-4 w-4" />
-                  {tagLogic === 'and' ? 'AND' : 'OR'}
-                </button>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {availableTags.map((tag) => {
-                const state = tagStates.get(tag);
-                return (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() => onTagClick(tag)}
-                    className={`rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 hover:scale-105 ${
-                      state === 'included'
-                        ? 'bg-[var(--od-accent)] text-white'
-                        : state === 'excluded'
-                        ? 'bg-[var(--od-error)] text-white'
-                        : 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-secondary)] hover:bg-[var(--od-card-hover)]'
-                    }`}
-                  >
-                    {tag}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-        {!hasTags && (
-          <p className="mt-3 text-xs text-[var(--od-text-tertiary)]">
-            当前搜索结果暂时没有可用标签。
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// 预览浮层组件：负责上浮卡片的进出场动画 & 独立滚动
-function ThreadPreviewOverlay({ thread, onClose }: ThreadPreviewOverlayProps) {
-  // visible 用于控制「刚挂载时从 0 → 1」的入场动画
-  const [visible, setVisible] = useState(false);
-  const [closing, setClosing] = useState(false);
-
-  // 挂载后下一帧再标记为可见，触发淡入+缩放动画
-  useEffect(() => {
-    const id = window.setTimeout(() => {
-      setVisible(true);
-    }, 0);
-    return () => window.clearTimeout(id);
-  }, []);
-
-  const handleStartClose = () => {
-    if (closing) return;
-    setClosing(true);
-    setVisible(false);
-    // 等待动画结束再真正卸载
-    window.setTimeout(() => {
-      onClose();
-    }, 220);
-  };
-
-  const authorName =
-    thread.author?.display_name ??
-    thread.author?.global_name ??
-    thread.author?.name ??
-    '未知用户';
-  const guildId = thread.guild_id || import.meta.env.VITE_GUILD_ID || '@me';
-  const discordUrl = `https://discord.com/channels/${guildId}/${thread.channel_id}/${thread.thread_id}`;
-
-  return (
-    <div
-      className={`fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm px-3 sm:px-6 transition-opacity duration-250 ${
-        closing || !visible ? 'opacity-0' : 'opacity-100'
-      }`}
-      onClick={handleStartClose}
-    >
-      <div
-        className={`relative my-4 flex w-full max-w-4xl max-h-[90vh] flex-col overflow-hidden rounded-xl bg-[var(--od-card)] shadow-2xl sm:my-6 sm:rounded-2xl transform transition-all duration-250 ease-out ${
-          closing || !visible
-            ? 'scale-95 translate-y-4 opacity-0'
-            : 'scale-100 translate-y-0 opacity-100'
-        }`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* 关闭按钮 */}
-        <button
-          type="button"
-          onClick={handleStartClose}
-          className="absolute right-3 top-3 z-10 rounded-full bg-black/60 p-1.5 text-xs text-white shadow-md hover:bg-black/80"
-          aria-label="关闭预览"
-        >
-          <X className="h-4 w-4" />
-        </button>
-
-        {/* 顶部大图 */}
-        <div className="relative h-52 w-full overflow-hidden bg-[var(--od-bg-tertiary)] sm:h-64">
-          {thread.thumbnail_url ? (
-            <LazyImage
-              src={thread.thumbnail_url}
-              alt={thread.title}
-              className="h-full w-full bg-black object-contain"
-            />
-          ) : (
-            <div className="h-full w-full bg-gradient-to-br from-[#18191c] to-[#1e1f22]" />
-          )}
-
-          {thread.has_update && (
-            <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-[#23a55a]/90 px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm backdrop-blur-sm">
-              <span className="inline-block h-2 w-2 rounded-full bg-white animate-[pulse_2.4s_ease-in-out_infinite]" />
-              <span>有更新</span>
-            </div>
-          )}
-        </div>
-
-        {/* 正文区域 - 独立滚动 */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-          {/* 标题 */}
-          <h2 className="mb-3 text-lg font-bold leading-snug text-[var(--od-text-primary)] sm:text-xl">
-            {thread.is_following && (
-              <span className="mr-1 inline-block h-2 w-2 rounded-full bg-[#f23f43]" />
-            )}
-            {thread.title}
-          </h2>
-
-          {/* 作者信息 */}
-          <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-[var(--od-text-tertiary)] sm:text-sm">
-            <span className="font-medium text-[var(--od-link)]">{authorName}</span>
-            {thread.channel_id && (
-              <>
-                <span>·</span>
-                <span>频道 {thread.channel_id}</span>
-              </>
-            )}
-          </div>
-
-          {/* 标签 */}
-          {thread.tags && thread.tags.length > 0 && (
-            <div className="mb-4 flex flex-wrap gap-2">
-              {thread.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-md bg-[var(--od-bg-secondary)] px-2.5 py-1 text-xs font-medium text-[var(--od-text-secondary)]"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* 正文 Markdown */}
-          {thread.first_message_excerpt && thread.first_message_excerpt.trim() !== '...' ? (
-            <div className="od-md text-sm text-[var(--od-text-primary)]">
-              <MarkdownText text={thread.first_message_excerpt} />
-            </div>
-          ) : (
-            <p className="mt-2 text-sm text-[var(--od-text-tertiary)]">
-              当前接口只返回首条消息的摘要，完整内容请在 Discord 中查看。
-            </p>
-          )}
-
-          {/* 打开原帖按钮 */}
-          <div className="mt-6 flex justify-end">
-            <button
-              type="button"
-              onClick={() => window.open(discordUrl, '_blank', 'noopener,noreferrer')}
-              className="rounded-lg bg-[var(--od-accent)] px-3 py-1.5 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:scale-105 hover:bg-[var(--od-accent-hover)]"
-            >
-              在 Discord 中打开
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-interface SearchOnboardingOverlayProps {
-  onClose: () => void;
-}
-
-function SearchOnboardingOverlay({ onClose }: SearchOnboardingOverlayProps) {
-  return (
-    <div
-      className="fixed inset-0 z-[55] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-lg rounded-2xl border border-[var(--od-border-strong)]/60 bg-[var(--od-card)] p-6 shadow-2xl animate-in fade-in zoom-in duration-300"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className="mb-3 text-xl font-bold text-[var(--od-text-primary)]">
-          欢迎来到类脑搜索
-        </h2>
-        <p className="mb-4 text-sm text-[var(--od-text-secondary)]">
-          这是 Odysseia 的新网页前端，你可以像在 Discord 一样探索帖子，但拥有更强的搜索与筛选能力。
-        </p>
-        <ul className="mb-5 list-disc space-y-2 pl-5 text-sm text-[var(--od-text-secondary)]">
-          <li>
-            使用顶部搜索框输入关键词，支持{' '}
-            <code className="rounded bg-[var(--od-bg-tertiary)] px-1 text-[0.8em]">author:</code>{' '}
-            等高级语法。
-          </li>
-          <li>左侧选择频道与标签，组合 AND / OR 条件精确筛选。</li>
-          <li>点击任意卡片或列表项，可以打开预览浮层阅读完整内容。</li>
-        </ul>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg bg-[var(--od-accent)] px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:scale-105 hover:bg-[var(--od-accent-hover)]"
-          >
-            知道了，开始探索
-          </button>
-          <p className="text-xs text-[var(--od-text-tertiary)]">
-            此引导只会在本设备第一次访问时出现。
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
+import { useMascotStore } from '@/features/mascot/store/mascotStore';
+import { MascotDialog } from '@/features/mascot/components/MascotDialog';
 
 export function SearchPage() {
   const {
@@ -460,20 +34,27 @@ export function SearchPage() {
     sortMethod,
     tagLogic,
     tagMode,
+
     tagStates,
     page,
     perPage,
     setQuery,
-    setChannel,
     setSortMethod,
     setTagLogic,
     setTagMode,
+
     toggleTag,
     clearAllTags,
     setPage,
     setPerPage,
     clearFilters,
+    setMainBannerVisible,
+    setActiveBanner,
+    setBannerList,
+    setPreviewThread,
   } = useSearchStore();
+
+  const { reactToSearch } = useMascotStore();
 
   const location = useLocation();
 
@@ -500,11 +81,21 @@ export function SearchPage() {
   const [timeFrom, setTimeFrom] = useState('');
   const [timeTo, setTimeTo] = useState('');
   const [openMode, setOpenMode] = useState<'app' | 'web'>('app');
-  const [previewThread, setPreviewThread] = useState<Thread | null>(null);
+  // const [previewThread, setPreviewThread] = useState<Thread | null>(null); // Moved to store
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [mergedThreads, setMergedThreads] = useState<Thread[]>([]);
   const { settings, updateSettings } = useSettings();
   const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  // 获取频道列表用于搜索建议
+  const { data: channels } = useQuery({
+    queryKey: ['meta', 'channels'],
+    queryFn: async () => {
+      const res = await apiClient.get<Channel[]>('/meta/channels');
+      return res.data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   // 首次访问引导：仅在本设备第一次访问时展示
   useEffect(() => {
@@ -599,10 +190,75 @@ export function SearchPage() {
     staleTime: 30 * 1000, // 30秒
   });
 
+  // 同步 Banner 数据到 Store，供 FloatingBanner 使用
+  useEffect(() => {
+    if (searchData?.banner_carousel && searchData.banner_carousel.length > 0) {
+      const apiBanners = searchData.banner_carousel.map(b => ({
+        id: b.thread_id,
+        image: b.cover_image_url,
+        title: b.title,
+        description: (b as any).description || '点击查看详情', // Type assertion until types are updated
+      }));
+      setActiveBanner(apiBanners[0]);
+      setBannerList(apiBanners);
+    } else if (defaultBanners.length > 0) {
+      setActiveBanner(defaultBanners[0]);
+      setBannerList(defaultBanners);
+    }
+  }, [searchData, setActiveBanner, setBannerList]);
+
+  // Banner 轮播 - 只在主页显示（无搜索时）
+  const displayBanners = useMemo(() => {
+    const apiBanners = searchData?.banner_carousel?.map(b => ({
+      id: b.thread_id,
+      image: b.cover_image_url,
+      title: b.title,
+      description: (b as any).description || '点击查看详情',
+    })) || [];
+
+    // 过滤掉可能重复的（虽然 id 不同，但为了保险）
+    // 这里主要是确保 defaultBanners 在第一个
+    return [...defaultBanners, ...apiBanners];
+  }, [searchData]);
+
+  // React to search results
+  useEffect(() => {
+    // Only react if there is an active query
+    if (!query) return;
+
+    if (isLoading || isFetching) {
+      reactToSearch('start', query);
+    } else if (searchData) {
+      if (searchData.total > 0) {
+        reactToSearch('found', query);
+      } else {
+        reactToSearch('empty', query);
+      }
+    }
+  }, [searchData, isLoading, isFetching, reactToSearch, query]);
+
   // 从API响应中提取数据（与后端 SearchResponse.results 对齐）
-  const threads = searchData?.results || [];
   const totalResults = searchData?.total || 0;
-  const availableTags = searchData?.available_tags || [];
+
+  // 获取可用标签：优先使用API返回的标签（单频道搜索时），
+  // 如果API未返回（如全站搜索），则从当前搜索结果中提取标签
+  const availableTags = useMemo(() => {
+    if (searchData?.available_tags && searchData.available_tags.length > 0) {
+      return searchData.available_tags;
+    }
+
+    // 从结果中提取唯一tags
+    const tags = new Set<string>();
+    if (searchData?.results) {
+      searchData.results.forEach(thread => {
+        if (thread.tags) {
+          thread.tags.forEach(tag => tags.add(tag));
+        }
+      });
+    }
+    return Array.from(tags).sort();
+  }, [searchData]);
+
   const totalPages = Math.ceil(totalResults / perPage);
 
   // 合并多页搜索结果，实现无缝滚动
@@ -638,6 +294,7 @@ export function SearchPage() {
     // 保存到搜索历史
     if (trimmedQuery) {
       addSearchHistory(trimmedQuery);
+      reactToSearch('start', trimmedQuery);
     }
   }, [searchInput, setQuery]);
 
@@ -725,7 +382,7 @@ export function SearchPage() {
     const newQuery = addToken(searchInput, 'tag', tag);
     setSearchInput(newQuery);
     setQuery(newQuery);
-    toast.success(`已添加标签：${tag}`, {
+    toast.success(`已添加标签：${tag} `, {
       duration: 2000,
     });
   };
@@ -735,10 +392,7 @@ export function SearchPage() {
     toggleTag(tag);
   };
 
-  // 关闭预览浮层
-  const handleClosePreview = () => {
-    setPreviewThread(null);
-  };
+
 
   const handleCloseOnboarding = () => {
     try {
@@ -754,6 +408,32 @@ export function SearchPage() {
 
   // 是否有活动的筛选条件
   const hasActiveFilters = query || selectedChannel || tagStates.size > 0 || timeFrom || timeTo;
+
+  // 监听主 Banner 可见性
+  const bannerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setMainBannerVisible(entry.isIntersecting);
+      },
+      { threshold: 0 } // 0 means trigger as soon as even 1px is visible (true) or 0px visible (false)
+    );
+
+    if (bannerRef.current) {
+      observer.observe(bannerRef.current);
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [setMainBannerVisible, query]); // Add query to dependency to re-attach if banner re-appears
+
+  // 当有搜索词时，主 Banner 不渲染，强制设置 isMainBannerVisible 为 true (隐藏浮动 Banner)
+  useEffect(() => {
+    if (query) {
+      setMainBannerVisible(true);
+    }
+  }, [query, setMainBannerVisible]);
 
   return (
     <div className="flex min-h-screen bg-[var(--od-bg)]">
@@ -771,9 +451,8 @@ export function SearchPage() {
 
       {/* 主内容区：根据侧边栏折叠状态调整左侧留白（PC 端） */}
       <main
-        className={`flex-1 bg-[var(--od-bg)] pb-20 transition-all duration-300 ${
-          settings.sidebarCollapsed ? 'lg:ml-0' : 'lg:ml-[240px]'
-        }`}
+        className={`flex-1 bg-[var(--od-bg)] pb-20 transition-all duration-300 ${settings.sidebarCollapsed ? 'lg:ml-0' : 'lg:ml-[210px]'
+          }`}
       >
         {/* 顶部搜索栏 - 集成高级搜索面板 */}
         <TopBar
@@ -788,13 +467,14 @@ export function SearchPage() {
           timeTo={timeTo}
           sortMethod={sortMethod}
           tagLogic={tagLogic}
-          tagMode={tagMode}
           availableTags={availableTags}
           tagStates={tagStates}
+          channels={channels || []}
           onTimeFromChange={setTimeFrom}
           onTimeToChange={setTimeTo}
           onSortMethodChange={(value) => setSortMethod(value as any)}
           onTagLogicChange={setTagLogic}
+          tagMode={tagMode}
           onTagModeChange={setTagMode}
           onTagClick={handleFilterTagClick}
           onClearAllTags={clearAllTags}
@@ -809,28 +489,31 @@ export function SearchPage() {
 
         {/* Banner 轮播 - 只在主页显示（无搜索时） */}
         {!query && (
-          <div className="p-4 animate-in fade-in slide-in-from-top-4 duration-500">
-            <BannerCarousel banners={defaultBanners} />
+          <div ref={bannerRef} className="p-4 animate-in fade-in slide-in-from-top-4 duration-500">
+            <BannerCarousel
+              banners={displayBanners}
+              onBannerClick={(banner) => {
+                // 如果是默认 banner，不执行操作
+                if (banner.id.startsWith('default-')) return;
+
+                // 查找对应的 thread 对象
+                const thread = searchData?.results?.find(t => t.thread_id === banner.id);
+                if (thread) {
+                  setPreviewThread(thread);
+                } else {
+                  // 如果在当前也找不到（比如 banner 数据是独立的），尝试构造一个临时对象或请求详情
+                  // 这里暂时简单处理：如果能从 banner 信息还原部分 thread 信息也可以
+                  // 但通常 banner 数据里应该包含足够的信息，或者我们需要 fetchThread
+                  // 由于 mock 数据里 banner 是从 results 提取的，所以通常能找到
+                  // 如果找不到，说明 banner 数据结构可能需要包含更多 thread 信息
+                  // 暂时仅支持预览已加载的 thread
+                  toast.error('无法预览该帖子');
+                }
+              }}
+            />
           </div>
         )}
 
-        {/* 主页面固定的高级搜索面板 - Banner 下方 */}
-        <MainAdvancedPanel
-          timeFrom={timeFrom}
-          timeTo={timeTo}
-          sortMethod={sortMethod}
-          tagLogic={tagLogic}
-          tagMode={tagMode}
-          availableTags={availableTags}
-          tagStates={tagStates}
-          onTimeFromChange={setTimeFrom}
-          onTimeToChange={setTimeTo}
-          onSortMethodChange={(value) => setSortMethod(value as any)}
-          onTagLogicChange={setTagLogic}
-          onTagModeChange={setTagMode}
-          onTagClick={handleFilterTagClick}
-          onClearAllTags={clearAllTags}
-        />
 
         {/* 搜索结果 */}
         <div className="p-4">
@@ -867,7 +550,7 @@ export function SearchPage() {
               className={
                 settings.layoutMode === 'list'
                   ? 'space-y-4 animate-in fade-in duration-300'
-                  : 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 animate-in fade-in duration-300'
+                  : `grid grid-cols-2 gap-4 sm:grid-cols-3 ${settings.sidebarCollapsed ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} animate-in fade-in duration-300`
               }
             >
               {Array.from({ length: perPage }).map((_, i) => (
@@ -898,7 +581,7 @@ export function SearchPage() {
               className={
                 settings.layoutMode === 'list'
                   ? 'space-y-4 animate-in fade-in duration-300'
-                  : 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 animate-in fade-in duration-300'
+                  : `grid grid-cols-2 gap-4 sm:grid-cols-3 ${settings.sidebarCollapsed ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} animate-in fade-in duration-300`
               }
             >
               {mergedThreads.map((thread) =>
@@ -912,7 +595,7 @@ export function SearchPage() {
                       const newQuery = addToken(searchInput, 'author', authorName);
                       setSearchInput(newQuery);
                       setQuery(newQuery);
-                      toast.success(`已添加作者：${authorName}`, {
+                      toast.success(`已添加作者：${authorName} `, {
                         duration: 2000,
                       });
                     }}
@@ -928,7 +611,7 @@ export function SearchPage() {
                       const newQuery = addToken(searchInput, 'author', authorName);
                       setSearchInput(newQuery);
                       setQuery(newQuery);
-                      toast.success(`已添加作者：${authorName}`, {
+                      toast.success(`已添加作者：${authorName} `, {
                         duration: 2000,
                       });
                     }}
@@ -970,15 +653,29 @@ export function SearchPage() {
           )}
         </div>
       </main>
-      {/* 预览浮层：选中的卡片会上浮居中放大，带淡入/缩放过渡动画，正文支持 Markdown 和独立滚动 */}
-      {previewThread && (
-        <ThreadPreviewOverlay thread={previewThread} onClose={handleClosePreview} />
-      )}
+
 
       {/* 首次访问引导浮层 */}
-      {showOnboarding && (
-        <SearchOnboardingOverlay onClose={handleCloseOnboarding} />
-      )}
+      <MascotDialog
+        visible={showOnboarding}
+        onClose={handleCloseOnboarding}
+        emotion="hi"
+        title="欢迎来到 Odysseia！"
+        actionLabel="开始探索！"
+        onAction={handleCloseOnboarding}
+      >
+        <p className="mb-3">
+          我是这里的看板娘<b>类脑娘</b>！这里是全新的 Odysseia 论坛，你可以像在 Discord 一样探索帖子，但拥有更强的搜索与筛选能力哦！
+        </p>
+        <ul className="list-disc space-y-1 pl-5 text-sm opacity-90">
+          <li>
+            试试顶部搜索框，支持 <code className="rounded bg-[var(--od-bg-tertiary)] px-1 font-mono text-[0.9em]">$author:</code> 等高级语法
+          </li>
+          <li>左侧可以筛选频道和标签，组合条件超方便</li>
+          <li>点击卡片就能预览详情，不用跳页哦</li>
+        </ul>
+      </MascotDialog>
     </div>
   );
 }
+// End of SearchPage component

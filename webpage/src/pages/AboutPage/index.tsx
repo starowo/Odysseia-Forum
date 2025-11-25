@@ -30,12 +30,12 @@ export function AboutPage() {
   return (
     <MainLayout showTopBar={false}>
       <div
-        className="fixed inset-0 lg:left-[240px] bg-cover bg-center bg-no-repeat flex items-center justify-center p-8"
+        className="w-full min-h-screen bg-cover bg-center bg-no-repeat flex items-center justify-center p-8"
         style={{ backgroundImage: `url(${backgroundImage})` }}
       >
         <div className="max-w-2xl w-full">
           {/* 主卡片 - 调整透明度 */}
-          <div className="rounded-2xl bg-[color-mix(in_oklab,var(--od-bg-secondary)_85%,transparent)] backdrop-blur-lg p-8 border border-[var(--od-border-strong)]/60 shadow-2xl">
+          <div className="rounded-2xl bg-[color-mix(in_oklab,var(--od-bg-secondary)_60%,transparent)] backdrop-blur-lg p-8 border border-[var(--od-border-strong)]/60 shadow-2xl">
             {/* Logo - 点击触发 oneko 小猫彩蛋 */}
             <div
               className="mb-8 flex justify-center cursor-pointer select-none"
@@ -83,10 +83,10 @@ export function AboutPage() {
             {/* 版本信息 */}
             <div className="text-center">
               <p className="text-sm text-[var(--od-text-secondary)]">
-                前端版本 2.0.0 · Odysseia Forum New Webpage
+                前端版本 2.0.1 · Odysseia Forum Webpage
               </p>
               <p className="mt-1 text-xs text-[var(--od-text-tertiary)]">
-                最近更新：新增帖子预览浮层、改进搜索体验与主题设置
+                最近更新：banner申请功能
               </p>
             </div>
           </div>

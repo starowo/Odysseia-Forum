@@ -55,6 +55,10 @@ async def execute_search(request: SearchRequest, current_user: Dict[str, Any] = 
         sanitized_keywords = KeywordParser.sanitize(request.keywords)
         author_name, parsed_include_keywords, parsed_exclude_keywords, remaining_keywords = KeywordParser.parse(sanitized_keywords)
     
+    # 如果request直接提供了author_name,使用它(优先级更高)
+    if request.author_name:
+        author_name = request.author_name
+    
     # 合并解析出的排除词和原有的排除词
     final_exclude_keywords = request.exclude_keywords or ""
     if parsed_exclude_keywords:
@@ -74,8 +78,13 @@ async def execute_search(request: SearchRequest, current_user: Dict[str, Any] = 
     
     final_keywords = " ".join(final_keywords_parts) if final_keywords_parts else None
 
+    # 将字符串channel_ids转换为整数
+    channel_ids_int = None
+    if request.channel_ids:
+        channel_ids_int = [int(cid) for cid in request.channel_ids]
+
     query_object = ThreadSearchQuery(
-        channel_ids=request.channel_ids,
+        channel_ids=channel_ids_int,
         include_tags=request.include_tags,
         exclude_tags=request.exclude_tags,
         tag_logic=request.tag_logic,
@@ -136,8 +145,23 @@ async def execute_search(request: SearchRequest, current_user: Dict[str, Any] = 
                 exclude_thread_ids=exclude_thread_ids,
             )
 
+        # 获取当前用户的关注状态
+        follow_status_map = {}
+        try:
+            user_id = int(current_user["id"]) if current_user and "id" in current_user else None
+            if user_id is not None:
+                async with async_session_factory() as session:
+                    follow_service = FollowService(session)
+                    thread_ids = [t.thread_id for t in threads]
+                    follow_status_map = await follow_service.get_follow_status_map(user_id, thread_ids)
+        except Exception as e:
+            print(f"获取关注状态失败: {e}")
+
         results = []
         for thread in threads:
+            # 获取该帖子的关注状态
+            status_info = follow_status_map.get(thread.thread_id, {})
+            
             # 手动创建 ThreadDetail 对象，确保字段正确映射
             thread_detail = ThreadDetail(
                 thread_id=thread.thread_id,
@@ -154,6 +178,8 @@ async def execute_search(request: SearchRequest, current_user: Dict[str, Any] = 
                 first_message_excerpt=thread.first_message_excerpt,
                 thumbnail_urls=thread.thumbnail_urls or [],
                 tags=[tag.name for tag in thread.tags],
+                is_following=status_info.get("is_following", False),
+                has_update=status_info.get("has_update", False),
             )
             results.append(thread_detail)
 

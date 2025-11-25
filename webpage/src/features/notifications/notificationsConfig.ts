@@ -1,4 +1,4 @@
-import type { Thread } from '@/types/thread.types';
+
 
 export type StaticNotificationKind = 'site_announcement' | 'greeting';
 

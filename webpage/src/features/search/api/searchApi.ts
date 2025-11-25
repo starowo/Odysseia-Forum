@@ -1,5 +1,5 @@
 import { apiClient } from '@/lib/api/client';
-import type { SearchParams, SearchResponse } from '@/types/thread.types';
+import type { SearchParams, SearchResponse, Channel } from '@/types/thread.types';
 
 // 构建搜索请求参数
 function buildSearchRequest(params: SearchParams) {
@@ -14,7 +14,7 @@ function buildSearchRequest(params: SearchParams) {
   const sortConfig = sortMap[params.sort_method || 'last_active_desc'] || sortMap.relevance;
 
   return {
-    channel_ids: params.channel_ids,
+    channel_ids: params.channel_ids, // 保持字符串,后端反序列化时会转换
     include_tags: params.include_tags || [],
     exclude_tags: params.exclude_tags || [],
     tag_logic: params.tag_logic || 'and',
@@ -37,11 +37,15 @@ export const searchApi = {
     return response.data;
   },
 
-  // 获取可用标签
-  getAvailableTags: async (channelId?: string): Promise<string[]> => {
-    const response = await apiClient.get<string[]>('/tags', {
-      params: { channelId },
-    });
+  // 获取所有频道及其可用标签
+  getChannels: async (): Promise<Channel[]> => {
+    const response = await apiClient.get<Channel[]>('/meta/channels');
+    return response.data;
+  },
+
+  // 获取单个帖子详情
+  getThread: async (threadId: string): Promise<import('@/types/thread.types').Thread> => {
+    const response = await apiClient.get<import('@/types/thread.types').Thread>(`/threads/${threadId}`);
     return response.data;
   },
 };

@@ -5,7 +5,8 @@ export interface Author {
   name: string;
   global_name?: string;
   display_name?: string;
-  avatar?: string;
+  avatar?: string;  // 保留用于向后兼容
+  avatar_url?: string;  // 后端实际返回的字段
 }
 
 export interface Thread {
@@ -21,6 +22,7 @@ export interface Thread {
   display_count?: number;
   first_message_excerpt?: string | null;
   thumbnail_url?: string | null;
+  thumbnail_urls?: string[] | null;
   tags: string[];
 
   // 部分接口中的扩展字段（例如关注列表等）
@@ -59,6 +61,7 @@ export interface BannerItem {
   thread_id: string;
   channel_id: string;
   title: string;
+  description?: string;
   cover_image_url: string;
 }
 
