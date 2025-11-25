@@ -1,4 +1,4 @@
-import type React from 'react';
+
 import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -24,9 +24,8 @@ export function ThemeToggle() {
       <span className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(circle_at_20%_50%,rgba(255,255,255,0.12)_0,transparent_55%),radial-gradient(circle_at_80%_50%,rgba(0,0,0,0.4)_0,transparent_55%)]" />
       {/* 滑块 */}
       <span
-        className={`relative z-10 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--od-card)] text-[var(--od-text-primary)] shadow transition-transform duration-500 ${
-          isDarkTheme ? 'translate-x-0' : 'translate-x-5'
-        }`}
+        className={`relative z-10 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--od-card)] text-[var(--od-text-primary)] shadow transition-transform duration-500 ${isDarkTheme ? 'translate-x-0' : 'translate-x-5'
+          }`}
       >
         {isDarkTheme ? (
           <Moon className="h-3.5 w-3.5" />

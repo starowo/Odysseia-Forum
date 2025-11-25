@@ -19,7 +19,7 @@ export function SearchTokenInput({
 }: SearchTokenInputProps) {
   const [tokens, setTokens] = useState<SearchToken[]>([]);
   const [inputValue, setInputValue] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
+
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -27,7 +27,7 @@ export function SearchTokenInput({
   useEffect(() => {
     const parsed = parseSearchQuery(value);
     setTokens(parsed);
-    
+
     // 如果只有文本 token，显示在输入框中
     if (parsed.length === 1 && parsed[0].type === 'text') {
       setInputValue(parsed[0].value);
@@ -44,21 +44,50 @@ export function SearchTokenInput({
     }
   }, [value]);
 
+  // 监听 tokens 变化，如果有空的 token (来自模板)，自动聚焦到输入框
+  useEffect(() => {
+    const emptyTokenIndex = tokens.findIndex(t => t.type !== 'text' && !t.value);
+    if (emptyTokenIndex !== -1) {
+      // 如果有空 token，我们实际上不需要做特殊处理，因为渲染逻辑会把它变成 input
+      // 但我们需要确保 inputRef 聚焦
+      // 这里稍微复杂点：如果我们在渲染列表里放 input，那 inputRef 指向的是主输入框
+      // 我们需要为每个 token chip 准备 ref 吗？
+      // 简化方案：点击模板 -> 插入 "$type:$" -> 解析出空 token -> 渲染为带 input 的 chip -> 自动聚焦
+    }
+  }, [tokens]);
+
   const handleRemoveToken = (token: SearchToken) => {
     const newQuery = removeToken(value, token);
     onChange(newQuery);
   };
 
+  // 点击 Token：将其转回文本并聚焦，以便编辑
+  const handleTokenClick = (token: SearchToken) => {
+    // 1. 从当前 query 中移除该 token
+    const queryWithoutToken = removeToken(value, token);
+
+    // 2. 将 token 的原始内容 (e.g. $tag:value$) 放入输入框
+    // 我们将其放在最后，或者尝试保留位置？
+    // 简单起见，放在最后，用户体验也还可以
+    const newQuery = `${queryWithoutToken} ${token.raw}`.trim();
+    onChange(newQuery);
+
+    // 3. 聚焦输入框 (需要等待渲染更新)
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 0);
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     setInputValue(newValue);
-    
+
     // 更新完整查询
     const nonTextTokens = tokens.filter(t => t.type !== 'text');
     const newQuery = nonTextTokens.length > 0
       ? `${tokensToQuery(nonTextTokens)} ${newValue}`.trim()
       : newValue;
-    
+
     onChange(newQuery);
   };
 
@@ -114,10 +143,15 @@ export function SearchTokenInput({
         .map((token, index) => (
           <div
             key={`${token.type}-${token.value}-${index}`}
-            className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all duration-200 hover:scale-105 ${getTokenColor(token.type)}`}
+            className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all duration-200 hover:scale-105 cursor-pointer ${getTokenColor(token.type)}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleTokenClick(token);
+            }}
+            title="点击修改"
           >
             {getTokenIcon(token.type)}
-            <span className="max-w-[120px] truncate">{token.value}</span>
+            <span className="max-w-[120px] truncate">{token.value || '(空)'}</span>
             <button
               type="button"
               onClick={(e) => {
@@ -139,8 +173,6 @@ export function SearchTokenInput({
         value={inputValue}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
-        onFocus={() => setIsEditing(true)}
-        onBlur={() => setIsEditing(false)}
         placeholder={tokens.length === 0 ? placeholder : ''}
         className="min-w-[120px] flex-1 bg-transparent text-[var(--od-text-primary)] placeholder:text-[var(--od-text-tertiary)] focus:outline-none"
       />

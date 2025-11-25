@@ -19,15 +19,10 @@ import { useSettings } from '@/hooks/useSettings';
 import { AppSidebar } from '@/components/layout/AppSidebar';
 import { addSearchHistory } from '@/lib/searchHistory';
 import { addToken, parseSearchQuery } from '@/lib/searchTokenizer';
-import { MarkdownText } from '@/components/common/MarkdownText';
-import { LazyImage } from '@/components/common/LazyImage';
 import type { Thread } from '@/types/thread.types';
 import bannerImage from '@/assets/images/banners/adfd891a-f9f7-4f9d-8d7c-975fb32a7f0d.png';
+import { ThreadPreviewOverlay } from '@/features/threads/components/ThreadPreviewOverlay';
 
-interface ThreadPreviewOverlayProps {
-  thread: Thread;
-  onClose: () => void;
-}
 
 interface AdvancedSearchPanelProps {
   isOpen: boolean;
@@ -49,119 +44,7 @@ interface AdvancedSearchPanelProps {
   enableQuickFill?: boolean;
 }
 
-// TopBar 下方的折叠面板 - 标签可点击填充到搜索框
-function TopBarAdvancedPanel({
-  isOpen,
-  timeFrom,
-  timeTo,
-  sortMethod,
-  tagLogic,
-  tagMode,
-  availableTags,
-  tagStates,
-  onTimeFromChange,
-  onTimeToChange,
-  onSortMethodChange,
-  onTagLogicChange,
-  onTagModeChange,
-  onTagClick,
-  onClearAllTags,
-  onQuickSearch,
-}: AdvancedSearchPanelProps) {
-  const hasTags = availableTags.length > 0;
 
-  return (
-    <div
-      className={`bg-[var(--od-bg-secondary)] transition-[max-height,opacity] duration-300 ${
-        isOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
-      } overflow-hidden shadow-lg`}
-    >
-      <div className="px-4 pb-4 pt-2">
-        <div className="rounded-xl border border-[var(--od-border)] bg-[var(--od-bg-secondary)]/90 p-3 shadow-sm backdrop-blur-sm">
-          <FilterBar
-            timeFrom={timeFrom}
-            timeTo={timeTo}
-            sortMethod={sortMethod}
-            tagLogic={tagLogic}
-            onTimeFromChange={onTimeFromChange}
-            onTimeToChange={onTimeToChange}
-            onSortMethodChange={onSortMethodChange}
-            onTagLogicChange={onTagLogicChange}
-          />
-          {hasTags && (
-            <div className="mt-3 border-t border-[var(--od-border)] pt-3">
-              <div className="mb-3 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <span className="text-sm font-medium text-[var(--od-text-secondary)]">
-                    标签筛选
-                  </span>
-                  {tagStates.size > 0 && (
-                    <button
-                      type="button"
-                      onClick={onClearAllTags}
-                      className="flex items-center gap-1 text-xs text-[var(--od-text-tertiary)] hover:text-[var(--od-text-primary)]"
-                    >
-                      <X className="h-3 w-3" />
-                      清空
-                    </button>
-                  )}
-                </div>
-                <div className="flex items-center gap-3">
-                  <label className="flex items-center gap-2 text-xs text-[var(--od-text-tertiary)]">
-                    <input
-                      type="checkbox"
-                      checked={tagMode === 'excluded'}
-                      onChange={(e) =>
-                        onTagModeChange(e.target.checked ? 'excluded' : 'included')
-                      }
-                      className="rounded"
-                    />
-                    排除模式
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => onTagLogicChange(tagLogic === 'and' ? 'or' : 'and')}
-                    className="flex items-center gap-2 text-xs text-[var(--od-text-tertiary)] hover:text-[var(--od-text-primary)]"
-                  >
-                    <SlidersHorizontal className="h-4 w-4" />
-                    {tagLogic === 'and' ? 'AND' : 'OR'}
-                  </button>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {availableTags.map((tag) => {
-                  const state = tagStates.get(tag);
-                  return (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => onQuickSearch?.(tag)}
-                      title="点击填充到搜索框"
-                      className={`rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 hover:scale-105 ${
-                        state === 'included'
-                          ? 'bg-[var(--od-accent)] text-white'
-                          : state === 'excluded'
-                          ? 'bg-[var(--od-error)] text-white'
-                          : 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-secondary)] hover:bg-[var(--od-card-hover)]'
-                      }`}
-                    >
-                      {tag}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-          {!hasTags && (
-            <p className="mt-3 text-xs text-[var(--od-text-tertiary)]">
-              当前搜索结果暂时没有可用标签。
-            </p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // 主页面的固定面板 - Banner下方，标签用于筛选
 function MainAdvancedPanel({
@@ -243,13 +126,12 @@ function MainAdvancedPanel({
                     key={tag}
                     type="button"
                     onClick={() => onTagClick(tag)}
-                    className={`rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 hover:scale-105 ${
-                      state === 'included'
-                        ? 'bg-[var(--od-accent)] text-white'
-                        : state === 'excluded'
+                    className={`rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 hover:scale-105 ${state === 'included'
+                      ? 'bg-[var(--od-accent)] text-white'
+                      : state === 'excluded'
                         ? 'bg-[var(--od-error)] text-white'
                         : 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-secondary)] hover:bg-[var(--od-card-hover)]'
-                    }`}
+                      }`}
                   >
                     {tag}
                   </button>
@@ -268,144 +150,6 @@ function MainAdvancedPanel({
   );
 }
 
-// 预览浮层组件：负责上浮卡片的进出场动画 & 独立滚动
-function ThreadPreviewOverlay({ thread, onClose }: ThreadPreviewOverlayProps) {
-  // visible 用于控制「刚挂载时从 0 → 1」的入场动画
-  const [visible, setVisible] = useState(false);
-  const [closing, setClosing] = useState(false);
-
-  // 挂载后下一帧再标记为可见，触发淡入+缩放动画
-  useEffect(() => {
-    const id = window.setTimeout(() => {
-      setVisible(true);
-    }, 0);
-    return () => window.clearTimeout(id);
-  }, []);
-
-  const handleStartClose = () => {
-    if (closing) return;
-    setClosing(true);
-    setVisible(false);
-    // 等待动画结束再真正卸载
-    window.setTimeout(() => {
-      onClose();
-    }, 220);
-  };
-
-  const authorName =
-    thread.author?.display_name ??
-    thread.author?.global_name ??
-    thread.author?.name ??
-    '未知用户';
-  const guildId = thread.guild_id || import.meta.env.VITE_GUILD_ID || '@me';
-  const discordUrl = `https://discord.com/channels/${guildId}/${thread.channel_id}/${thread.thread_id}`;
-
-  return (
-    <div
-      className={`fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm px-3 sm:px-6 transition-opacity duration-250 ${
-        closing || !visible ? 'opacity-0' : 'opacity-100'
-      }`}
-      onClick={handleStartClose}
-    >
-      <div
-        className={`relative my-4 flex w-full max-w-4xl max-h-[90vh] flex-col overflow-hidden rounded-xl bg-[var(--od-card)] shadow-2xl sm:my-6 sm:rounded-2xl transform transition-all duration-250 ease-out ${
-          closing || !visible
-            ? 'scale-95 translate-y-4 opacity-0'
-            : 'scale-100 translate-y-0 opacity-100'
-        }`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* 关闭按钮 */}
-        <button
-          type="button"
-          onClick={handleStartClose}
-          className="absolute right-3 top-3 z-10 rounded-full bg-black/60 p-1.5 text-xs text-white shadow-md hover:bg-black/80"
-          aria-label="关闭预览"
-        >
-          <X className="h-4 w-4" />
-        </button>
-
-        {/* 顶部大图 */}
-        <div className="relative h-52 w-full overflow-hidden bg-[var(--od-bg-tertiary)] sm:h-64">
-          {thread.thumbnail_url ? (
-            <LazyImage
-              src={thread.thumbnail_url}
-              alt={thread.title}
-              className="h-full w-full bg-black object-contain"
-            />
-          ) : (
-            <div className="h-full w-full bg-gradient-to-br from-[#18191c] to-[#1e1f22]" />
-          )}
-
-          {thread.has_update && (
-            <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-[#23a55a]/90 px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm backdrop-blur-sm">
-              <span className="inline-block h-2 w-2 rounded-full bg-white animate-[pulse_2.4s_ease-in-out_infinite]" />
-              <span>有更新</span>
-            </div>
-          )}
-        </div>
-
-        {/* 正文区域 - 独立滚动 */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-          {/* 标题 */}
-          <h2 className="mb-3 text-lg font-bold leading-snug text-[var(--od-text-primary)] sm:text-xl">
-            {thread.is_following && (
-              <span className="mr-1 inline-block h-2 w-2 rounded-full bg-[#f23f43]" />
-            )}
-            {thread.title}
-          </h2>
-
-          {/* 作者信息 */}
-          <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-[var(--od-text-tertiary)] sm:text-sm">
-            <span className="font-medium text-[var(--od-link)]">{authorName}</span>
-            {thread.channel_id && (
-              <>
-                <span>·</span>
-                <span>频道 {thread.channel_id}</span>
-              </>
-            )}
-          </div>
-
-          {/* 标签 */}
-          {thread.tags && thread.tags.length > 0 && (
-            <div className="mb-4 flex flex-wrap gap-2">
-              {thread.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-md bg-[var(--od-bg-secondary)] px-2.5 py-1 text-xs font-medium text-[var(--od-text-secondary)]"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* 正文 Markdown */}
-          {thread.first_message_excerpt && thread.first_message_excerpt.trim() !== '...' ? (
-            <div className="od-md text-sm text-[var(--od-text-primary)]">
-              <MarkdownText text={thread.first_message_excerpt} />
-            </div>
-          ) : (
-            <p className="mt-2 text-sm text-[var(--od-text-tertiary)]">
-              当前接口只返回首条消息的摘要，完整内容请在 Discord 中查看。
-            </p>
-          )}
-
-          {/* 打开原帖按钮 */}
-          <div className="mt-6 flex justify-end">
-            <button
-              type="button"
-              onClick={() => window.open(discordUrl, '_blank', 'noopener,noreferrer')}
-              className="rounded-lg bg-[var(--od-accent)] px-3 py-1.5 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:scale-105 hover:bg-[var(--od-accent-hover)]"
-            >
-              在 Discord 中打开
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 interface SearchOnboardingOverlayProps {
   onClose: () => void;
@@ -464,7 +208,6 @@ export function SearchPage() {
     page,
     perPage,
     setQuery,
-    setChannel,
     setSortMethod,
     setTagLogic,
     setTagMode,
@@ -473,6 +216,8 @@ export function SearchPage() {
     setPage,
     setPerPage,
     clearFilters,
+    setMainBannerVisible,
+    setActiveBanner,
   } = useSearchStore();
 
   const location = useLocation();
@@ -527,6 +272,39 @@ export function SearchPage() {
       description: '探索精彩内容，发现无限可能',
     },
   ];
+
+  // 同步 Banner 数据到 Store，供 FloatingBanner 使用
+  useEffect(() => {
+    if (defaultBanners.length > 0) {
+      setActiveBanner(defaultBanners[0]);
+    }
+  }, []);
+
+  // 监听主 Banner 可见性
+  const bannerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setMainBannerVisible(entry.isIntersecting);
+      },
+      { threshold: 0 } // 0 means trigger as soon as even 1px is visible (true) or 0px visible (false)
+    );
+
+    if (bannerRef.current) {
+      observer.observe(bannerRef.current);
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [setMainBannerVisible, query]); // Add query to dependency to re-attach if banner re-appears
+
+  // 当有搜索词时，主 Banner 不渲染，强制设置 isMainBannerVisible 为 true (隐藏浮动 Banner)
+  useEffect(() => {
+    if (query) {
+      setMainBannerVisible(true);
+    }
+  }, [query, setMainBannerVisible]);
 
   // 获取选中的标签
   const includedTags = useMemo(() => {
@@ -600,7 +378,6 @@ export function SearchPage() {
   });
 
   // 从API响应中提取数据（与后端 SearchResponse.results 对齐）
-  const threads = searchData?.results || [];
   const totalResults = searchData?.total || 0;
   const availableTags = searchData?.available_tags || [];
   const totalPages = Math.ceil(totalResults / perPage);
@@ -771,9 +548,8 @@ export function SearchPage() {
 
       {/* 主内容区：根据侧边栏折叠状态调整左侧留白（PC 端） */}
       <main
-        className={`flex-1 bg-[var(--od-bg)] pb-20 transition-all duration-300 ${
-          settings.sidebarCollapsed ? 'lg:ml-0' : 'lg:ml-[240px]'
-        }`}
+        className={`flex-1 bg-[var(--od-bg)] pb-20 transition-all duration-300 ${settings.sidebarCollapsed ? 'lg:ml-0' : 'lg:ml-[240px]'
+          }`}
       >
         {/* 顶部搜索栏 - 集成高级搜索面板 */}
         <TopBar
@@ -809,7 +585,7 @@ export function SearchPage() {
 
         {/* Banner 轮播 - 只在主页显示（无搜索时） */}
         {!query && (
-          <div className="p-4 animate-in fade-in slide-in-from-top-4 duration-500">
+          <div ref={bannerRef} className="p-4 animate-in fade-in slide-in-from-top-4 duration-500">
             <BannerCarousel banners={defaultBanners} />
           </div>
         )}
@@ -867,7 +643,7 @@ export function SearchPage() {
               className={
                 settings.layoutMode === 'list'
                   ? 'space-y-4 animate-in fade-in duration-300'
-                  : 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 animate-in fade-in duration-300'
+                  : `grid grid-cols-1 gap-4 sm:grid-cols-2 ${settings.sidebarCollapsed ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} animate-in fade-in duration-300`
               }
             >
               {Array.from({ length: perPage }).map((_, i) => (
@@ -898,7 +674,7 @@ export function SearchPage() {
               className={
                 settings.layoutMode === 'list'
                   ? 'space-y-4 animate-in fade-in duration-300'
-                  : 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 animate-in fade-in duration-300'
+                  : `grid grid-cols-1 gap-4 sm:grid-cols-2 ${settings.sidebarCollapsed ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} animate-in fade-in duration-300`
               }
             >
               {mergedThreads.map((thread) =>
