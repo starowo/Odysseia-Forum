@@ -81,6 +81,14 @@ class SearchRequest(BaseModel):
         default="desc", description="排序顺序：'asc'(升序) 或 'desc'(降序)"
     )
     limit: int = Field(
-        default=10, ge=1, le=100, description="每页返回的结果数量 (范围: 1-100)"
+        default=10, ge=1, le=100, description="每次请求期望返回的新帖子数量 (范围: 1-100)"
     )
-    offset: int = Field(default=0, ge=0, description="结果的偏移页")
+    exclude_thread_ids: List[int] = Field(
+        default_factory=list,
+        description="已在前端展示的帖子 thread_id 列表，本次请求将排除这些帖子"
+    )
+    offset: int = Field(
+        default=0,
+        ge=0,
+        description="结果的偏移页（已弃用，为兼容旧版本保留）"
+    )

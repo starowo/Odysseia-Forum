@@ -196,6 +196,7 @@ webpage/node_modules/
 webpage/dist/
 webpage/.vite/
 webpage/coverage/
+webpage/.env
 *.local
 *.log
 .DS_Store

@@ -3,9 +3,8 @@ import logging
 import discord
 from typing import TYPE_CHECKING
 from sqlalchemy.ext.asyncio import async_sessionmaker
-from sqlmodel import select
 
-from shared.models.thread import Thread
+from src.banner.banner_service import BannerService
 from .channel_selection_view import ChannelSelectionView
 
 if TYPE_CHECKING:
@@ -27,7 +26,7 @@ class ApplicationFormModal(discord.ui.Modal, title="Banner申请"):
     )
 
     cover_image_url = discord.ui.TextInput(
-        label="封面图链接（推荐21:9）",
+        label="封面图链接（推荐16:9）",
         placeholder="https://...",
         style=discord.TextStyle.short,
         required=True,
@@ -67,50 +66,39 @@ class ApplicationFormModal(discord.ui.Modal, title="Banner申请"):
                 return
             
             thread_id = int(thread_id_str)
+            cover_url = str(self.cover_image_url.value).strip()
 
-            # 验证帖子存在于数据库
-            async with self.session_factory() as session:
-                result = await session.execute(
-                    select(Thread).where(Thread.thread_id == thread_id)
+            # 检查用户身份
+            if not isinstance(interaction.user, discord.Member):
+                await interaction.followup.send(
+                    "❌ 无法验证您的身份", ephemeral=True
                 )
-                thread = result.scalar_one_or_none()
+                return
 
-                if not thread:
+            # 使用 service 进行预验证（不创建申请，只验证）
+            async with self.session_factory() as session:
+                service = BannerService(session)
+                # 先验证帖子和作者
+                validation = await service.validate_application_request(
+                    thread_id=thread_id,
+                    applicant_id=interaction.user.id,
+                    cover_image_url=cover_url,
+                )
+                
+                if not validation.success:
                     await interaction.followup.send(
-                        "❌ 该帖子未被索引，无法申请Banner。请确保帖子ID正确。", ephemeral=True
-                    )
-                    return
-
-                # 检查是否为帖子作者
-                if not isinstance(interaction.user, discord.Member):
-                    await interaction.followup.send(
-                        "❌ 无法验证您的身份", ephemeral=True
-                    )
-                    return
-
-                if thread.author_id != interaction.user.id:
-                    await interaction.followup.send(
-                        "❌ 只能为自己的帖子申请Banner", ephemeral=True
+                        f"❌ {validation.message}", ephemeral=True
                     )
                     return
                 
-                # 获取频道ID
-                channel_id = thread.channel_id
-
-            # 验证封面图URL格式
-            cover_url = str(self.cover_image_url.value).strip()
-            if not cover_url.startswith(("http://", "https://")):
-                await interaction.followup.send(
-                    "❌ 封面图链接必须是有效的URL（以http://或https://开头）", ephemeral=True
-                )
-                return
+                thread = validation.thread
 
             # 显示频道选择视图
             view = ChannelSelectionView(
                 bot=self.bot,
                 session_factory=self.session_factory,
                 thread_id=thread_id,
-                channel_id=channel_id,
+                channel_id=thread.channel_id,
                 cover_image_url=cover_url,
                 applicant_id=interaction.user.id,
                 config=self.config,

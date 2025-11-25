@@ -242,14 +242,17 @@ class FollowService:
             (帖子列表, 总数)
         """
         try:
-            # 构建查询，使用selectinload加载tags
-            from sqlalchemy.orm import selectinload
+            # 构建查询，使用selectinload加载tags，joinedload加载author
+            from sqlalchemy.orm import selectinload, joinedload
             
             statement = (
                 select(Thread, ThreadFollow)
                 .join(ThreadFollow, Thread.thread_id == ThreadFollow.thread_id)
                 .where(ThreadFollow.user_id == user_id)
-                .options(selectinload(Thread.tags))  # 预加载tags
+                .options(
+                    selectinload(Thread.tags),  # 预加载tags
+                    joinedload(Thread.author),  # 预加载author
+                )
                 .order_by(ThreadFollow.followed_at.desc())
                 .limit(limit)
                 .offset(offset)
@@ -270,11 +273,22 @@ class FollowService:
             # 转换为字典格式（ID转为字符串以避免JavaScript精度丢失）
             threads = []
             for thread, follow in rows:
+                # 构建author对象
+                author_data = None
+                if thread.author:
+                    author_data = {
+                        "id": str(thread.author.id),
+                        "name": thread.author.name,
+                        "global_name": thread.author.global_name,
+                        "display_name": thread.author.display_name,
+                        "avatar_url": thread.author.avatar_url,
+                    }
+                
                 thread_dict = {
                     "thread_id": str(thread.thread_id),
                     "channel_id": str(thread.channel_id),
                     "title": thread.title,
-                    "author_id": str(thread.author_id),
+                    "author": author_data,
                     "created_at": thread.created_at,
                     "last_active_at": thread.last_active_at,
                     "latest_update_at": thread.latest_update_at,
@@ -282,8 +296,8 @@ class FollowService:
                     "reaction_count": thread.reaction_count,
                     "reply_count": thread.reply_count,
                     "first_message_excerpt": thread.first_message_excerpt,
-                    "thumbnail_url": thread.thumbnail_url,
-                    "tags": [tag.name for tag in thread.tags],  # 添加tags
+                    "thumbnail_urls": thread.thumbnail_urls or [],
+                    "tags": [tag.name for tag in thread.tags],
                     "followed_at": follow.followed_at,
                     "last_viewed_at": follow.last_viewed_at,
                     "has_update": (

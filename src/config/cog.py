@@ -10,7 +10,6 @@ from shared.safe_defer import safe_defer
 from .mutex_tags_handler import MutexTagsHandler
 from .general_config_handler import GeneralConfigHandler
 from core.tag_service import TagService
-from src.webpage.index_sync import manual_sync, get_sync_service
 from .config_service import ConfigService
 
 if TYPE_CHECKING:

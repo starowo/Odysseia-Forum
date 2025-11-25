@@ -123,15 +123,17 @@ async def execute_search(request: SearchRequest, current_user: Dict[str, Any] = 
             else SearchConfigDefaults.STRENGTH_WEIGHT.value
         )
 
+        exclude_thread_ids = request.exclude_thread_ids or []
+
         async with async_session_factory() as session:
             repo = SearchService(session, search_cog_instance.tag_service)
             threads, total_threads = await repo.search_threads_with_count(
                 query_object,
-                request.offset,
-                request.limit,
-                total_display_count,
-                exploration_factor,
-                strength_weight,
+                limit=request.limit,
+                total_display_count=total_display_count,
+                exploration_factor=exploration_factor,
+                strength_weight=strength_weight,
+                exclude_thread_ids=exclude_thread_ids,
             )
 
         results = []
@@ -150,7 +152,7 @@ async def execute_search(request: SearchRequest, current_user: Dict[str, Any] = 
                 reply_count=thread.reply_count,
                 display_count=thread.display_count,
                 first_message_excerpt=thread.first_message_excerpt,
-                thumbnail_url=thread.thumbnail_url,
+                thumbnail_urls=thread.thumbnail_urls or [],
                 tags=[tag.name for tag in thread.tags],
             )
             results.append(thread_detail)
@@ -200,7 +202,7 @@ async def execute_search(request: SearchRequest, current_user: Dict[str, Any] = 
         return SearchResponse(
             total=total_threads,
             limit=request.limit,
-            offset=request.offset,
+            offset=len(exclude_thread_ids),
             results=results,
             available_tags=available_tags,
             banner_carousel=banner_carousel,

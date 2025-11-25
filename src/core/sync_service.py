@@ -3,7 +3,7 @@ import datetime
 import logging
 import re
 import asyncio
-from typing import Coroutine, Optional, Union, TYPE_CHECKING
+from typing import Coroutine, Optional, Union, TYPE_CHECKING, List
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from ThreadManager.thread_manager_service import ThreadManagerService
@@ -58,13 +58,37 @@ class SyncService:
         final_created_at = thread.created_at
         source_user_for_author_service = thread.owner
         excerpt = ""
-        thumbnail_url = ""
+        thumbnail_urls: List[str] = []
 
         reaction_count = (
             max([r.count for r in first_msg.reactions]) if first_msg.reactions else 0
         )
 
         first_msg_content = first_msg.content or ""
+
+        image_extensions = (".jpg", ".jpeg", ".png", ".gif", ".webp")
+
+        def _is_image_attachment(attachment: discord.Attachment) -> bool:
+            content_type = (getattr(attachment, "content_type", None) or "").lower()
+            filename = (attachment.filename or "").lower()
+            return content_type.startswith("image/") or filename.endswith(image_extensions)
+
+        def _collect_attachment_urls(message: Optional[discord.Message]) -> List[str]:
+            if not message:
+                return []
+            result = [att.url for att in message.attachments if _is_image_attachment(att)]
+            for embed in message.embeds:
+                if embed.type != "image":
+                    continue
+                if embed.thumbnail.proxy_url:
+                    result.append(embed.thumbnail.proxy_url)
+                elif embed.thumbnail.url:
+                    result.append(embed.thumbnail.url)
+                elif embed.image.proxy_url:
+                    result.append(embed.image.proxy_url)
+                elif embed.image.url:
+                    result.append(embed.image.url)
+            return result
 
         # --- 检查是否为重建帖 ---
         match_id = re.search(r"发帖人[:：\s*]*<@(\d+)>", first_msg_content)
@@ -128,7 +152,14 @@ class SyncService:
                     )
                     return None
 
-                thumbnail_url = target_message.attachments[0].url
+                attachment_urls = _collect_attachment_urls(target_message)
+                if not attachment_urls:
+                    logger.debug(
+                        f"重建帖 {thread.id} 的补档消息 ({message_id}) 没有图片附件。中止对其的索引"
+                    )
+                    return None
+
+                thumbnail_urls.extend(attachment_urls)
 
             except (discord.NotFound, discord.Forbidden, Exception) as e:
                 logger.error(
@@ -177,18 +208,18 @@ class SyncService:
         else:
             # --- 是普通帖 ---
             excerpt = first_msg.content
-            if first_msg.attachments:
-                thumbnail_url = first_msg.attachments[0].url
+            attachment_urls = _collect_attachment_urls(first_msg)
+            if attachment_urls:
+                thumbnail_urls.extend(attachment_urls)
             else:
-                # 如果没有附件，则尝试从首楼内容中提取第一个图片 URL
-                # 正则表达式匹配常见的图片格式链接 (jpg, jpeg, png, gif, webp)，不区分大小写
-                image_url_match = re.search(
+                # 如果没有附件，则尝试从首楼内容中提取所有图片 URL
+                inline_image_urls = re.findall(
                     r"https?://[^\s]+\.(?:jpg|jpeg|png|gif|webp)",
                     first_msg.content or "",
                     re.IGNORECASE,
                 )
-                if image_url_match:
-                    thumbnail_url = image_url_match.group(0)
+                if inline_image_urls:
+                    thumbnail_urls.extend(inline_image_urls)
 
         if final_author_id and thread.guild:
             asyncio.create_task(
@@ -212,7 +243,7 @@ class SyncService:
             "reply_count": thread.message_count,
             "not_found_count": 0,
             "first_message_excerpt": excerpt,
-            "thumbnail_url": thumbnail_url,
+            "thumbnail_urls": thumbnail_urls,
         }
 
     async def sync_thread(

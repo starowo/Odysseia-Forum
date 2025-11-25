@@ -151,21 +151,20 @@ class RejectReasonModal(discord.ui.Modal, title="拒绝理由"):
 
 
 class ReviewView(discord.ui.View):
-    """审核按钮视图"""
+    """审核按钮视图 - 支持持久化
+    
+    通过消息 ID 查询数据库获取申请信息，无需在 custom_id 中编码数据
+    """
 
     def __init__(
         self,
         bot: "MyBot",
         session_factory: async_sessionmaker,
-        application_id: int,
-        applicant_id: int,
         config: dict,
     ):
         super().__init__(timeout=None)
         self.bot = bot
         self.session_factory = session_factory
-        self.application_id = application_id
-        self.applicant_id = applicant_id
         self.config = config
         self.archive_thread_id = config.get("archive_thread_id")
 
@@ -182,10 +181,30 @@ class ReviewView(discord.ui.View):
         await interaction.response.defer(ephemeral=True)
 
         try:
+            # 通过消息 ID 查询申请信息
             async with self.session_factory() as session:
                 service = BannerService(session)
+                application = await service.get_application_by_review_message(
+                    interaction.message.id
+                )
+                
+                if not application:
+                    await interaction.followup.send(
+                        "❌ 找不到对应的申请记录，可能已被处理或数据丢失", ephemeral=True
+                    )
+                    return
+                
+                if application.status != "pending":
+                    await interaction.followup.send(
+                        f"❌ 该申请已被处理，当前状态: {application.status}", ephemeral=True
+                    )
+                    return
+                
+                application_id = application.id
+                applicant_id = application.applicant_id
+                
                 application, entered_carousel = await service.approve_application(
-                    self.application_id, interaction.user.id
+                    application_id, interaction.user.id
                 )
 
             # 更新原始审核消息
@@ -206,10 +225,10 @@ class ReviewView(discord.ui.View):
 
             # 私聊通知申请者
             try:
-                applicant = await self.bot.fetch_user(self.applicant_id)
+                applicant = await self.bot.fetch_user(applicant_id)
                 dm_embed = discord.Embed(
                     title="Banner申请已通过",
-                    description=f"您的Banner申请（ID: {self.application_id}）已被批准！",
+                    description=f"您的Banner申请（ID: {application_id}）已被批准！",
                     color=discord.Color.green(),
                 )
                 if entered_carousel:
@@ -258,22 +277,51 @@ class ReviewView(discord.ui.View):
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
         """处理拒绝按钮"""
-        # 显示拒绝理由输入modal
-        modal = RejectReasonModal(
-            bot=self.bot,
-            session_factory=self.session_factory,
-            application_id=self.application_id,
-            applicant_id=self.applicant_id,
-            reviewer_id=interaction.user.id,
-            config=self.config,
-            original_interaction=interaction,
-        )
-        await interaction.response.send_modal(modal)
+        try:
+            # 通过消息 ID 查询申请信息
+            async with self.session_factory() as session:
+                service = BannerService(session)
+                application = await service.get_application_by_review_message(
+                    interaction.message.id
+                )
+                
+                if not application:
+                    await interaction.response.send_message(
+                        "❌ 找不到对应的申请记录，可能已被处理或数据丢失", ephemeral=True
+                    )
+                    return
+                
+                if application.status != "pending":
+                    await interaction.response.send_message(
+                        f"❌ 该申请已被处理，当前状态: {application.status}", ephemeral=True
+                    )
+                    return
+                
+                application_id = application.id
+                applicant_id = application.applicant_id
+            
+            # 显示拒绝理由输入modal
+            modal = RejectReasonModal(
+                bot=self.bot,
+                session_factory=self.session_factory,
+                application_id=application_id,
+                applicant_id=applicant_id,
+                reviewer_id=interaction.user.id,
+                config=self.config,
+                original_interaction=interaction,
+            )
+            await interaction.response.send_modal(modal)
+            
+        except Exception as e:
+            logger.error(f"处理拒绝按钮时出错: {e}", exc_info=True)
+            await interaction.response.send_message(
+                f"❌ 处理失败: {str(e)}", ephemeral=True
+            )
 
     async def _archive_review(self, application, status: str, reviewer_id: int):
         """在存档频道留档"""
         try:
-            archive_channel = self.bot.get_channel(self.archive_thread_id)
+            archive_channel = self.bot.fetch_channel(self.archive_thread_id)
             if archive_channel is None:
                 logger.error("存档频道不存在，无法发送审核记录")
                 return

@@ -57,6 +57,26 @@ class BannerManagement(commands.Cog):
         # 启动清理任务
         self.cleanup_expired_banners.start()
 
+    async def cog_load(self):
+        """Cog加载时注册持久化视图"""
+        # 注册申请按钮持久化视图
+        application_view = BannerApplicationButtonView(
+            bot=self.bot,
+            session_factory=self.session_factory,
+            config=self.config,
+        )
+        self.bot.add_view(application_view)
+        
+        # 注册审核按钮持久化视图
+        review_view = ReviewView(
+            bot=self.bot,
+            session_factory=self.session_factory,
+            config=self.config,
+        )
+        self.bot.add_view(review_view)
+        
+        logger.info("Banner持久化视图已注册")
+
     def cog_unload(self):
         """Cog卸载时停止任务"""
         self.cleanup_expired_banners.cancel()
