@@ -10,28 +10,14 @@ export function FloatingBanner() {
     const [isMinimized, setIsMinimized] = useState(false);
     const [isVisible, setIsVisible] = useState(true);
 
-    // console.log('[FloatingBanner] State:', {
-    //     showSetting: settings.showFloatingBanner,
-    //     userVisible: isVisible,
-    //     mainBannerVisible: isMainBannerVisible,
-    //     hasActiveBanner: !!activeBanner
-    // });
+    // ... (existing logic)
 
-    // 只有当：
-    // 1. 设置开启
-    // 2. 用户未手动关闭 (isVisible)
-    // 3. 主 Banner 不可见 (isMainBannerVisible === false)
-    // 4. 有有效的 Banner 数据
-    // 才显示
     if (!settings.showFloatingBanner || !isVisible || isMainBannerVisible || !activeBanner) {
         return null;
     }
 
     const handleClose = () => {
         setIsVisible(false);
-        // 可选：如果用户点击关闭，是否意味着永久关闭？
-        // 这里暂时只做本次会话关闭，或者可以更新设置
-        // updateSettings({ showFloatingBanner: false });
     };
 
     if (isMinimized) {
@@ -89,3 +75,4 @@ export function FloatingBanner() {
         </div>
     );
 }
+

@@ -1,4 +1,4 @@
-import { Bookmark, Settings, Info, LogOut, Search as SearchIcon, Bell, Tag as TagIcon } from 'lucide-react';
+import { Bookmark, Settings, Info, LogOut, Search as SearchIcon, Bell, Tag as TagIcon, TestTube } from 'lucide-react';
 import ServerIcon from '@/assets/images/icon/A90C044F8DDF1959B2E9078CB629C239.png';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
@@ -197,6 +197,20 @@ export function AppSidebar() {
               <Info className={`h-4 w-4 flex-shrink-0 ${isActive('/about') ? 'text-[var(--od-accent)]' : ''}`} />
               <span className="truncate">关于我们</span>
             </Link>
+
+            {/* Dev Mode - Only visible in Mock environment */}
+            {import.meta.env.VITE_API_MOCKING === 'true' && (
+              <Link
+                to="/test"
+                className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${isActive('/test')
+                  ? 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-primary)]'
+                  : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
+                  }`}
+              >
+                <TestTube className={`h-4 w-4 flex-shrink-0 ${isActive('/test') ? 'text-[var(--od-accent)]' : ''}`} />
+                <span className="truncate">开发者模式</span>
+              </Link>
+            )}
           </div>
         </div>
       </div>

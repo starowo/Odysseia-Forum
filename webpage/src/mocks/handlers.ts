@@ -97,6 +97,7 @@ export const handlers: RequestHandler[] = [
       // 实际后端使用 "keywords"，我们同时兼容 "query"
       query?: string | null;
       keywords?: string | null;
+      author_name?: string | null;
       channel_ids?: string[] | null;
       include_tags?: string[];
       exclude_tags?: string[];
@@ -110,6 +111,7 @@ export const handlers: RequestHandler[] = [
     const {
       query,
       keywords,
+      author_name,
       channel_ids,
       include_tags = [],
       exclude_tags = [],
@@ -125,10 +127,11 @@ export const handlers: RequestHandler[] = [
     // 关键词匹配：标题 + 摘要 + 作者（支持 author:xxx 语法）
     const rawSearchText = (keywords ?? query ?? '').trim();
     let searchText = rawSearchText;
-    let authorFilter: string | null = null;
+    let authorFilter: string | null = author_name ? author_name.toLowerCase() : null;
 
     // 解析 author: 前缀（例如 author:用户1 或 author:用户1 LLM）
-    if (rawSearchText) {
+    // 只有当没有显式 author_name 参数时才尝试从文本解析
+    if (rawSearchText && !authorFilter) {
       const lower = rawSearchText.toLowerCase();
       const prefix = 'author:';
       const idx = lower.indexOf(prefix);

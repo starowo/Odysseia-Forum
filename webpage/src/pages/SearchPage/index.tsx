@@ -152,51 +152,8 @@ function MainAdvancedPanel({
 }
 
 
-interface SearchOnboardingOverlayProps {
-  onClose: () => void;
-}
-
-function SearchOnboardingOverlay({ onClose }: SearchOnboardingOverlayProps) {
-  return (
-    <div
-      className="fixed inset-0 z-[55] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-lg rounded-2xl border border-[var(--od-border-strong)]/60 bg-[var(--od-card)] p-6 shadow-2xl animate-in fade-in zoom-in duration-300"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className="mb-3 text-xl font-bold text-[var(--od-text-primary)]">
-          欢迎来到类脑搜索
-        </h2>
-        <p className="mb-4 text-sm text-[var(--od-text-secondary)]">
-          这是 Odysseia 的新网页前端，你可以像在 Discord 一样探索帖子，但拥有更强的搜索与筛选能力。
-        </p>
-        <ul className="mb-5 list-disc space-y-2 pl-5 text-sm text-[var(--od-text-secondary)]">
-          <li>
-            使用顶部搜索框输入关键词，支持{' '}
-            <code className="rounded bg-[var(--od-bg-tertiary)] px-1 text-[0.8em]">author:</code>{' '}
-            等高级语法。
-          </li>
-          <li>左侧选择频道与标签，组合 AND / OR 条件精确筛选。</li>
-          <li>点击任意卡片或列表项，可以打开预览浮层阅读完整内容。</li>
-        </ul>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg bg-[var(--od-accent)] px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:scale-105 hover:bg-[var(--od-accent-hover)]"
-          >
-            知道了，开始探索
-          </button>
-          <p className="text-xs text-[var(--od-text-tertiary)]">
-            此引导只会在本设备第一次访问时出现。
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
+import { useMascotStore } from '@/features/mascot/store/mascotStore';
+import { MascotDialog } from '@/features/mascot/components/MascotDialog';
 
 export function SearchPage() {
   const {
@@ -220,6 +177,8 @@ export function SearchPage() {
     setMainBannerVisible,
     setActiveBanner,
   } = useSearchStore();
+
+  const { reactToSearch } = useMascotStore();
 
   const location = useLocation();
 
@@ -388,6 +347,17 @@ export function SearchPage() {
     staleTime: 30 * 1000, // 30秒
   });
 
+  // React to search results
+  useEffect(() => {
+    if (!isLoading && !isFetching && searchData) {
+      if (searchData.total > 0) {
+        reactToSearch('found', query);
+      } else {
+        reactToSearch('empty', query);
+      }
+    }
+  }, [searchData, isLoading, isFetching, reactToSearch, query]);
+
   // 从API响应中提取数据（与后端 SearchResponse.results 对齐）
   const totalResults = searchData?.total || 0;
   const availableTags = searchData?.available_tags || [];
@@ -426,6 +396,7 @@ export function SearchPage() {
     // 保存到搜索历史
     if (trimmedQuery) {
       addSearchHistory(trimmedQuery);
+      reactToSearch('start', trimmedQuery);
     }
   }, [searchInput, setQuery]);
 
@@ -764,9 +735,25 @@ export function SearchPage() {
       )}
 
       {/* 首次访问引导浮层 */}
-      {showOnboarding && (
-        <SearchOnboardingOverlay onClose={handleCloseOnboarding} />
-      )}
+      <MascotDialog
+        visible={showOnboarding}
+        onClose={handleCloseOnboarding}
+        emotion="hi"
+        title="欢迎来到 Odysseia！"
+        actionLabel="开始探索！"
+        onAction={handleCloseOnboarding}
+      >
+        <p className="mb-3">
+          我是这里的看板娘<b>类脑娘</b>！这里是全新的 Odysseia 论坛，你可以像在 Discord 一样探索帖子，但拥有更强的搜索与筛选能力哦！
+        </p>
+        <ul className="list-disc space-y-1 pl-5 text-sm opacity-90">
+          <li>
+            试试顶部搜索框，支持 <code className="rounded bg-[var(--od-bg-tertiary)] px-1 font-mono text-[0.9em]">$author:</code> 等高级语法
+          </li>
+          <li>左侧可以筛选频道和标签，组合条件超方便</li>
+          <li>点击卡片就能预览详情，不用跳页哦</li>
+        </ul>
+      </MascotDialog>
     </div>
   );
 }
