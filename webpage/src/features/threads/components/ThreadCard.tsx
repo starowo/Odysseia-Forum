@@ -1,6 +1,8 @@
-import { MessageCircle, ThumbsUp, ExternalLink } from 'lucide-react';
+import { useState } from 'react';
+import { MessageCircle, ThumbsUp, ExternalLink, RefreshCw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
+import { toast } from 'sonner';
 import { LazyImage } from '@/components/common/LazyImage';
 import { Tooltip } from '@/components/common/Tooltip';
 import { HighlightText } from '@/components/common/HighlightText';
@@ -8,6 +10,9 @@ import { MarkdownText } from '@/components/common/MarkdownText';
 import type { Thread } from '@/types/thread.types';
 import { useSettings } from '@/hooks/useSettings';
 import { fontSizeMap, cardSizeMap } from '@/lib/settings';
+import { getAvatarUrl } from '@/lib/utils/discord';
+import { fetchImagesApi } from '@/features/threads/api/fetchImagesApi';
+import { MultiImageGrid } from './MultiImageGrid';
 
 interface ThreadCardProps {
   thread: Thread;
@@ -48,13 +53,43 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
   const handleOpenThread = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log('Opening thread:', { 
-      guild_id: thread.guild_id, 
-      channel_id: thread.channel_id, 
+    console.log('Opening thread:', {
+      guild_id: thread.guild_id,
+      channel_id: thread.channel_id,
       thread_id: thread.thread_id,
-      url: discordUrl 
+      url: discordUrl
     });
     window.open(discordUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefreshImage = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isRefreshing) return;
+
+    setIsRefreshing(true);
+    try {
+      const result = await fetchImagesApi.refresh([{
+        thread_id: Number(thread.thread_id),
+        channel_id: Number(thread.channel_id)
+      }]);
+
+      const item = result.results[0];
+      if (item && item.updated) {
+        toast.success('封面图已刷新');
+        // 这里理想情况下应该触发列表更新，或者直接更新本地状态
+        // 暂时简单提示成功，用户刷新页面后可见
+      } else if (item?.error) {
+        toast.error(`刷新失败: ${item.error}`);
+      } else {
+        toast.info('未发现新图片');
+      }
+    } catch (error) {
+      toast.error('刷新请求失败');
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   return (
@@ -66,11 +101,17 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
       <div
         className={`relative w-full overflow-hidden bg-[var(--od-bg-tertiary)] ${cardSizes.imageHeight}`}
       >
-        {thread.thumbnail_url ? (
-          <LazyImage
-            src={thread.thumbnail_url}
+        {thread.thumbnail_urls && thread.thumbnail_urls.length > 0 ? (
+          <MultiImageGrid
+            images={thread.thumbnail_urls}
             alt={thread.title}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="h-full w-full"
+          />
+        ) : thread.thumbnail_url ? (
+          <MultiImageGrid
+            images={[thread.thumbnail_url]}
+            alt={thread.title}
+            className="h-full w-full"
           />
         ) : (
           // 无图片时显示纯色背景
@@ -107,6 +148,17 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
             )}
           </div>
         )}
+
+        {/* 图片刷新按钮 - 右上角 */}
+        <button
+          onClick={handleRefreshImage}
+          disabled={isRefreshing}
+          className={`absolute right-2 top-2 z-10 rounded-full bg-black/50 p-1.5 text-white backdrop-blur-sm transition-all duration-200 hover:bg-black/70 ${isRefreshing ? 'opacity-100 cursor-wait' : 'opacity-0 group-hover:opacity-100'
+            }`}
+          title="刷新封面图"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+        </button>
       </div>
 
       {/* 内容区域（图片下方） */}
@@ -123,6 +175,22 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
 
         {/* 作者信息 */}
         <div className={`mb-2 flex items-center gap-2 text-[var(--od-text-tertiary)] ${fontSizes.meta}`}>
+          {/* 头像 */}
+          <div className="relative h-5 w-5 flex-shrink-0 overflow-hidden rounded-full bg-[var(--od-bg-tertiary)]">
+            <LazyImage
+              src={
+                thread.author?.id
+                  ? getAvatarUrl({
+                    id: thread.author.id,
+                    avatar: thread.author.avatar,
+                  })
+                  : 'https://cdn.discordapp.com/embed/avatars/0.png'
+              }
+              alt={authorName}
+              className="h-full w-full object-cover"
+            />
+          </div>
+
           <button
             type="button"
             onClick={(e) => {
@@ -131,24 +199,23 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
                 onAuthorClick(authorName);
               }
             }}
-            className="font-medium text-[var(--od-link)] hover:underline"
+            className="font-medium text-[var(--od-link)] hover:underline truncate max-w-[120px]"
           >
             {authorName}
           </button>
           <span>·</span>
-          <span>{createdTime}</span>
+          <span className="flex-shrink-0">{createdTime}</span>
         </div>
 
         {/* 内容摘要 - 使用 Markdown 渲染，保持固定高度预览；全文阅读走预览浮层 */}
         {hasExcerpt ? (
           <div
-            className={`mb-3 overflow-y-auto scrollbar-thin ${
-              settings.cardSize === 'compact'
-                ? 'h-12'
-                : settings.cardSize === 'large'
-                  ? 'h-24'
-                  : 'h-20'
-            }`}
+            className={`mb-3 overflow-y-auto scrollbar-thin ${settings.cardSize === 'compact'
+              ? 'h-12'
+              : settings.cardSize === 'large'
+                ? 'h-24'
+                : 'h-20'
+              }`}
           >
             <div
               className={`od-md leading-relaxed text-[var(--od-text-secondary)] ${fontSizes.content} ${cardSizes.contentLines}`}
@@ -158,13 +225,12 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
           </div>
         ) : (
           <div
-            className={`mb-3 ${
-              settings.cardSize === 'compact'
-                ? 'h-12'
-                : settings.cardSize === 'large'
-                  ? 'h-24'
-                  : 'h-20'
-            }`}
+            className={`mb-3 ${settings.cardSize === 'compact'
+              ? 'h-12'
+              : settings.cardSize === 'large'
+                ? 'h-24'
+                : 'h-20'
+              }`}
           />
         )}
 

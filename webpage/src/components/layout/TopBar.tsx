@@ -1,7 +1,8 @@
 import { Menu, ChevronUp, SlidersHorizontal, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { SearchHistoryDropdown } from '@/components/SearchHistory';
+import { SearchSuggestions } from '@/components/SearchSuggestions';
 import { SearchTokenInput } from '@/components/common/SearchTokenInput';
+import type { Channel } from '@/types/thread.types';
 
 interface TopBarProps {
   searchValue: string;
@@ -21,6 +22,7 @@ interface TopBarProps {
   tagMode?: 'included' | 'excluded';
   availableTags?: string[];
   tagStates?: Map<string, 'included' | 'excluded'>;
+  channels?: Channel[];
   onTimeFromChange?: (value: string) => void;
   onTimeToChange?: (value: string) => void;
   onSortMethodChange?: (value: string) => void;
@@ -47,6 +49,7 @@ export function TopBar({
   tagMode = 'included',
   availableTags = [],
   tagStates = new Map(),
+  channels = [],
   onTimeFromChange,
   onTimeToChange,
   onSortMethodChange,
@@ -85,7 +88,7 @@ export function TopBar({
 
   return (
     <header className="sticky top-0 z-20 bg-[var(--od-bg-secondary)] shadow-lg">
-      <div className="flex items-center gap-3 p-3">
+      <div className="flex items-center gap-3 p-3 lg:pl-0">
         {/* 移动端菜单按钮 */}
         <button
           onClick={onMenuClick}
@@ -100,15 +103,28 @@ export function TopBar({
           <SearchTokenInput
             value={searchValue}
             onChange={onSearchChange}
-            onSearch={onSearch}
+            onSearch={() => {
+              onSearch();
+              setShowHistory(false);
+            }}
+            onFocus={() => setShowHistory(true)}
+            onBlur={() => {
+              // 延迟关闭，给用户时间点击建议
+              setTimeout(() => setShowHistory(false), 200);
+            }}
             placeholder="搜索标题、作者或内容... 💡 试试 $tag:标签$ 或 $author:作者$"
           />
-          
-          {/* 搜索历史下拉框 */}
-          <SearchHistoryDropdown
+
+          {/* 搜索建议下拉框 */}
+          <SearchSuggestions
             isOpen={showHistory}
-            onSelectHistory={(query) => {
-              onSelectHistory?.(query);
+            currentQuery={searchValue}
+            availableTags={availableTags}
+            channels={channels}
+            onSelect={(suggestion) => {
+              const newValue = searchValue + suggestion;
+              onSelectHistory?.(newValue);
+              onSearchChange(newValue);
               setShowHistory(false);
             }}
             onClose={() => setShowHistory(false)}
@@ -141,9 +157,8 @@ export function TopBar({
 
       {/* 高级搜索折叠面板 */}
       <div
-        className={`bg-[var(--od-bg-secondary)] transition-[max-height,opacity] duration-300 overflow-hidden border-t border-[var(--od-border)] ${
-          isAdvancedOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
-        }`}
+        className={`bg-[var(--od-bg-secondary)] transition-[max-height,opacity] duration-300 overflow-hidden border-t border-[var(--od-border)] ${isAdvancedOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
+          }`}
       >
         <div className="px-3 pb-3 pt-2">
           {/* 快捷填充按钮 */}
@@ -293,13 +308,12 @@ export function TopBar({
                       key={tag}
                       type="button"
                       onClick={() => onTagClick?.(tag)}
-                      className={`rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 hover:scale-105 ${
-                        state === 'included'
-                          ? 'bg-[var(--od-accent)] text-white'
-                          : state === 'excluded'
+                      className={`rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 hover:scale-105 ${state === 'included'
+                        ? 'bg-[var(--od-accent)] text-white'
+                        : state === 'excluded'
                           ? 'bg-[var(--od-error)] text-white'
                           : 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-secondary)] hover:bg-[var(--od-card-hover)]'
-                      }`}
+                        }`}
                     >
                       {tag}
                     </button>

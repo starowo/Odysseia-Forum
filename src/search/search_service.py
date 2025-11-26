@@ -73,11 +73,13 @@ class SearchService:
     async def search_threads_with_count(
         self,
         query: ThreadSearchQuery,
-        offset: int,
+        *,
         limit: int,
         total_display_count: int,
         exploration_factor: float,
         strength_weight: float,
+        offset: int = 0,
+        exclude_thread_ids: Sequence[int | str] | None = None,
     ) -> tuple[Sequence[Thread], int]:
         """
         根据搜索条件搜索帖子并分页
@@ -112,6 +114,15 @@ class SearchService:
             filters.append(Thread.not_found_count == 0)
             if query.channel_ids:
                 filters.append(Thread.channel_id.in_(query.channel_ids))  # type: ignore
+            if exclude_thread_ids:
+                normalized_ids = []
+                for tid in exclude_thread_ids:
+                    try:
+                        normalized_ids.append(int(tid))
+                    except (TypeError, ValueError):
+                        continue
+                if normalized_ids:
+                    filters.append(~Thread.thread_id.in_(normalized_ids))  # type: ignore
 
             final_include_author_ids = (
                 set(query.include_authors) if query.include_authors else set()
@@ -329,7 +340,9 @@ class SearchService:
             if order_by is not None:
                 final_select_stmt = final_select_stmt.order_by(order_by)
 
-            final_select_stmt = final_select_stmt.offset(offset).limit(limit)
+            if offset:
+                final_select_stmt = final_select_stmt.offset(offset)
+            final_select_stmt = final_select_stmt.limit(limit)
 
             result = await self.session.execute(final_select_stmt)
             threads = result.scalars().all()

@@ -33,13 +33,13 @@ from src.config.cog import Configuration
 from src.banner.cog import BannerManagement
 from config.config_service import ConfigService
 from src.shared.api_scheduler import APIScheduler
-from src.webpage.index_sync import start_index_sync
 from src.api.v1.routers import (
     preferences as preferences_api,
     search as search_api,
     meta as meta_api,
     auth as auth_api,
     fetch_images as fetch_images_api,
+    banner as banner_api,
 )
 from src.api.main import app as fastapi_app
 from src.api.v1.dependencies.security import initialize_api_security
@@ -275,6 +275,11 @@ async def main():
             bot_token=auth_section.get("bot_token"),
             guild_id=auth_section.get("guild_id"),
         )
+
+        # 注入 banner 路由服务
+        banner_api.async_session_factory = AsyncSessionFactory
+        banner_api.banner_config = bot.config.get("banner", {})
+        banner_api.bot_instance = bot
 
         logger.info("API 路由服务注入完成")
 

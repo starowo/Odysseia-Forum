@@ -8,6 +8,7 @@ import { MarkdownText } from '@/components/common/MarkdownText';
 import type { Thread } from '@/types/thread.types';
 import { useSettings } from '@/hooks/useSettings';
 import { fontSizeMap } from '@/lib/settings';
+import { getAvatarUrl } from '@/lib/utils/discord';
 
 interface ThreadListItemProps {
   thread: Thread;
@@ -65,6 +66,21 @@ export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick,
 
           {/* 作者和时间 */}
           <div className={`mb-3 flex items-center gap-2 ${fontSizes.meta} text-[var(--od-text-tertiary)]`}>
+            {/* 头像 */}
+            <div className="relative h-5 w-5 flex-shrink-0 overflow-hidden rounded-full bg-[var(--od-bg-tertiary)]">
+              <LazyImage
+                src={
+                  thread.author?.id
+                    ? getAvatarUrl({
+                      id: thread.author.id,
+                      avatar: thread.author.avatar,
+                    })
+                    : 'https://cdn.discordapp.com/embed/avatars/0.png'
+                }
+                alt={authorName}
+                className="h-full w-full object-cover"
+              />
+            </div>
             <button
               type="button"
               onClick={(e) => {
@@ -73,7 +89,7 @@ export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick,
                   onAuthorClick(authorName);
                 }
               }}
-              className="font-medium text-[var(--od-link)] hover:underline"
+              className="font-medium text-[var(--od-accent)] hover:underline"
             >
               {authorName}
             </button>
@@ -124,7 +140,7 @@ export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick,
                 <span className="text-sm">{thread.reaction_count}</span>
               </div>
             </div>
-            
+
             {/* 跳转按钮 */}
             <Tooltip content="在 Discord 中打开" position="left">
               <button
@@ -141,13 +157,19 @@ export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick,
 
       {/* 右侧图片区 - 带渐变遮罩，防止溢出 */}
       <div className="relative w-80 flex-shrink-0 overflow-hidden bg-[var(--od-bg-secondary)]">
-        {thread.thumbnail_url ? (
+        {(thread.thumbnail_urls && thread.thumbnail_urls.length > 0) || thread.thumbnail_url ? (
           <>
             <LazyImage
-              src={thread.thumbnail_url}
+              src={thread.thumbnail_urls?.[0] || thread.thumbnail_url!}
               alt={thread.title}
               className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
+            {thread.thumbnail_urls && thread.thumbnail_urls.length > 1 && (
+              <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-md bg-black/60 px-1.5 py-0.5 text-xs font-bold text-white backdrop-blur-sm">
+                <span className="material-symbols-outlined text-[10px]">image</span>
+                <span>{thread.thumbnail_urls.length}</span>
+              </div>
+            )}
             {/* 左侧渐变遮罩 - 柔和过渡 */}
             <div className="pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[var(--od-bg-tertiary)] via-[color-mix(in_oklab,var(--od-bg-tertiary)_60%,transparent)] to-transparent transition-colors duration-300 group-hover:from-[var(--od-card-hover)] group-hover:via-[color-mix(in_oklab,var(--od-card-hover)_60%,transparent)]" />
             {/* 整体暗化遮罩 - 柔和 */}
