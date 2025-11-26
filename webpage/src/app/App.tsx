@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, QueryCache } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { RouterProvider } from 'react-router-dom';
 import { Toaster } from 'sonner';
@@ -7,8 +7,17 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ThemeProvider } from '../components/layout/ThemeProvider';
 import { router } from './router';
 import { FloatingBanner } from '@/features/banner/components/FloatingBanner';
+import { GlobalThreadPreview } from '@/features/threads/components/GlobalThreadPreview';
+import { useMascotStore } from '@/features/mascot/store/mascotStore';
 
 const queryClient = new QueryClient({
+  queryCache: new QueryCache({
+    onError: (error) => {
+      console.error('Global Query Error:', error);
+      // Trigger mascot network error reaction
+      useMascotStore.getState().reactToError('network');
+    },
+  }),
   defaultOptions: {
     queries: {
       staleTime: 60 * 1000, // 1 minute
@@ -36,12 +45,23 @@ export function App() {
     }
   }, []);
 
+  // Monitor network status
+  useEffect(() => {
+    const handleOffline = () => {
+      useMascotStore.getState().reactToError('network');
+    };
+
+    window.addEventListener('offline', handleOffline);
+    return () => window.removeEventListener('offline', handleOffline);
+  }, []);
+
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <RouterProvider router={router} />
           <FloatingBanner />
+          <GlobalThreadPreview />
           <Toaster position="top-center" richColors />
           {/* 仅在需要调试时显示 DevTools，默认隐藏 */}
           {import.meta.env.VITE_SHOW_DEVTOOLS === 'true' && (

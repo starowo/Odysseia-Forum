@@ -230,6 +230,7 @@ export const handlers: RequestHandler[] = [
         thread_id: t.thread_id,
         channel_id: t.channel_id,
         title: t.title,
+        description: t.first_message_excerpt || '点击查看详情',
         cover_image_url: t.thumbnail_url!,
       }));
 
@@ -297,5 +298,17 @@ export const handlers: RequestHandler[] = [
   http.post('http://localhost:10810/v1/dev/mock/reset', () => {
     resetMockData();
     return HttpResponse.json({ ok: true });
+  }),
+
+  // 获取单个帖子详情
+  http.get('http://localhost:10810/v1/threads/:threadId', ({ params }) => {
+    const { threadId } = params;
+    const thread = MOCK_THREADS.find((t) => t.thread_id === threadId);
+
+    if (!thread) {
+      return new HttpResponse(null, { status: 404 });
+    }
+
+    return HttpResponse.json(thread);
   }),
 ];

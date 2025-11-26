@@ -13,9 +13,10 @@ interface Banner {
 interface BannerCarouselProps {
   banners: Banner[];
   autoPlayInterval?: number;
+  onBannerClick?: (banner: Banner) => void;
 }
 
-export function BannerCarousel({ banners, autoPlayInterval = 5000 }: BannerCarouselProps) {
+export function BannerCarousel({ banners, autoPlayInterval = 5000, onBannerClick }: BannerCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
@@ -30,11 +31,13 @@ export function BannerCarousel({ banners, autoPlayInterval = 5000 }: BannerCarou
     return () => clearInterval(timer);
   }, [isHovered, banners.length, autoPlayInterval]);
 
-  const goToPrevious = () => {
+  const goToPrevious = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     setCurrentIndex((prev) => (prev - 1 + banners.length) % banners.length);
   };
 
-  const goToNext = () => {
+  const goToNext = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     setCurrentIndex((prev) => (prev + 1) % banners.length);
   };
 
@@ -57,9 +60,10 @@ export function BannerCarousel({ banners, autoPlayInterval = 5000 }: BannerCarou
 
   return (
     <div
-      className="group relative mb-4 overflow-hidden rounded-xl bg-[#2b2d31]"
+      className="group relative mb-4 overflow-hidden rounded-xl bg-[#2b2d31] cursor-pointer"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={() => onBannerClick?.(currentBanner)}
     >
       {/* Banner 图片 */}
       <div className="relative aspect-[21/9]">
@@ -74,10 +78,10 @@ export function BannerCarousel({ banners, autoPlayInterval = 5000 }: BannerCarou
 
         {/* 内容 */}
         <div className="absolute bottom-0 left-0 right-0 p-6">
-          <h2 className="mb-2 text-2xl font-bold text-white">
+          <h2 className="mb-2 text-2xl font-bold text-white line-clamp-1">
             {currentBanner.title}
           </h2>
-          <p className="text-sm text-gray-200">
+          <p className="text-sm text-gray-200 line-clamp-2">
             {currentBanner.description}
           </p>
         </div>

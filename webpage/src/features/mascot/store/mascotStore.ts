@@ -14,7 +14,7 @@ interface MascotState {
     setVisible: (visible: boolean) => void;
     reset: () => void;
     reactToSearch: (status: 'start' | 'empty' | 'found', query?: string) => void;
-    reactToError: (type?: 'generic' | 'network') => void;
+    reactToError: (type?: 'generic' | 'network' | 'notFound') => void;
 }
 
 const DEFAULT_STATE = {

@@ -60,6 +60,7 @@ export interface BannerItem {
   thread_id: string;
   channel_id: string;
   title: string;
+  description?: string;
   cover_image_url: string;
 }
 

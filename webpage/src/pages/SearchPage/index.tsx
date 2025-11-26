@@ -21,7 +21,6 @@ import { addSearchHistory } from '@/lib/searchHistory';
 import { addToken, parseSearchQuery } from '@/lib/searchTokenizer';
 import type { Thread, Channel } from '@/types/thread.types';
 import bannerImage from '@/assets/images/banners/adfd891a-f9f7-4f9d-8d7c-975fb32a7f0d.png';
-import { ThreadPreviewOverlay } from '@/features/threads/components/ThreadPreviewOverlay';
 import { apiClient } from '@/lib/api/client';
 
 
@@ -176,6 +175,8 @@ export function SearchPage() {
     clearFilters,
     setMainBannerVisible,
     setActiveBanner,
+    setBannerList,
+    setPreviewThread,
   } = useSearchStore();
 
   const { reactToSearch } = useMascotStore();
@@ -205,7 +206,7 @@ export function SearchPage() {
   const [timeFrom, setTimeFrom] = useState('');
   const [timeTo, setTimeTo] = useState('');
   const [openMode, setOpenMode] = useState<'app' | 'web'>('app');
-  const [previewThread, setPreviewThread] = useState<Thread | null>(null);
+  // const [previewThread, setPreviewThread] = useState<Thread | null>(null); // Moved to store
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [mergedThreads, setMergedThreads] = useState<Thread[]>([]);
   const { settings, updateSettings } = useSettings();
@@ -242,39 +243,6 @@ export function SearchPage() {
       description: '探索精彩内容，发现无限可能',
     },
   ];
-
-  // 同步 Banner 数据到 Store，供 FloatingBanner 使用
-  useEffect(() => {
-    if (defaultBanners.length > 0) {
-      setActiveBanner(defaultBanners[0]);
-    }
-  }, []);
-
-  // 监听主 Banner 可见性
-  const bannerRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setMainBannerVisible(entry.isIntersecting);
-      },
-      { threshold: 0 } // 0 means trigger as soon as even 1px is visible (true) or 0px visible (false)
-    );
-
-    if (bannerRef.current) {
-      observer.observe(bannerRef.current);
-    }
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [setMainBannerVisible, query]); // Add query to dependency to re-attach if banner re-appears
-
-  // 当有搜索词时，主 Banner 不渲染，强制设置 isMainBannerVisible 为 true (隐藏浮动 Banner)
-  useEffect(() => {
-    if (query) {
-      setMainBannerVisible(true);
-    }
-  }, [query, setMainBannerVisible]);
 
   // 获取选中的标签
   const includedTags = useMemo(() => {
@@ -347,9 +315,45 @@ export function SearchPage() {
     staleTime: 30 * 1000, // 30秒
   });
 
+  // 同步 Banner 数据到 Store，供 FloatingBanner 使用
+  useEffect(() => {
+    if (searchData?.banner_carousel && searchData.banner_carousel.length > 0) {
+      const apiBanners = searchData.banner_carousel.map(b => ({
+        id: b.thread_id,
+        image: b.cover_image_url,
+        title: b.title,
+        description: (b as any).description || '点击查看详情', // Type assertion until types are updated
+      }));
+      setActiveBanner(apiBanners[0]);
+      setBannerList(apiBanners);
+    } else if (defaultBanners.length > 0) {
+      setActiveBanner(defaultBanners[0]);
+      setBannerList(defaultBanners);
+    }
+  }, [searchData, setActiveBanner, setBannerList]);
+
+  // Banner 轮播 - 只在主页显示（无搜索时）
+  const displayBanners = useMemo(() => {
+    const apiBanners = searchData?.banner_carousel?.map(b => ({
+      id: b.thread_id,
+      image: b.cover_image_url,
+      title: b.title,
+      description: (b as any).description || '点击查看详情',
+    })) || [];
+
+    // 过滤掉可能重复的（虽然 id 不同，但为了保险）
+    // 这里主要是确保 defaultBanners 在第一个
+    return [...defaultBanners, ...apiBanners];
+  }, [searchData]);
+
   // React to search results
   useEffect(() => {
-    if (!isLoading && !isFetching && searchData) {
+    // Only react if there is an active query
+    if (!query) return;
+
+    if (isLoading || isFetching) {
+      reactToSearch('start', query);
+    } else if (searchData) {
       if (searchData.total > 0) {
         reactToSearch('found', query);
       } else {
@@ -494,10 +498,7 @@ export function SearchPage() {
     toggleTag(tag);
   };
 
-  // 关闭预览浮层
-  const handleClosePreview = () => {
-    setPreviewThread(null);
-  };
+
 
   const handleCloseOnboarding = () => {
     try {
@@ -513,6 +514,32 @@ export function SearchPage() {
 
   // 是否有活动的筛选条件
   const hasActiveFilters = query || selectedChannel || tagStates.size > 0 || timeFrom || timeTo;
+
+  // 监听主 Banner 可见性
+  const bannerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setMainBannerVisible(entry.isIntersecting);
+      },
+      { threshold: 0 } // 0 means trigger as soon as even 1px is visible (true) or 0px visible (false)
+    );
+
+    if (bannerRef.current) {
+      observer.observe(bannerRef.current);
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [setMainBannerVisible, query]); // Add query to dependency to re-attach if banner re-appears
+
+  // 当有搜索词时，主 Banner 不渲染，强制设置 isMainBannerVisible 为 true (隐藏浮动 Banner)
+  useEffect(() => {
+    if (query) {
+      setMainBannerVisible(true);
+    }
+  }, [query, setMainBannerVisible]);
 
   return (
     <div className="flex min-h-screen bg-[var(--od-bg)]">
@@ -569,7 +596,27 @@ export function SearchPage() {
         {/* Banner 轮播 - 只在主页显示（无搜索时） */}
         {!query && (
           <div ref={bannerRef} className="p-4 animate-in fade-in slide-in-from-top-4 duration-500">
-            <BannerCarousel banners={defaultBanners} />
+            <BannerCarousel
+              banners={displayBanners}
+              onBannerClick={(banner) => {
+                // 如果是默认 banner，不执行操作
+                if (banner.id.startsWith('default-')) return;
+
+                // 查找对应的 thread 对象
+                const thread = searchData?.results?.find(t => t.thread_id === banner.id);
+                if (thread) {
+                  setPreviewThread(thread);
+                } else {
+                  // 如果在当前也找不到（比如 banner 数据是独立的），尝试构造一个临时对象或请求详情
+                  // 这里暂时简单处理：如果能从 banner 信息还原部分 thread 信息也可以
+                  // 但通常 banner 数据里应该包含足够的信息，或者我们需要 fetchThread
+                  // 由于 mock 数据里 banner 是从 results 提取的，所以通常能找到
+                  // 如果找不到，说明 banner 数据结构可能需要包含更多 thread 信息
+                  // 暂时仅支持预览已加载的 thread
+                  toast.error('无法预览该帖子');
+                }
+              }}
+            />
           </div>
         )}
 
@@ -729,10 +776,7 @@ export function SearchPage() {
           )}
         </div>
       </main>
-      {/* 预览浮层：选中的卡片会上浮居中放大，带淡入/缩放过渡动画，正文支持 Markdown 和独立滚动 */}
-      {previewThread && (
-        <ThreadPreviewOverlay thread={previewThread} onClose={handleClosePreview} />
-      )}
+
 
       {/* 首次访问引导浮层 */}
       <MascotDialog

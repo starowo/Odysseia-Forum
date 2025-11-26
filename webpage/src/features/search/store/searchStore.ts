@@ -27,7 +27,10 @@ interface SearchState {
 
   // UI 状态
   isMainBannerVisible: boolean;
-  activeBanner: { image: string; title: string; description: string } | null;
+  activeBanner: { id: string; image: string; title: string; description: string } | null;
+  bannerList: { id: string; image: string; title: string; description: string }[];
+  previewThread: import('@/types/thread.types').Thread | null;
+  previewThreadId: string | null;
 
   // Actions
   setQuery: (query: string) => void;
@@ -42,7 +45,10 @@ interface SearchState {
   setPage: (page: number) => void;
   setPerPage: (perPage: number) => void;
   setMainBannerVisible: (visible: boolean) => void;
-  setActiveBanner: (banner: { image: string; title: string; description: string } | null) => void;
+  setActiveBanner: (banner: { id: string; image: string; title: string; description: string } | null) => void;
+  setBannerList: (banners: { id: string; image: string; title: string; description: string }[]) => void;
+  setPreviewThread: (thread: import('@/types/thread.types').Thread | null) => void;
+  setPreviewThreadId: (id: string | null) => void;
   clearFilters: () => void;
 }
 
@@ -62,6 +68,9 @@ export const useSearchStore = create<SearchState>()(
       perPage: 24,
       isMainBannerVisible: true,
       activeBanner: null,
+      bannerList: [],
+      previewThread: null,
+      previewThreadId: null,
 
       // Actions
       setQuery: (query) => {
@@ -142,6 +151,18 @@ export const useSearchStore = create<SearchState>()(
 
       setActiveBanner: (banner) => {
         set({ activeBanner: banner });
+      },
+
+      setBannerList: (banners) => {
+        set({ bannerList: banners });
+      },
+
+      setPreviewThread: (thread) => {
+        set({ previewThread: thread, previewThreadId: null });
+      },
+
+      setPreviewThreadId: (id) => {
+        set({ previewThreadId: id, previewThread: null });
       },
 
       clearFilters: () => {

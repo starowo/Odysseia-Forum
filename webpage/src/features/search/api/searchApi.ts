@@ -42,4 +42,10 @@ export const searchApi = {
     const response = await apiClient.get<Channel[]>('/meta/channels');
     return response.data;
   },
+
+  // 获取单个帖子详情
+  getThread: async (threadId: string): Promise<import('@/types/thread.types').Thread> => {
+    const response = await apiClient.get<import('@/types/thread.types').Thread>(`/threads/${threadId}`);
+    return response.data;
+  },
 };
