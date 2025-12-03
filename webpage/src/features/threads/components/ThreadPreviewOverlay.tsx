@@ -4,6 +4,7 @@ import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { MarkdownText } from '@/components/common/MarkdownText';
 import { LazyImage } from '@/components/common/LazyImage';
 import type { Thread } from '@/types/thread.types';
+import { getAvatarUrl } from '@/lib/utils/discord';
 
 export interface ThreadPreviewOverlayProps {
   thread: Thread;
@@ -121,7 +122,24 @@ export function ThreadPreviewOverlay({
           </h2>
 
           {/* 作者信息 */}
-          <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-[var(--od-text-tertiary)] sm:text-sm">
+          <div className="mb-3 flex items-center gap-2 text-xs text-[var(--od-text-tertiary)] sm:text-sm">
+            {/* 头像 */}
+            <div className="relative h-6 w-6 flex-shrink-0 overflow-hidden rounded-full bg-[var(--od-bg-tertiary)]">
+              <LazyImage
+                src={
+                  thread.author?.avatar_url ||
+                  (thread.author?.id
+                    ? getAvatarUrl({
+                      id: thread.author.id,
+                      avatar: thread.author.avatar,
+                    })
+                    : 'https://cdn.discordapp.com/embed/avatars/0.png')
+                }
+                alt={authorName}
+                className="h-full w-full object-cover"
+              />
+            </div>
+
             <span className="font-medium text-[var(--od-link)]">{authorName}</span>
             {thread.channel_id && (
               <>

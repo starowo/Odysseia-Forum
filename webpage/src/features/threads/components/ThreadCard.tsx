@@ -179,12 +179,13 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
           <div className="relative h-5 w-5 flex-shrink-0 overflow-hidden rounded-full bg-[var(--od-bg-tertiary)]">
             <LazyImage
               src={
-                thread.author?.id
+                thread.author?.avatar_url ||
+                (thread.author?.id
                   ? getAvatarUrl({
                     id: thread.author.id,
                     avatar: thread.author.avatar,
                   })
-                  : 'https://cdn.discordapp.com/embed/avatars/0.png'
+                  : 'https://cdn.discordapp.com/embed/avatars/0.png')
               }
               alt={authorName}
               className="h-full w-full object-cover"

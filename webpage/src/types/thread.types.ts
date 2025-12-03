@@ -5,7 +5,8 @@ export interface Author {
   name: string;
   global_name?: string;
   display_name?: string;
-  avatar?: string;
+  avatar?: string;  // 保留用于向后兼容
+  avatar_url?: string;  // 后端实际返回的字段
 }
 
 export interface Thread {

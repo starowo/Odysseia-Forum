@@ -74,8 +74,13 @@ async def execute_search(request: SearchRequest, current_user: Dict[str, Any] = 
     
     final_keywords = " ".join(final_keywords_parts) if final_keywords_parts else None
 
+    # 将字符串channel_ids转换为整数
+    channel_ids_int = None
+    if request.channel_ids:
+        channel_ids_int = [int(cid) for cid in request.channel_ids]
+
     query_object = ThreadSearchQuery(
-        channel_ids=request.channel_ids,
+        channel_ids=channel_ids_int,
         include_tags=request.include_tags,
         exclude_tags=request.exclude_tags,
         tag_logic=request.tag_logic,

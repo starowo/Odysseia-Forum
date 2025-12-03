@@ -2,7 +2,7 @@ import json
 from fastapi import FastAPI
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.cors import CORSMiddleware
-from .v1.routers import preferences, search, auth, follows, fetch_images, banner
+from .v1.routers import preferences, search, auth, follows, fetch_images, banner, meta
 
 # 读取配置
 try:
@@ -66,6 +66,7 @@ app.include_router(search.router, prefix="/v1")
 app.include_router(follows.router, prefix="/v1")
 app.include_router(fetch_images.router, prefix="/v1")
 app.include_router(banner.router, prefix="/v1")
+app.include_router(meta.router, prefix="/v1")
 
 
 # 包含 v1 的健康检查端点

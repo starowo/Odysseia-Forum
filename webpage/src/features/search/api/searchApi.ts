@@ -14,7 +14,7 @@ function buildSearchRequest(params: SearchParams) {
   const sortConfig = sortMap[params.sort_method || 'last_active_desc'] || sortMap.relevance;
 
   return {
-    channel_ids: params.channel_ids,
+    channel_ids: params.channel_ids, // 保持字符串,后端反序列化时会转换
     include_tags: params.include_tags || [],
     exclude_tags: params.exclude_tags || [],
     tag_logic: params.tag_logic || 'and',

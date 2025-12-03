@@ -7,11 +7,11 @@ class SearchRequest(BaseModel):
     """
     帖子搜索的 API 请求模型
 
-    包含所有可用的搜索条件，用于精确查找论坛帖子
+    包含所有可用的搜索条件,用于精确查找论坛帖子
     """
 
-    channel_ids: Optional[List[int]] = Field(
-        default=None, description="要搜索的频道ID列表，为空则搜索所有频道"
+    channel_ids: Optional[List[str]] = Field(
+        default=None, description="要搜索的频道ID列表(字符串格式,避免精度损失),为空则搜索所有频道"
     )
     include_tags: List[str] = Field(
         default_factory=list, description="必须包含的标签名列表"

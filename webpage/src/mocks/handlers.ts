@@ -165,8 +165,8 @@ export const handlers: RequestHandler[] = [
 
     // 频道过滤
     if (Array.isArray(channel_ids) && channel_ids.length > 0) {
-      const channelSet = new Set(channel_ids);
-      filtered = filtered.filter((thread) => channelSet.has(thread.channel_id));
+      const channelSet = new Set(channel_ids.map(String));
+      filtered = filtered.filter((thread) => channelSet.has(String(thread.channel_id)));
     }
 
     // 标签包含过滤

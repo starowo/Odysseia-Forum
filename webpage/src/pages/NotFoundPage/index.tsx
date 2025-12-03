@@ -18,7 +18,7 @@ export function NotFoundPage() {
                 页面走丢了...
             </h2>
             <p className="mb-8 max-w-md text-[var(--od-text-secondary)]">
-                看来你来到了一个未知的领域。不过别担心，看板娘会陪着你的。
+                看来你来到了一个未知的领域。不过别担心，类脑娘会陪着你的。
             </p>
             <button
                 onClick={() => navigate('/')}
