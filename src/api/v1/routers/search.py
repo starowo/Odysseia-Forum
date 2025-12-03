@@ -55,6 +55,10 @@ async def execute_search(request: SearchRequest, current_user: Dict[str, Any] = 
         sanitized_keywords = KeywordParser.sanitize(request.keywords)
         author_name, parsed_include_keywords, parsed_exclude_keywords, remaining_keywords = KeywordParser.parse(sanitized_keywords)
     
+    # 如果request直接提供了author_name,使用它(优先级更高)
+    if request.author_name:
+        author_name = request.author_name
+    
     # 合并解析出的排除词和原有的排除词
     final_exclude_keywords = request.exclude_keywords or ""
     if parsed_exclude_keywords:

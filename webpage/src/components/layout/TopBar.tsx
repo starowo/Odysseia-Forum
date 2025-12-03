@@ -1,4 +1,4 @@
-import { Menu, ChevronUp, SlidersHorizontal, X } from 'lucide-react';
+import { Menu, ChevronUp, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { SearchSuggestions } from '@/components/SearchSuggestions';
 import { SearchTokenInput } from '@/components/common/SearchTokenInput';
@@ -19,7 +19,6 @@ interface TopBarProps {
   timeTo?: string;
   sortMethod?: string;
   tagLogic?: 'and' | 'or';
-  tagMode?: 'included' | 'excluded';
   availableTags?: string[];
   tagStates?: Map<string, 'included' | 'excluded'>;
   channels?: Channel[];
@@ -46,7 +45,6 @@ export function TopBar({
   timeTo = '',
   sortMethod = 'relevance',
   tagLogic = 'and',
-  tagMode = 'included',
   availableTags = [],
   tagStates = new Map(),
   channels = [],
@@ -54,13 +52,14 @@ export function TopBar({
   onTimeToChange,
   onSortMethodChange,
   onTagLogicChange,
-  onTagModeChange,
   onTagClick,
   onClearAllTags,
 }: TopBarProps) {
   const debounceTimerRef = useRef<number | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  const [isTagExpanded, setIsTagExpanded] = useState(false);
+  const maxTagsToShow = 10;
 
   // 防抖自动搜索
   useEffect(() => {
@@ -141,15 +140,15 @@ export function TopBar({
         </button>
       </div>
 
-      {/* 高级搜索按钮 */}
-      <div className="bg-[var(--od-bg-secondary)] px-3 pb-3 pt-1">
+      {/* 高级搜索按钮 - 简化样式 */}
+      <div className="flex justify-center px-3 pb-2 pt-1">
         <button
           type="button"
           onClick={() => setIsAdvancedOpen((prev) => !prev)}
-          className="inline-flex w-full items-center justify-center gap-1 rounded-lg bg-[var(--od-bg-tertiary)] px-3 py-1.5 text-xs text-[var(--od-text-tertiary)] transition-all duration-200 hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]"
+          className="inline-flex items-center gap-1.5 px-2 py-1 text-xs text-[var(--od-text-tertiary)] transition-colors duration-200 hover:text-[var(--od-text-primary)]"
         >
           <ChevronUp
-            className={`h-3 w-3 transition-transform ${isAdvancedOpen ? '' : 'rotate-180'}`}
+            className={`h-3.5 w-3.5 transition-transform ${isAdvancedOpen ? '' : 'rotate-180'}`}
           />
           <span>高级搜索</span>
         </button>
@@ -268,7 +267,9 @@ export function TopBar({
             <div className="border-t border-[var(--od-border)] pt-3">
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <span className="text-sm font-medium text-[var(--od-text-secondary)]">标签筛选</span>
+                  <span className="text-sm font-medium text-[var(--od-text-secondary)]">
+                    标签筛选 ({tagStates.size}/{availableTags.length})
+                  </span>
                   {tagStates.size > 0 && (
                     <button
                       type="button"
@@ -280,28 +281,18 @@ export function TopBar({
                     </button>
                   )}
                 </div>
-                <div className="flex items-center gap-3">
-                  <label className="flex items-center gap-2 text-xs text-[var(--od-text-tertiary)]">
-                    <input
-                      type="checkbox"
-                      checked={tagMode === 'excluded'}
-                      onChange={(e) => onTagModeChange?.(e.target.checked ? 'excluded' : 'included')}
-                      className="rounded"
-                    />
-                    排除模式
-                  </label>
+                {availableTags.length > maxTagsToShow && (
                   <button
                     type="button"
-                    onClick={() => onTagLogicChange?.(tagLogic === 'and' ? 'or' : 'and')}
-                    className="flex items-center gap-2 text-xs text-[var(--od-text-tertiary)] hover:text-[var(--od-text-primary)]"
+                    onClick={() => setIsTagExpanded(!isTagExpanded)}
+                    className="text-xs text-[var(--od-link)] hover:underline"
                   >
-                    <SlidersHorizontal className="h-4 w-4" />
-                    {tagLogic === 'and' ? 'AND' : 'OR'}
+                    {isTagExpanded ? '收起' : `展开全部 (${availableTags.length})`}
                   </button>
-                </div>
+                )}
               </div>
               <div className="flex flex-wrap gap-2">
-                {availableTags.map((tag) => {
+                {(isTagExpanded ? availableTags : availableTags.slice(0, maxTagsToShow)).map((tag) => {
                   const state = tagStates.get(tag);
                   return (
                     <button
@@ -311,7 +302,7 @@ export function TopBar({
                       className={`rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 hover:scale-105 ${state === 'included'
                         ? 'bg-[var(--od-accent)] text-white'
                         : state === 'excluded'
-                          ? 'bg-[var(--od-error)] text-white'
+                          ? 'bg-red-600 text-white line-through'
                           : 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-secondary)] hover:bg-[var(--od-card-hover)]'
                         }`}
                     >

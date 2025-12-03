@@ -2,7 +2,9 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Bookmark } from 'lucide-react';
 import { MainLayout } from '@/components/layout/MainLayout';
+import { StatsBar } from '@/components/layout/StatsBar';
 import { ThreadCard } from '@/features/threads/components/ThreadCard';
+import { ThreadListItem } from '@/features/threads/components/ThreadListItem';
 import { ThreadCardSkeleton } from '@/features/threads/components/ThreadCardSkeleton';
 import { followsApi } from '@/features/follows/api/followsApi';
 import { useSettings } from '@/hooks/useSettings';
@@ -46,7 +48,7 @@ export function FollowsPage() {
     const channel = channels.find(ch => ch.id === selectedChannel);
     return channel?.name;
   }, [selectedChannel, channels]);
-  const { settings } = useSettings();
+  const { settings, updateSettings } = useSettings();
   const [previewThread, setPreviewThread] = useState<Thread | null>(null);
 
   const handleClosePreview = () => {
@@ -83,6 +85,21 @@ export function FollowsPage() {
           </div>
         </div>
 
+        {/* 布局选择栏 */}
+        {follows.length > 0 && (
+          <div className="border-b border-[var(--od-border)] bg-[var(--od-bg)] px-4 py-2">
+            <StatsBar
+              totalCount={follows.length}
+              perPage={24}
+              openMode="app"
+              layoutMode={settings.layoutMode}
+              onPerPageChange={() => { }} // 关注页面不需要分页
+              onOpenModeChange={() => { }} // 关注页面不需要openMode
+              onLayoutModeChange={(mode) => updateSettings({ layoutMode: mode })}
+            />
+          </div>
+        )}
+
         {/* 关注列表 */}
         <div className="p-4">
           {isLoading ? (
@@ -92,20 +109,37 @@ export function FollowsPage() {
               ))}
             </div>
           ) : follows.length > 0 ? (
-            <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${settings.sidebarCollapsed ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} animate-in fade-in duration-500`}>
-              {follows.map((thread, index) => (
-                <div
-                  key={thread.id}
-                  className="animate-in fade-in slide-in-from-bottom-4"
-                  style={{
-                    animationDelay: `${index * 50}ms`,
-                    animationFillMode: 'backwards',
-                  }}
-                >
-                  <ThreadCard thread={thread} onPreview={setPreviewThread} />
-                </div>
-              ))}
-            </div>
+            settings.layoutMode === 'grid' ? (
+              <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${settings.sidebarCollapsed ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} animate-in fade-in duration-500`}>
+                {follows.map((thread, index) => (
+                  <div
+                    key={thread.id}
+                    className="animate-in fade-in slide-in-from-bottom-4"
+                    style={{
+                      animationDelay: `${index * 50}ms`,
+                      animationFillMode: 'backwards',
+                    }}
+                  >
+                    <ThreadCard thread={thread} onPreview={setPreviewThread} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4 animate-in fade-in duration-500">
+                {follows.map((thread, index) => (
+                  <div
+                    key={thread.id}
+                    className="animate-in fade-in slide-in-from-bottom-2"
+                    style={{
+                      animationDelay: `${index * 30}ms`,
+                      animationFillMode: 'backwards',
+                    }}
+                  >
+                    <ThreadListItem thread={thread} onPreview={setPreviewThread} />
+                  </div>
+                ))}
+              </div>
+            )
           ) : (
             <div className="flex min-h-[400px] items-center justify-center">
               <div className="text-center">

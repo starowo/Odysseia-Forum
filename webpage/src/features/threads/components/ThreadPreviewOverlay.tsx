@@ -4,7 +4,9 @@ import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { MarkdownText } from '@/components/common/MarkdownText';
 import { LazyImage } from '@/components/common/LazyImage';
 import type { Thread } from '@/types/thread.types';
-import { getAvatarUrl } from '@/lib/utils/discord';
+
+import { ThreadActions } from './ThreadActions';
+import { AuthorAvatar } from './AuthorAvatar';
 
 export interface ThreadPreviewOverlayProps {
   thread: Thread;
@@ -53,13 +55,7 @@ export function ThreadPreviewOverlay({
     thread.author?.name ??
     '未知用户';
 
-  // 构建 Discord 帖子链接（与 ThreadCard 保持一致）
-  const guildId = thread.guild_id || import.meta.env.VITE_GUILD_ID || '@me';
-  const defaultDiscordUrl = thread.channel_id
-    ? `https://discord.com/channels/${guildId}/${thread.channel_id}/${thread.thread_id}`
-    : null;
 
-  const externalUrl = externalUrlOverride === undefined ? defaultDiscordUrl : externalUrlOverride;
 
   // 使用 Portal 将浮层挂到 body 下，避免被侧边栏等容器裁剪
   if (typeof document === 'undefined') {
@@ -124,21 +120,7 @@ export function ThreadPreviewOverlay({
           {/* 作者信息 */}
           <div className="mb-3 flex items-center gap-2 text-xs text-[var(--od-text-tertiary)] sm:text-sm">
             {/* 头像 */}
-            <div className="relative h-6 w-6 flex-shrink-0 overflow-hidden rounded-full bg-[var(--od-bg-tertiary)]">
-              <LazyImage
-                src={
-                  thread.author?.avatar_url ||
-                  (thread.author?.id
-                    ? getAvatarUrl({
-                      id: thread.author.id,
-                      avatar: thread.author.avatar,
-                    })
-                    : 'https://cdn.discordapp.com/embed/avatars/0.png')
-                }
-                alt={authorName}
-                className="h-full w-full object-cover"
-              />
-            </div>
+            <AuthorAvatar author={thread.author} className="h-10 w-10" size={256} />
 
             <span className="font-medium text-[var(--od-link)]">{authorName}</span>
             {thread.channel_id && (
@@ -175,15 +157,13 @@ export function ThreadPreviewOverlay({
           )}
 
           {/* 打开原帖按钮（静态通知可选择隐藏） */}
-          {!hideExternalButton && externalUrl && (
+          {!hideExternalButton && (
             <div className="mt-6 flex justify-end">
-              <button
-                type="button"
-                onClick={() => window.open(externalUrl, '_blank', 'noopener,noreferrer')}
-                className="rounded-lg bg-[var(--od-accent)] px-3 py-1.5 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:scale-105 hover:bg-[var(--od-accent-hover)]"
-              >
-                在 Discord 中打开
-              </button>
+              <ThreadActions
+                threadId={thread.thread_id}
+                guildId={thread.guild_id}
+                size="md"
+              />
             </div>
           )}
         </div>

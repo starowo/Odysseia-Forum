@@ -1,14 +1,15 @@
-import { MessageCircle, ThumbsUp, ExternalLink } from 'lucide-react';
+import { MessageCircle, ThumbsUp } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { LazyImage } from '@/components/common/LazyImage';
-import { Tooltip } from '@/components/common/Tooltip';
+
 import { HighlightText } from '@/components/common/HighlightText';
 import { MarkdownText } from '@/components/common/MarkdownText';
 import type { Thread } from '@/types/thread.types';
 import { useSettings } from '@/hooks/useSettings';
 import { fontSizeMap } from '@/lib/settings';
-import { getAvatarUrl } from '@/lib/utils/discord';
+import { ThreadActions } from './ThreadActions';
+import { AuthorAvatar } from './AuthorAvatar';
 
 interface ThreadListItemProps {
   thread: Thread;
@@ -37,14 +38,9 @@ export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick,
     !!thread.first_message_excerpt &&
     thread.first_message_excerpt.trim() !== '...';
 
-  const guildId = thread.guild_id || import.meta.env.VITE_GUILD_ID || '@me';
-  const discordUrl = `https://discord.com/channels/${guildId}/${thread.channel_id}/${thread.thread_id}`;
 
-  const handleOpenThread = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    window.open(discordUrl, '_blank', 'noopener,noreferrer');
-  };
+
+
 
   return (
     <article
@@ -67,20 +63,7 @@ export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick,
           {/* 作者和时间 */}
           <div className={`mb-3 flex items-center gap-2 ${fontSizes.meta} text-[var(--od-text-tertiary)]`}>
             {/* 头像 */}
-            <div className="relative h-5 w-5 flex-shrink-0 overflow-hidden rounded-full bg-[var(--od-bg-tertiary)]">
-              <LazyImage
-                src={
-                  thread.author?.id
-                    ? getAvatarUrl({
-                      id: thread.author.id,
-                      avatar: thread.author.avatar,
-                    })
-                    : 'https://cdn.discordapp.com/embed/avatars/0.png'
-                }
-                alt={authorName}
-                className="h-full w-full object-cover"
-              />
-            </div>
+            <AuthorAvatar author={thread.author} className="h-8 w-8" />
             <button
               type="button"
               onClick={(e) => {
@@ -142,15 +125,11 @@ export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick,
             </div>
 
             {/* 跳转按钮 */}
-            <Tooltip content="在 Discord 中打开" position="left">
-              <button
-                onClick={handleOpenThread}
-                className="flex items-center gap-1.5 rounded-lg bg-[var(--od-accent)] px-3 py-1.5 text-sm font-medium text-white opacity-0 translate-y-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0 hover:bg-[var(--od-accent-hover)]"
-              >
-                <ExternalLink className="h-4 w-4" />
-                <span>打开</span>
-              </button>
-            </Tooltip>
+            <ThreadActions
+              threadId={thread.thread_id}
+              guildId={thread.guild_id}
+              size="md"
+            />
           </div>
         </div>
       </div>

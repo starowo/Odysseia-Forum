@@ -36,6 +36,10 @@
     --od-text-tertiary: #949ba4;
     --od-accent: #5865f2;
     --od-accent-hover: #4752c4;
+    --od-accent-secondary: #4752c4;
+    /* 次要按钮色(稍浅) */
+    --od-accent-secondary-hover: #3c44a8;
+    /* 次要按钮hover */
     --od-link: #00a8fc;
     --od-link-hover: #00c7fc;
     --od-border: #2b2d31;
@@ -106,15 +110,93 @@
     border: 1px solid var(--od-border);
   }
 
-  .od-md blockquote {
-    border-left: 4px solid var(--od-accent);
-    padding-left: 10px;
-    color: var(--od-text-secondary);
-    background: color-mix(in_oklab, var(--od-accent) 8%, var(--od-bg) 92%);
-    padding-top: 2px;
-    padding-bottom: 2px;
+  /* Discord markdown扩展样式 */
+
+  /* Discord标题样式 */
+  .od-md .discord-h1 {
+    font-size: 1.2em;
+    font-weight: 700;
+    color: var(--od-text-primary);
+    margin: 0.5rem 0 0.3rem;
+  }
+
+  .od-md .discord-h2 {
+    font-size: 1.1em;
+    font-weight: 700;
+    color: var(--od-text-primary);
+    margin: 0.4rem 0 0.25rem;
+  }
+
+  .od-md .discord-h3 {
+    font-size: 1em;
+    font-weight: 700;
+    color: var(--od-text-primary);
+    margin: 0.3rem 0 0.2rem;
+  }
+
+  /* Discord链接样式 */
+  .od-md .discord-link {
+    color: var(--od-link);
+    text-decoration: none;
+    transition: text-decoration 0.15s ease;
+  }
+
+  .od-md .discord-link:hover {
+    text-decoration: underline;
+  }
+
+  /* Discord引用样式 */
+  .od-md .discord-quote {
+    display: block;
+    border-left: 4px solid #4e5058;
+    padding-left: 12px;
     margin: 4px 0;
-    border-radius: 0 4px 4px 0;
+    color: var(--od-text-secondary);
+  }
+
+  /* Discord行内代码 */
+  .od-md .inline-code {
+    background: rgba(79, 84, 92, 0.38);
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 0.875em;
+    color: var(--od-text-primary);
+  }
+
+  /* Discord Spoiler遮罩样式 */
+  .od-md .spoiler {
+    background-color: #2d2d30;
+    color: transparent;
+    border-radius: 3px;
+    padding: 0 2px;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.1s ease, color 0.1s ease;
+  }
+
+  .od-md .spoiler:hover {
+    background-color: #3a3a3d;
+  }
+
+  /* 下划线样式 */
+  .od-md u {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  /* 删除线样式 */
+  .od-md del {
+    text-decoration: line-through;
+    opacity: 0.7;
+  }
+
+  .od-md blockquote {
+    border-left: 3px solid var(--od-border);
+    padding-left: 0.75rem;
+    margin: 0.5rem 0;
+    color: var(--od-text-tertiary);
+    font-style: italic;
   }
 
   .od-md a {

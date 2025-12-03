@@ -1,16 +1,15 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
-import { Search, SlidersHorizontal, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, Eye } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { ScrollToTop } from '@/components/common/ScrollToTop';
 import { ResizableSidebar } from '@/components/ResizableSidebar';
 import { TopBar } from '@/components/layout/TopBar';
 import { BannerCarousel } from '@/components/layout/BannerCarousel';
-import { FilterBar } from '@/components/layout/FilterBar';
 import { StatsBar } from '@/components/layout/StatsBar';
-import { useSearchStore, TagState } from '@/features/search/store/searchStore';
+import { useSearchStore } from '@/features/search/store/searchStore';
 import { ThreadCard } from '@/features/threads/components/ThreadCard';
 import { ThreadListItem } from '@/features/threads/components/ThreadListItem';
 import { ThreadCardSkeleton } from '@/features/threads/components/ThreadCardSkeleton';
@@ -24,132 +23,6 @@ import bannerImage from '@/assets/images/banners/adfd891a-f9f7-4f9d-8d7c-975fb32
 import { apiClient } from '@/lib/api/client';
 
 
-interface AdvancedSearchPanelProps {
-  isOpen: boolean;
-  timeFrom: string;
-  timeTo: string;
-  sortMethod: string;
-  tagLogic: 'and' | 'or';
-  tagMode: 'included' | 'excluded';
-  availableTags: string[];
-  tagStates: Map<string, TagState>;
-  onTimeFromChange: (value: string) => void;
-  onTimeToChange: (value: string) => void;
-  onSortMethodChange: (value: string) => void;
-  onTagLogicChange: (value: 'and' | 'or') => void;
-  onTagModeChange: (value: 'included' | 'excluded') => void;
-  onTagClick: (tag: string) => void;
-  onClearAllTags: () => void;
-  onQuickSearch?: (template: string) => void;
-  enableQuickFill?: boolean;
-}
-
-
-
-// 主页面的固定面板 - Banner下方，标签用于筛选
-function MainAdvancedPanel({
-  timeFrom,
-  timeTo,
-  sortMethod,
-  tagLogic,
-  tagMode,
-  availableTags,
-  tagStates,
-  onTimeFromChange,
-  onTimeToChange,
-  onSortMethodChange,
-  onTagLogicChange,
-  onTagModeChange,
-  onTagClick,
-  onClearAllTags,
-}: Omit<AdvancedSearchPanelProps, 'isOpen' | 'onQuickSearch' | 'enableQuickFill'>) {
-  const hasTags = availableTags.length > 0;
-
-  return (
-    <div className="px-4 animate-in fade-in slide-in-from-top-4 duration-500" style={{ animationDelay: '100ms' }}>
-      <div className="rounded-xl border border-[var(--od-border)] bg-[var(--od-bg-secondary)]/90 p-3 shadow-sm backdrop-blur-sm">
-        <FilterBar
-          timeFrom={timeFrom}
-          timeTo={timeTo}
-          sortMethod={sortMethod}
-          tagLogic={tagLogic}
-          onTimeFromChange={onTimeFromChange}
-          onTimeToChange={onTimeToChange}
-          onSortMethodChange={onSortMethodChange}
-          onTagLogicChange={onTagLogicChange}
-        />
-        {hasTags && (
-          <div className="mt-3 border-t border-[var(--od-border)] pt-3">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <span className="text-sm font-medium text-[var(--od-text-secondary)]">
-                  标签筛选
-                </span>
-                {tagStates.size > 0 && (
-                  <button
-                    type="button"
-                    onClick={onClearAllTags}
-                    className="flex items-center gap-1 text-xs text-[var(--od-text-tertiary)] hover:text-[var(--od-text-primary)]"
-                  >
-                    <X className="h-3 w-3" />
-                    清空
-                  </button>
-                )}
-              </div>
-              <div className="flex items-center gap-3">
-                <label className="flex items-center gap-2 text-xs text-[var(--od-text-tertiary)]">
-                  <input
-                    type="checkbox"
-                    checked={tagMode === 'excluded'}
-                    onChange={(e) =>
-                      onTagModeChange(e.target.checked ? 'excluded' : 'included')
-                    }
-                    className="rounded"
-                  />
-                  排除模式
-                </label>
-                <button
-                  type="button"
-                  onClick={() => onTagLogicChange(tagLogic === 'and' ? 'or' : 'and')}
-                  className="flex items-center gap-2 text-xs text-[var(--od-text-tertiary)] hover:text-[var(--od-text-primary)]"
-                >
-                  <SlidersHorizontal className="h-4 w-4" />
-                  {tagLogic === 'and' ? 'AND' : 'OR'}
-                </button>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {availableTags.map((tag) => {
-                const state = tagStates.get(tag);
-                return (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() => onTagClick(tag)}
-                    className={`rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 hover:scale-105 ${state === 'included'
-                      ? 'bg-[var(--od-accent)] text-white'
-                      : state === 'excluded'
-                        ? 'bg-[var(--od-error)] text-white'
-                        : 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-secondary)] hover:bg-[var(--od-card-hover)]'
-                      }`}
-                  >
-                    {tag}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-        {!hasTags && (
-          <p className="mt-3 text-xs text-[var(--od-text-tertiary)]">
-            当前搜索结果暂时没有可用标签。
-          </p>
-        )}
-      </div>
-    </div>
-  );
-}
-
 
 import { useMascotStore } from '@/features/mascot/store/mascotStore';
 import { MascotDialog } from '@/features/mascot/components/MascotDialog';
@@ -160,14 +33,14 @@ export function SearchPage() {
     selectedChannel,
     sortMethod,
     tagLogic,
-    tagMode,
+
     tagStates,
     page,
     perPage,
     setQuery,
     setSortMethod,
     setTagLogic,
-    setTagMode,
+
     toggleTag,
     clearAllTags,
     setPage,
@@ -364,7 +237,26 @@ export function SearchPage() {
 
   // 从API响应中提取数据（与后端 SearchResponse.results 对齐）
   const totalResults = searchData?.total || 0;
-  const availableTags = searchData?.available_tags || [];
+
+  // 获取可用标签：优先使用API返回的标签（单频道搜索时），
+  // 如果API未返回（如全站搜索），则从当前搜索结果中提取标签
+  const availableTags = useMemo(() => {
+    if (searchData?.available_tags && searchData.available_tags.length > 0) {
+      return searchData.available_tags;
+    }
+
+    // 从结果中提取唯一tags
+    const tags = new Set<string>();
+    if (searchData?.results) {
+      searchData.results.forEach(thread => {
+        if (thread.tags) {
+          thread.tags.forEach(tag => tags.add(tag));
+        }
+      });
+    }
+    return Array.from(tags).sort();
+  }, [searchData]);
+
   const totalPages = Math.ceil(totalResults / perPage);
 
   // 合并多页搜索结果，实现无缝滚动
@@ -488,7 +380,7 @@ export function SearchPage() {
     const newQuery = addToken(searchInput, 'tag', tag);
     setSearchInput(newQuery);
     setQuery(newQuery);
-    toast.success(`已添加标签：${tag}`, {
+    toast.success(`已添加标签：${tag} `, {
       duration: 2000,
     });
   };
@@ -573,7 +465,6 @@ export function SearchPage() {
           timeTo={timeTo}
           sortMethod={sortMethod}
           tagLogic={tagLogic}
-          tagMode={tagMode}
           availableTags={availableTags}
           tagStates={tagStates}
           channels={channels || []}
@@ -581,7 +472,6 @@ export function SearchPage() {
           onTimeToChange={setTimeTo}
           onSortMethodChange={(value) => setSortMethod(value as any)}
           onTagLogicChange={setTagLogic}
-          onTagModeChange={setTagMode}
           onTagClick={handleFilterTagClick}
           onClearAllTags={clearAllTags}
         />
@@ -620,23 +510,6 @@ export function SearchPage() {
           </div>
         )}
 
-        {/* 主页面固定的高级搜索面板 - Banner 下方 */}
-        <MainAdvancedPanel
-          timeFrom={timeFrom}
-          timeTo={timeTo}
-          sortMethod={sortMethod}
-          tagLogic={tagLogic}
-          tagMode={tagMode}
-          availableTags={availableTags}
-          tagStates={tagStates}
-          onTimeFromChange={setTimeFrom}
-          onTimeToChange={setTimeTo}
-          onSortMethodChange={(value) => setSortMethod(value as any)}
-          onTagLogicChange={setTagLogic}
-          onTagModeChange={setTagMode}
-          onTagClick={handleFilterTagClick}
-          onClearAllTags={clearAllTags}
-        />
 
         {/* 搜索结果 */}
         <div className="p-4">
@@ -718,7 +591,7 @@ export function SearchPage() {
                       const newQuery = addToken(searchInput, 'author', authorName);
                       setSearchInput(newQuery);
                       setQuery(newQuery);
-                      toast.success(`已添加作者：${authorName}`, {
+                      toast.success(`已添加作者：${authorName} `, {
                         duration: 2000,
                       });
                     }}
@@ -734,7 +607,7 @@ export function SearchPage() {
                       const newQuery = addToken(searchInput, 'author', authorName);
                       setSearchInput(newQuery);
                       setQuery(newQuery);
-                      toast.success(`已添加作者：${authorName}`, {
+                      toast.success(`已添加作者：${authorName} `, {
                         duration: 2000,
                       });
                     }}

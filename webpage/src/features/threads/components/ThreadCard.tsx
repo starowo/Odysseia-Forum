@@ -1,18 +1,19 @@
 import { useState } from 'react';
-import { MessageCircle, ThumbsUp, ExternalLink, RefreshCw } from 'lucide-react';
+import { MessageCircle, ThumbsUp, RefreshCw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { toast } from 'sonner';
-import { LazyImage } from '@/components/common/LazyImage';
-import { Tooltip } from '@/components/common/Tooltip';
+
+
 import { HighlightText } from '@/components/common/HighlightText';
 import { MarkdownText } from '@/components/common/MarkdownText';
 import type { Thread } from '@/types/thread.types';
 import { useSettings } from '@/hooks/useSettings';
 import { fontSizeMap, cardSizeMap } from '@/lib/settings';
-import { getAvatarUrl } from '@/lib/utils/discord';
 import { fetchImagesApi } from '@/features/threads/api/fetchImagesApi';
 import { MultiImageGrid } from './MultiImageGrid';
+import { ThreadActions } from './ThreadActions';
+import { AuthorAvatar } from './AuthorAvatar';
 
 interface ThreadCardProps {
   thread: Thread;
@@ -45,22 +46,8 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
     !!thread.first_message_excerpt &&
     thread.first_message_excerpt.trim() !== '...';
 
-  // 构建Discord帖子链接
-  // 如果guild_id不存在，使用环境变量中的GUILD_ID
-  const guildId = thread.guild_id || import.meta.env.VITE_GUILD_ID || '@me';
-  const discordUrl = `https://discord.com/channels/${guildId}/${thread.channel_id}/${thread.thread_id}`;
 
-  const handleOpenThread = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    console.log('Opening thread:', {
-      guild_id: thread.guild_id,
-      channel_id: thread.channel_id,
-      thread_id: thread.thread_id,
-      url: discordUrl
-    });
-    window.open(discordUrl, '_blank', 'noopener,noreferrer');
-  };
+
 
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -81,7 +68,7 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
         // 这里理想情况下应该触发列表更新，或者直接更新本地状态
         // 暂时简单提示成功，用户刷新页面后可见
       } else if (item?.error) {
-        toast.error(`刷新失败: ${item.error}`);
+        toast.error(`刷新失败: ${item.error} `);
       } else {
         toast.info('未发现新图片');
       }
@@ -153,11 +140,11 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
         <button
           onClick={handleRefreshImage}
           disabled={isRefreshing}
-          className={`absolute right-2 top-2 z-10 rounded-full bg-black/50 p-1.5 text-white backdrop-blur-sm transition-all duration-200 hover:bg-black/70 ${isRefreshing ? 'opacity-100 cursor-wait' : 'opacity-0 group-hover:opacity-100'
-            }`}
+          className={`absolute right - 2 top - 2 z - 10 rounded - full bg - black / 50 p - 1.5 text - white backdrop - blur - sm transition - all duration - 200 hover: bg - black / 70 ${isRefreshing ? 'opacity-100 cursor-wait' : 'opacity-0 group-hover:opacity-100'
+            } `}
           title="刷新封面图"
         >
-          <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`h - 3.5 w - 3.5 ${isRefreshing ? 'animate-spin' : ''} `} />
         </button>
       </div>
 
@@ -176,21 +163,7 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
         {/* 作者信息 */}
         <div className={`mb-2 flex items-center gap-2 text-[var(--od-text-tertiary)] ${fontSizes.meta}`}>
           {/* 头像 */}
-          <div className="relative h-5 w-5 flex-shrink-0 overflow-hidden rounded-full bg-[var(--od-bg-tertiary)]">
-            <LazyImage
-              src={
-                thread.author?.avatar_url ||
-                (thread.author?.id
-                  ? getAvatarUrl({
-                    id: thread.author.id,
-                    avatar: thread.author.avatar,
-                  })
-                  : 'https://cdn.discordapp.com/embed/avatars/0.png')
-              }
-              alt={authorName}
-              className="h-full w-full object-cover"
-            />
-          </div>
+          <AuthorAvatar author={thread.author} className="h-5 w-5" />
 
           <button
             type="button"
@@ -211,27 +184,27 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
         {/* 内容摘要 - 使用 Markdown 渲染，保持固定高度预览；全文阅读走预览浮层 */}
         {hasExcerpt ? (
           <div
-            className={`mb-3 overflow-y-auto scrollbar-thin ${settings.cardSize === 'compact'
+            className={`mb - 3 overflow - y - auto scrollbar - thin ${settings.cardSize === 'compact'
               ? 'h-12'
               : settings.cardSize === 'large'
                 ? 'h-24'
                 : 'h-20'
-              }`}
+              } `}
           >
             <div
-              className={`od-md leading-relaxed text-[var(--od-text-secondary)] ${fontSizes.content} ${cardSizes.contentLines}`}
+              className={`od - md leading - relaxed text - [var(--od - text - secondary)] ${fontSizes.content} ${cardSizes.contentLines} `}
             >
               <MarkdownText text={thread.first_message_excerpt!} />
             </div>
           </div>
         ) : (
           <div
-            className={`mb-3 ${settings.cardSize === 'compact'
+            className={`mb - 3 ${settings.cardSize === 'compact'
               ? 'h-12'
               : settings.cardSize === 'large'
                 ? 'h-24'
                 : 'h-20'
-              }`}
+              } `}
           />
         )}
 
@@ -248,16 +221,11 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
             </span>
           </div>
           {/* 跳转按钮 */}
-          <Tooltip content="在Discord中打开" position="left">
-            <button
-              onClick={handleOpenThread}
-              className="flex items-center gap-1.5 rounded-lg bg-[var(--od-accent)] px-2.5 py-1 text-xs font-medium text-white opacity-0 translate-y-1 transition-all duration-200 group-hover:opacity-100 group-hover:translate-y-0 hover:scale-105 hover:bg-[var(--od-accent-hover)]"
-              aria-label="在Discord中打开"
-            >
-              <ExternalLink className="h-3.5 w-3.5" />
-              <span>打开</span>
-            </button>
-          </Tooltip>
+          <ThreadActions
+            threadId={thread.thread_id}
+            guildId={thread.guild_id}
+            size="sm"
+          />
         </div>
       </div>
     </article>
