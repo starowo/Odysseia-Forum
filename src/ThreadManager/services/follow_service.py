@@ -242,14 +242,17 @@ class FollowService:
             (帖子列表, 总数)
         """
         try:
-            # 构建查询，使用selectinload加载tags
-            from sqlalchemy.orm import selectinload
+            # 构建查询，使用selectinload加载tags，joinedload加载author
+            from sqlalchemy.orm import selectinload, joinedload
             
             statement = (
                 select(Thread, ThreadFollow)
                 .join(ThreadFollow, Thread.thread_id == ThreadFollow.thread_id)
                 .where(ThreadFollow.user_id == user_id)
-                .options(selectinload(Thread.tags))  # 预加载tags
+                .options(
+                    selectinload(Thread.tags),  # 预加载tags
+                    joinedload(Thread.author),  # 预加载author
+                )
                 .order_by(ThreadFollow.followed_at.desc())
                 .limit(limit)
                 .offset(offset)
@@ -270,11 +273,22 @@ class FollowService:
             # 转换为字典格式（ID转为字符串以避免JavaScript精度丢失）
             threads = []
             for thread, follow in rows:
+                # 构建author对象
+                author_data = None
+                if thread.author:
+                    author_data = {
+                        "id": str(thread.author.id),
+                        "name": thread.author.name,
+                        "global_name": thread.author.global_name,
+                        "display_name": thread.author.display_name,
+                        "avatar_url": thread.author.avatar_url,
+                    }
+                
                 thread_dict = {
                     "thread_id": str(thread.thread_id),
                     "channel_id": str(thread.channel_id),
                     "title": thread.title,
-                    "author_id": str(thread.author_id),
+                    "author": author_data,
                     "created_at": thread.created_at,
                     "last_active_at": thread.last_active_at,
                     "latest_update_at": thread.latest_update_at,
@@ -282,8 +296,8 @@ class FollowService:
                     "reaction_count": thread.reaction_count,
                     "reply_count": thread.reply_count,
                     "first_message_excerpt": thread.first_message_excerpt,
-                    "thumbnail_url": thread.thumbnail_url,
-                    "tags": [tag.name for tag in thread.tags],  # 添加tags
+                    "thumbnail_urls": thread.thumbnail_urls or [],
+                    "tags": [tag.name for tag in thread.tags],
                     "followed_at": follow.followed_at,
                     "last_viewed_at": follow.last_viewed_at,
                     "has_update": (
@@ -368,3 +382,56 @@ class FollowService:
         except Exception as e:
             logger.error(f"检查关注状态失败: {e}", exc_info=True)
             return False
+
+    async def get_follow_status_map(
+        self,
+        user_id: int,
+        thread_ids: List[int]
+    ) -> Dict[int, Dict[str, bool]]:
+        """
+        批量获取帖子的关注状态和更新状态
+        
+        Args:
+            user_id: 用户Discord ID
+            thread_ids: 帖子ID列表
+            
+        Returns:
+            {thread_id: {"is_following": bool, "has_update": bool}}
+        """
+        if not thread_ids:
+            return {}
+            
+        try:
+            # 查询指定帖子中用户关注的记录
+            statement = (
+                select(ThreadFollow, Thread)
+                .join(Thread, ThreadFollow.thread_id == Thread.thread_id)
+                .where(
+                    and_(
+                        ThreadFollow.user_id == user_id,
+                        ThreadFollow.thread_id.in_(thread_ids)
+                    )
+                )
+            )
+            
+            result = await self.session.execute(statement)
+            rows = result.all()
+            
+            status_map = {}
+            for follow, thread in rows:
+                has_update = (
+                    thread.latest_update_at is not None and
+                    (follow.last_viewed_at is None or
+                     thread.latest_update_at > follow.last_viewed_at)
+                )
+                
+                status_map[thread.thread_id] = {
+                    "is_following": True,
+                    "has_update": has_update
+                }
+                
+            return status_map
+            
+        except Exception as e:
+            logger.error(f"批量获取关注状态失败: {e}", exc_info=True)
+            return {}

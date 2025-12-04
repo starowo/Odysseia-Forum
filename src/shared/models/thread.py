@@ -1,6 +1,6 @@
 from typing import List, Optional, TYPE_CHECKING
 from datetime import datetime, timezone
-from sqlmodel import Field, SQLModel, Relationship, BigInteger, Column
+from sqlmodel import Field, SQLModel, Relationship, BigInteger, Column, JSON
 
 from .thread_tag_link import ThreadTagLink
 
@@ -26,7 +26,7 @@ class Thread(SQLModel, table=True):
     reaction_count: int = Field(default=0, index=True)
     reply_count: int = Field(default=0, index=True)
     first_message_excerpt: Optional[str] = Field(default=None)
-    thumbnail_url: Optional[str] = Field(default=None)
+    thumbnail_urls: List[str] = Field(default_factory=list, sa_column=Column(JSON))
     
     # 帖子更新相关字段
     latest_update_at: Optional[datetime] = Field(

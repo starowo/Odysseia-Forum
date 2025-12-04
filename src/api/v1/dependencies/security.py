@@ -41,10 +41,13 @@ async def get_current_user(request: Request) -> Optional[Dict[str, Any]]:
     优先从 Authorization Bearer 中读取，回退到 Cookie
     """
     if not _JWT_SECRET:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="JWT 认证服务未初始化"
-        )
+        # 尝试重新加载配置
+        initialize_api_security()
+        if not _JWT_SECRET:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="JWT 认证服务未初始化"
+            )
     
     # 1) 优先从 Authorization Bearer 中读取
     token = None

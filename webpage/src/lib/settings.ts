@@ -13,19 +13,20 @@ export interface UserSettings {
   imageMode: 'normal' | 'off';
   // 主题选择：多套具体主题 + 自动
   theme:
-    | 'discord-dark'
-    | 'discord-light'
-    | 'tweak-gray-dark'
-    | 'tweak-gray-light'
-    | 'paper-dark'
-    | 'paper-light'
-    | 'auto';
+  | 'discord-dark'
+  | 'discord-light'
+  | 'tweak-gray-dark'
+  | 'tweak-gray-light'
+  | 'paper-dark'
+  | 'paper-light'
+  | 'auto';
   sidebarCollapsed: boolean;
   notifications: {
     newPosts: boolean;
     replies: boolean;
     mentions: boolean;
   };
+  showFloatingBanner: boolean;
 }
 
 const SETTINGS_KEY = 'odysseia_user_settings';
@@ -44,6 +45,7 @@ const defaultSettings: UserSettings = {
     replies: true,
     mentions: true,
   },
+  showFloatingBanner: true,
 };
 
 // 获取用户设置

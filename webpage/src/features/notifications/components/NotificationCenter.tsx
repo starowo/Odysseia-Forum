@@ -1,11 +1,11 @@
 import { Bell, X, AlertCircle, Trash2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { followsApi } from '@/features/follows/api/followsApi';
 import type { Thread } from '@/types/thread.types';
 import { resolveStaticNotifications } from '@/features/notifications/notificationsConfig';
-import { ThreadPreviewOverlay } from '@/features/threads/components/ThreadPreviewOverlay';
+import { useSearchStore } from '@/features/search/store/searchStore';
 
 type NotificationKind = 'follow_update' | 'site_announcement' | 'greeting';
 
@@ -27,14 +27,7 @@ interface NotificationCenterProps {
 export function NotificationCenter({ open, onClose, onUnreadChange }: NotificationCenterProps) {
   const navigate = useNavigate();
 
-  // 通知详情预览（使用 ThreadPreviewOverlay 复用上浮浮层）
-  const [preview, setPreview] = useState<{
-    thread: Thread;
-    externalUrlOverride?: string | null;
-    hideExternalButton?: boolean;
-    notificationId?: string;
-    isFollowUpdate?: boolean;
-  } | null>(null);
+  const { setPreviewThread } = useSearchStore();
 
   // 本地持久化：已关闭的静态通知（站点公告 / 问候语）
   const [dismissedStaticIds, setDismissedStaticIds] = useState<string[]>(() => {
@@ -106,11 +99,7 @@ export function NotificationCenter({ open, onClose, onUnreadChange }: Notificati
     if (item.kind === 'follow_update' && item.thread) {
       setDismissedFollowIds((prev) => (prev.includes(item.id) ? prev : [...prev, item.id]));
 
-      setPreview({
-        thread: item.thread,
-        notificationId: item.id,
-        isFollowUpdate: true,
-      });
+      setPreviewThread(item.thread);
       return;
     }
 
@@ -128,12 +117,9 @@ export function NotificationCenter({ open, onClose, onUnreadChange }: Notificati
       tags: [],
     };
 
-    setPreview({
-      thread: pseudoThread,
+    setPreviewThread(pseudoThread, {
       hideExternalButton: true,
       externalUrlOverride: null,
-      notificationId: item.id,
-      isFollowUpdate: false,
     });
   };
 
@@ -142,7 +128,9 @@ export function NotificationCenter({ open, onClose, onUnreadChange }: Notificati
     setDismissedStaticIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
   };
 
-  const handleClearAllNotifications = () => {
+  const queryClient = useQueryClient();
+
+  const handleClearAllNotifications = async () => {
     // 静态通知：全部标记为已关闭
     setDismissedStaticIds((prev) => {
       const allStaticIds = staticDefs.map((d) => d.id);
@@ -156,10 +144,15 @@ export function NotificationCenter({ open, onClose, onUnreadChange }: Notificati
       .map((thread) => `follow-${thread.thread_id}`);
 
     setDismissedFollowIds((prev) => Array.from(new Set([...prev, ...allFollowIds])));
-  };
 
-  const handleClosePreview = () => {
-    setPreview(null);
+    // 调用后端 API 标记所有为已读
+    try {
+      await followsApi.markAllViewed();
+      // 重新获取最新状态（虽然本地已经乐观更新了）
+      queryClient.invalidateQueries({ queryKey: ['follows'] });
+    } catch (error) {
+      console.error('Failed to mark notifications as viewed:', error);
+    }
   };
 
   if (!open) {
@@ -275,15 +268,6 @@ export function NotificationCenter({ open, onClose, onUnreadChange }: Notificati
           </div>
         )}
       </div>
-
-      {preview && (
-        <ThreadPreviewOverlay
-          thread={preview.thread}
-          onClose={handleClosePreview}
-          externalUrlOverride={preview.externalUrlOverride}
-          hideExternalButton={preview.hideExternalButton}
-        />
-      )}
     </div>
   );
 }

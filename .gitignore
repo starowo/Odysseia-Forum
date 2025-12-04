@@ -196,8 +196,10 @@ webpage/node_modules/
 webpage/dist/
 webpage/.vite/
 webpage/coverage/
+webpage/.env
 *.local
 *.log
 .DS_Store
 # Test tool directory
 testtool/
+前端组件测试/

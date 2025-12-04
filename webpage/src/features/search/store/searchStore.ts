@@ -25,6 +25,17 @@ interface SearchState {
   page: number;
   perPage: number;
 
+  // UI 状态
+  isMainBannerVisible: boolean;
+  activeBanner: { id: string; image: string; title: string; description: string } | null;
+  bannerList: { id: string; image: string; title: string; description: string }[];
+  previewThread: import('@/types/thread.types').Thread | null;
+  previewThreadId: string | null;
+  previewOptions: {
+    externalUrlOverride?: string | null;
+    hideExternalButton?: boolean;
+  };
+
   // Actions
   setQuery: (query: string) => void;
   setChannel: (channelId: string | null) => void;
@@ -37,6 +48,17 @@ interface SearchState {
   setTimeRange: (from: Date | null, to: Date | null) => void;
   setPage: (page: number) => void;
   setPerPage: (perPage: number) => void;
+  setMainBannerVisible: (visible: boolean) => void;
+  setActiveBanner: (banner: { id: string; image: string; title: string; description: string } | null) => void;
+  setBannerList: (banners: { id: string; image: string; title: string; description: string }[]) => void;
+  setPreviewThread: (
+    thread: import('@/types/thread.types').Thread | null,
+    options?: { externalUrlOverride?: string | null; hideExternalButton?: boolean }
+  ) => void;
+  setPreviewThreadId: (
+    id: string | null,
+    options?: { externalUrlOverride?: string | null; hideExternalButton?: boolean }
+  ) => void;
   clearFilters: () => void;
 }
 
@@ -54,6 +76,12 @@ export const useSearchStore = create<SearchState>()(
       timeTo: null,
       page: 1,
       perPage: 24,
+      isMainBannerVisible: true,
+      activeBanner: null,
+      bannerList: [],
+      previewThread: null,
+      previewThreadId: null,
+      previewOptions: {},
 
       // Actions
       setQuery: (query) => {
@@ -126,6 +154,34 @@ export const useSearchStore = create<SearchState>()(
         // 做一层防御式校验，避免出现 0 或极端大值
         const safePerPage = Math.min(100, Math.max(1, perPage || 1));
         set({ perPage: safePerPage, page: 1 });
+      },
+
+      setMainBannerVisible: (visible) => {
+        set({ isMainBannerVisible: visible });
+      },
+
+      setActiveBanner: (banner) => {
+        set({ activeBanner: banner });
+      },
+
+      setBannerList: (banners) => {
+        set({ bannerList: banners });
+      },
+
+      setPreviewThread: (thread, options) => {
+        set({
+          previewThread: thread,
+          previewThreadId: null,
+          previewOptions: options || {},
+        });
+      },
+
+      setPreviewThreadId: (id, options) => {
+        set({
+          previewThreadId: id,
+          previewThread: null,
+          previewOptions: options || {},
+        });
       },
 
       clearFilters: () => {

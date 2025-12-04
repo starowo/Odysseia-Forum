@@ -9,6 +9,7 @@ import { AboutPage } from '@/pages/AboutPage';
 import { TestPage } from '@/pages/TestPage';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { RootLayout } from '@/components/layout/RootLayout';
+import { NotFoundPage } from '@/pages/NotFoundPage';
 
 const isDevToolsEnabled = import.meta.env.DEV || import.meta.env.VITE_API_MOCKING === 'true';
 
@@ -31,11 +32,11 @@ const appChildren = [
   },
   ...(isDevToolsEnabled
     ? [
-        {
-          path: 'test',
-          element: <TestPage />,
-        },
-      ]
+      {
+        path: 'test',
+        element: <TestPage />,
+      },
+    ]
     : []),
   {
     path: 'about',
@@ -58,7 +59,13 @@ export const router = createBrowserRouter([
     children: [
       {
         element: <RootLayout />,
-        children: appChildren,
+        children: [
+          ...appChildren,
+          {
+            path: '*',
+            element: <NotFoundPage />,
+          },
+        ],
       },
     ],
   },

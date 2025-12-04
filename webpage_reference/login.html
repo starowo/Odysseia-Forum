@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+	<meta charset="utf-8">
+	<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+	<title>登录 - 类脑ΟΔΥΣΣΕΙΑ</title>
+	
+	<!-- Favicon -->
+	<link rel="icon" type="image/webp" href="https://cdn.discordapp.com/avatars/1389231153940136088/b63807ba45fc142152aeb0dc5649d6a5.webp">
+	<link rel="apple-touch-icon" href="https://cdn.discordapp.com/avatars/1389231153940136088/b63807ba45fc142152aeb0dc5649d6a5.webp">
+	
+	<!-- Discord Embed Meta (Open Graph) -->
+	<meta property="og:type" content="website">
+	<meta property="og:title" content="类脑ΟΔΥΣΣΕΙΑ - 登录">
+	<meta property="og:description" content="使用 Discord 账号登录类脑社区索引页">
+	<meta property="og:image" content="https://cdn.discordapp.com/icons/1134557553011998840/d419091a2a50009ddee0617ac43b0ead.png">
+	<meta name="theme-color" content="#5865F2">
+	
+	<script src="https://cdn.tailwindcss.com"></script>
+	<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+	
+	<script>
+		tailwind.config = {
+			theme: {
+				extend: {
+					fontFamily: { sans: ['Inter', 'sans-serif'] },
+					colors: {
+						discord: {
+							bg: '#36393f',
+							sidebar: '#2f3136',
+							element: '#202225',
+							primary: '#5865F2',
+							hover: '#4752c4',
+							green: '#3ba55c',
+							red: '#ed4245',
+							text: '#dcddde',
+							muted: '#72767d',
+							dark: '#18191c'
+						}
+					}
+				}
+			}
+		}
+	</script>
+	
+	<style>
+		/* 背景动画 */
+		.bg-pattern {
+			background-color: #18191c;
+			background-image: 
+				radial-gradient(ellipse at 20% 30%, rgba(88, 101, 242, 0.15) 0%, transparent 50%),
+				radial-gradient(ellipse at 80% 70%, rgba(59, 165, 92, 0.1) 0%, transparent 50%),
+				radial-gradient(ellipse at 50% 50%, rgba(237, 66, 69, 0.05) 0%, transparent 70%);
+		}
+		
+		/* 卡片浮动动画 */
+		@keyframes float {
+			0%, 100% { transform: translateY(0px); }
+			50% { transform: translateY(-10px); }
+		}
+		
+		.float-animation {
+			animation: float 6s ease-in-out infinite;
+		}
+		
+		/* 光晕效果 */
+		.glow {
+			box-shadow: 0 0 60px rgba(88, 101, 242, 0.3), 0 0 100px rgba(88, 101, 242, 0.1);
+		}
+		
+		/* 按钮悬停效果 */
+		.btn-discord {
+			background: linear-gradient(135deg, #5865F2 0%, #4752c4 100%);
+			transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+		}
+		
+		.btn-discord:hover {
+			transform: translateY(-2px) scale(1.02);
+			box-shadow: 0 10px 40px rgba(88, 101, 242, 0.4);
+		}
+		
+		.btn-discord:active {
+			transform: translateY(0) scale(0.98);
+		}
+		
+		/* 装饰图案 */
+		.decoration-dot {
+			position: absolute;
+			width: 6px;
+			height: 6px;
+			background: rgba(88, 101, 242, 0.5);
+			border-radius: 50%;
+		}
+		
+		/* Logo 脉冲 */
+		@keyframes pulse-ring {
+			0% { transform: scale(0.8); opacity: 0.8; }
+			50% { transform: scale(1.2); opacity: 0; }
+			100% { transform: scale(0.8); opacity: 0; }
+		}
+		
+		.logo-ring {
+			position: absolute;
+			inset: -8px;
+			border: 2px solid rgba(88, 101, 242, 0.5);
+			border-radius: 50%;
+			animation: pulse-ring 3s ease-out infinite;
+		}
+	</style>
+</head>
+
+<body class="bg-pattern min-h-screen flex items-center justify-center font-sans text-discord-text p-4">
+	
+	<!-- 装饰性背景元素 -->
+	<div class="fixed inset-0 overflow-hidden pointer-events-none">
+		<div class="decoration-dot" style="top: 15%; left: 10%;"></div>
+		<div class="decoration-dot" style="top: 25%; left: 85%;"></div>
+		<div class="decoration-dot" style="top: 70%; left: 15%;"></div>
+		<div class="decoration-dot" style="top: 80%; left: 90%;"></div>
+		<div class="decoration-dot" style="top: 45%; left: 5%;"></div>
+		<div class="decoration-dot" style="top: 55%; left: 95%;"></div>
+	</div>
+	
+	<!-- 登录卡片 -->
+	<div class="relative z-10 w-full max-w-md">
+		<div class="float-animation glow bg-discord-sidebar rounded-2xl p-8 md:p-10 border border-white/10">
+			
+			<!-- Logo 区域 -->
+			<div class="flex flex-col items-center mb-8">
+				<div class="relative mb-6">
+					<div class="logo-ring"></div>
+					<img 
+						src="https://cdn.discordapp.com/icons/1134557553011998840/d419091a2a50009ddee0617ac43b0ead.png" 
+						alt="类脑ΟΔΥΣΣΕΙΑ" 
+						class="w-20 h-20 rounded-full border-4 border-discord-element shadow-2xl"
+					>
+				</div>
+				<h1 class="text-2xl md:text-3xl font-bold text-white mb-2">类脑ΟΔΥΣΣΕΙΑ</h1>
+				<p class="text-discord-muted text-sm text-center">社区帖子索引 · 搜索 · 发现</p>
+			</div>
+			
+			<!-- 欢迎文字 -->
+			<div class="text-center mb-8">
+				<h2 class="text-lg font-semibold text-white mb-2">欢迎回来</h2>
+				<p class="text-discord-muted text-sm leading-relaxed">
+					使用 Discord 账号登录以访问索引页面，<br>
+					查看、搜索和关注社区帖子。
+				</p>
+			</div>
+			
+			<!-- 登录按钮 -->
+			<button 
+				onclick="handleLogin()" 
+				class="btn-discord w-full py-4 rounded-xl text-white font-bold text-base flex items-center justify-center gap-3 mb-6"
+			>
+				<svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+					<path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+				</svg>
+				使用 Discord 登录
+			</button>
+			
+			
+		</div>
+		
+		<!-- 底部信息 -->
+		<div class="text-center mt-6 text-discord-muted text-xs">
+			<p>登录即表示您同意遵守社区规则</p>
+		</div>
+	</div>
+	
+	<script src="config.js"></script>
+	<script>
+		// 检查是否已登录
+		const token = localStorage.getItem('auth_token');
+		if (token) {
+			// 已有 token，验证是否有效
+			fetch(`${window.AUTH_URL}/auth/checkauth`, {
+				headers: { 'Authorization': `Bearer ${token}` }
+			})
+			.then(r => r.json())
+			.then(d => {
+				if (d && d.loggedIn) {
+					// 已登录，跳转回原页面或首页
+					redirectBack();
+				}
+			})
+			.catch(() => {
+				// 验证失败，清除无效 token
+				localStorage.removeItem('auth_token');
+			});
+		}
+		
+		// 处理登录
+		function handleLogin() {
+			// 保存重定向目标
+			const params = new URLSearchParams(window.location.search);
+			const redirect = params.get('redirect');
+			if (redirect) {
+				sessionStorage.setItem('login_redirect', redirect);
+			}
+			// 跳转到 Discord OAuth
+			window.location.href = `${window.AUTH_URL}/auth/login`;
+		}
+		
+		// 处理回调（如果有 token hash）
+		function handleCallback() {
+			const hash = window.location.hash;
+			const match = hash.match(/[#&]token=([^&]+)/);
+			if (match) {
+				localStorage.setItem('auth_token', match[1]);
+				window.location.hash = '';
+				redirectBack();
+			}
+		}
+		
+		// 跳转回原页面
+		function redirectBack() {
+			const params = new URLSearchParams(window.location.search);
+			let redirect = params.get('redirect') || sessionStorage.getItem('login_redirect');
+			sessionStorage.removeItem('login_redirect');
+			
+			if (redirect) {
+				window.location.href = redirect;
+			} else {
+				window.location.href = 'index.html';
+			}
+		}
+		
+		// 页面加载时检查回调
+		handleCallback();
+	</script>
+</body>
+
+</html>
+

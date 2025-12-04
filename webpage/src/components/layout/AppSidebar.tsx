@@ -1,8 +1,8 @@
-import { Globe, Bookmark, Settings, Info, LogOut, Search as SearchIcon, Bell, Tag as TagIcon } from 'lucide-react';
+import { Bookmark, Settings, Info, LogOut, Search as SearchIcon, Bell, Tag as TagIcon, TestTube } from 'lucide-react';
+import ServerIcon from '@/assets/images/icon/A90C044F8DDF1959B2E9078CB629C239.png';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { UserCard } from '@/components/layout/UserCard';
 import { ThemeToggle } from '@/components/common/ThemeToggle';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useSearchStore } from '@/features/search/store/searchStore';
@@ -14,7 +14,6 @@ export function AppSidebar() {
   const { user } = useAuth();
   const location = useLocation();
   const { selectedChannel, setChannel } = useSearchStore();
-  const isSearchPage = location.pathname === '/';
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
 
@@ -23,18 +22,34 @@ export function AppSidebar() {
   const { data: channels } = useQuery({
     queryKey: ['meta', 'channels'],
     queryFn: async () => {
-      const res = await apiClient.get<Channel[]>('/meta/channels');
-      return res.data;
+      try {
+        const res = await apiClient.get<Channel[]>('/meta/channels');
+        // 如果 API 返回空数组（可能后端没配置），也使用 fallback
+        if (!res.data || res.data.length === 0) {
+          console.warn('API returned empty channels, using fallback config');
+          const { FALLBACK_CHANNELS } = await import('@/config/channels');
+          return FALLBACK_CHANNELS;
+        }
+        return res.data;
+      } catch (error) {
+        console.warn('Failed to fetch channels from API, using fallback config', error);
+        const { FALLBACK_CHANNELS } = await import('@/config/channels');
+        return FALLBACK_CHANNELS;
+      }
     },
     staleTime: 5 * 60 * 1000,
+    retry: 1, // 失败后只重试一次，尽快切换到 fallback
   });
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     try {
-      localStorage.removeItem('auth_token');
+      // Import authApi at the top if needed
+      const { authApi } = await import('@/features/auth/api/authApi');
+      await authApi.logout();
     } catch (error) {
-      console.error('Failed to clear auth token on logout:', error);
+      console.error('Backend logout failed:', error);
     }
+    localStorage.removeItem('auth_token');
     window.location.href = '/login';
   };
 
@@ -45,187 +60,194 @@ export function AppSidebar() {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <div className="flex h-full flex-col">
-      {/* 用户信息卡片 */}
-      <UserCard
-        username={user?.username || user?.global_name || 'Discord User'}
-        avatar={user?.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` : undefined}
-        status="online"
-      />
+    <div className="flex h-full flex-col bg-[var(--od-bg-secondary)]">
+      {/* 顶部 Header */}
+      {/* 顶部 Header */}
+      <div className="flex items-center gap-3 px-4 py-4">
+        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-full shadow-md">
+          <img src={ServerIcon} alt="Server Icon" className="h-full w-full object-cover" />
+        </div>
+        <h1 className="text-lg font-bold tracking-tight text-[var(--od-text-primary)]">
+          类脑ΟΔΥΣΣΕΙΑ
+        </h1>
+      </div>
 
-      {/* 分隔线 */}
-      <div className="my-2 h-px bg-[var(--od-border-strong)]" />
+      {/* 滚动区域 */}
+      <div className="flex-1 overflow-y-auto px-3 py-2 scrollbar-hide">
+        {/* 频道列表 - 全局显示 */}
+        <div className="mb-6">
+          <div className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-[var(--od-text-tertiary)]">
+            频道
+          </div>
 
-      {/* 频道（仅在搜索页显示） */}
-      {isSearchPage && (
-        <>
-          {/* 频道区：在从其他页面切回搜索页时做一个轻微滑入 + 淡入 */}
-          <div className="mb-6 animate-in fade-in slide-in-from-top-2 duration-300">
-            <h2 className="mb-3 px-2 text-xs font-semibold uppercase tracking-wider text-[var(--od-text-tertiary)]">
-              频道
-            </h2>
-            <div className="space-y-0.5">
-              {/* 全频道 */}
-              <button
-                onClick={() => setChannel(null)}
-                className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-sm transition-all duration-200 ${
-                  !selectedChannel
-                    ? 'border-[var(--od-accent)] bg-[var(--od-card)] text-[var(--od-text-primary)]'
-                    : 'border-transparent text-[var(--od-text-tertiary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
+          <div className="space-y-0.5">
+            {/* 全频道 */}
+            <button
+              onClick={() => setChannel(null)}
+              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${!selectedChannel
+                ? 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-primary)] font-medium'
+                : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
                 }`}
-              >
-                <Globe
-                  className={`h-4 w-4 flex-shrink-0 ${
-                    !selectedChannel ? 'text-[var(--od-accent)]' : ''
-                  }`}
-                />
-                <span className="truncate">全频道</span>
-              </button>
-            </div>
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${!selectedChannel ? 'bg-[var(--od-accent)]' : 'bg-[var(--od-text-tertiary)]'}`} />
+              <span>全频道</span>
+            </button>
 
-            {/* 具体频道列表（从 /meta/channels 加载，后端返回的是扁平 Channel[]） */}
-            {channels && channels.length > 0 && (
-              <div className="mt-2 space-y-0.5 px-2">
-                {channels.map((ch) => {
-                  const active = selectedChannel === ch.id;
-                  return (
-                    <button
-                      key={ch.id}
-                      onClick={() => setChannel(ch.id)}
-                      className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-sm transition-all duration-200 ${
-                        active
-                          ? 'border-[var(--od-accent)] bg-[var(--od-card)] text-[var(--od-text-primary)]'
-                          : 'border-transparent text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
-                      }`}
-                    >
-                      <span className="truncate">{ch.name}</span>
-                    </button>
-                  );
-                })}
-              </div>
+            {/* 动态频道列表 */}
+            {channels?.map((ch) => {
+              const active = selectedChannel === ch.id;
+              return (
+                <button
+                  key={ch.id}
+                  onClick={() => setChannel(ch.id)}
+                  className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${active
+                    ? 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-primary)] font-medium'
+                    : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
+                    }`}
+                >
+                  <span className={`h-1.5 w-1.5 rounded-full ${active ? 'bg-[var(--od-accent)]' : 'bg-[var(--od-text-tertiary)]'}`} />
+                  <span className="truncate">{ch.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 快捷操作 */}
+        <div className="mb-6">
+          <div className="mb-2 flex items-center justify-between px-2">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--od-text-tertiary)]">
+              快捷操作
+            </h2>
+            <ThemeToggle />
+          </div>
+          <div className="space-y-0.5">
+            <Link
+              to="/"
+              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${isActive('/')
+                ? 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-primary)]'
+                : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
+                }`}
+            >
+              <SearchIcon className={`h-4 w-4 flex-shrink-0 ${isActive('/') ? 'text-[var(--od-accent)]' : ''}`} />
+              <span className="truncate">搜索页面</span>
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => setNotificationOpen((prev) => !prev)}
+              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${notificationOpen
+                ? 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-primary)]'
+                : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
+                }`}
+            >
+              <span className="relative inline-flex">
+                <Bell
+                  className={`h-4 w-4 flex-shrink-0 ${notificationOpen ? 'text-[var(--od-accent)]' : ''
+                    } ${hasUnreadNotifications ? 'notification-bell-wiggle' : ''}`}
+                />
+                {hasUnreadNotifications && (
+                  <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-[var(--od-error)] shadow-[0_0_0_2px_var(--od-bg)]" />
+                )}
+              </span>
+              <span className="truncate">通知中心</span>
+            </button>
+
+            <Link
+              to="/follows"
+              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${isActive('/follows')
+                ? 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-primary)]'
+                : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
+                }`}
+            >
+              <Bookmark
+                className={`h-4 w-4 flex-shrink-0 ${isActive('/follows') ? 'text-[var(--od-accent)]' : ''}`}
+              />
+              <span className="truncate">我的关注</span>
+            </Link>
+            <Link
+              to="/tags"
+              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${isActive('/tags')
+                ? 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-primary)]'
+                : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
+                }`}
+            >
+              <TagIcon
+                className={`h-4 w-4 flex-shrink-0 ${isActive('/tags') ? 'text-[var(--od-accent)]' : ''}`}
+              />
+              <span className="truncate">标签总览</span>
+            </Link>
+            <Link
+              to="/settings"
+              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${isActive('/settings')
+                ? 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-primary)]'
+                : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
+                }`}
+            >
+              <Settings className={`h-4 w-4 flex-shrink-0 ${isActive('/settings') ? 'text-[var(--od-accent)]' : ''}`} />
+              <span className="truncate">设置</span>
+            </Link>
+            <Link
+              to="/about"
+              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${isActive('/about')
+                ? 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-primary)]'
+                : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
+                }`}
+            >
+              <Info className={`h-4 w-4 flex-shrink-0 ${isActive('/about') ? 'text-[var(--od-accent)]' : ''}`} />
+              <span className="truncate">关于我们</span>
+            </Link>
+
+            {/* Dev Mode - Only visible in Mock environment */}
+            {import.meta.env.VITE_API_MOCKING === 'true' && (
+              <Link
+                to="/test"
+                className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${isActive('/test')
+                  ? 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-primary)]'
+                  : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
+                  }`}
+              >
+                <TestTube className={`h-4 w-4 flex-shrink-0 ${isActive('/test') ? 'text-[var(--od-accent)]' : ''}`} />
+                <span className="truncate">开发者模式</span>
+              </Link>
             )}
           </div>
- 
-         </>
-       )}
- 
-       {/* 导航入口已合并到下方的快捷操作中 */}
- 
-       {/* 频道区域与快捷操作之间的短分隔线 */}
-       <div className="mt-3 mb-2 px-2">
-         <div className="h-px w-10 rounded-full bg-[var(--od-border-strong)]" />
-       </div>
- 
-       {/* 快捷操作 */}
-       <div className="flex-1">
-         <div className="mb-2 flex items-center justify-between px-2">
-           <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--od-text-tertiary)]">
-             快捷操作
-           </h2>
-           {/* 经典白天/黑夜切换开关 */}
-           <ThemeToggle />
-         </div>
-         <div className="space-y-0.5">
-          {/* 搜索页面和其他页面保持同一级入口 */}
-          <Link
-            to="/"
-            className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-sm transition-all duration-200 ${
-              isActive('/')
-                ? 'border-[var(--od-accent)] bg-[var(--od-card)] text-[var(--od-text-primary)]'
-                : 'border-transparent text-[var(--od-text-tertiary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
-            }`}
-          >
-            <SearchIcon className={`h-4 w-4 flex-shrink-0 ${isActive('/') ? 'text-[var(--od-accent)]' : ''}`} />
-            <span className="truncate">搜索页面</span>
-          </Link>
-
-          {/* 通知中心入口：打开侧边通知面板 */}
-          <button
-            type="button"
-            onClick={() => setNotificationOpen((prev) => !prev)}
-            className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-sm transition-all duration-200 ${
-              notificationOpen
-                ? 'border-[var(--od-accent)] bg-[var(--od-card)] text-[var(--od-text-primary)]'
-                : 'border-transparent text-[var(--od-text-tertiary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
-            }`}
-            aria-label="打开通知中心"
-          >
-            <span className="relative inline-flex">
-              <Bell
-                className={`h-4 w-4 flex-shrink-0 ${
-                  notificationOpen ? 'text-[var(--od-accent)]' : ''
-                } ${hasUnreadNotifications ? 'notification-bell-wiggle' : ''}`}
-              />
-              {hasUnreadNotifications && (
-                <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-[var(--od-error)] shadow-[0_0_0_2px_var(--od-bg)]" />
-              )}
-            </span>
-            <span className="truncate">通知中心</span>
-          </button>
-
-          <Link
-            to="/follows"
-            className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-sm transition-all duration-200 ${
-              isActive('/follows')
-                ? 'border-[var(--od-accent)] bg-[var(--od-card)] text-[var(--od-text-primary)]'
-                : 'border-transparent text-[var(--od-text-tertiary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
-            }`}
-          >
-            <Bookmark
-              className={`h-4 w-4 flex-shrink-0 ${isActive('/follows') ? 'text-[var(--od-accent)]' : ''}`}
-            />
-            <span className="truncate">我的关注</span>
-          </Link>
-          <Link
-            to="/tags"
-            className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-sm transition-all duration-200 ${
-              isActive('/tags')
-                ? 'border-[var(--od-accent)] bg-[var(--od-card)] text-[var(--od-text-primary)]'
-                : 'border-transparent text-[var(--od-text-tertiary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
-            }`}
-          >
-            <TagIcon
-              className={`h-4 w-4 flex-shrink-0 ${isActive('/tags') ? 'text-[var(--od-accent)]' : ''}`}
-            />
-            <span className="truncate">标签总览</span>
-          </Link>
-          <Link
-            to="/settings"
-            className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-sm transition-all duration-200 ${
-              isActive('/settings')
-                ? 'border-[var(--od-accent)] bg-[var(--od-card)] text-[var(--od-text-primary)]'
-                : 'border-transparent text-[var(--od-text-tertiary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
-            }`}
-          >
-            <Settings className={`h-4 w-4 flex-shrink-0 ${isActive('/settings') ? 'text-[var(--od-accent)]' : ''}`} />
-            <span className="truncate">设置</span>
-          </Link>
-          <Link
-            to="/about"
-            className={`flex w-full items-center gap-2 rounded-md border px-2 py-1.5 text-sm transition-all duration-200 ${
-              isActive('/about')
-                ? 'border-[var(--od-accent)] bg-[var(--od-card)] text-[var(--od-text-primary)]'
-                : 'border-transparent text-[var(--od-text-tertiary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
-            }`}
-          >
-            <Info className={`h-4 w-4 flex-shrink-0 ${isActive('/about') ? 'text-[var(--od-accent)]' : ''}`} />
-            <span className="truncate">关于我们</span>
-          </Link>
         </div>
       </div>
 
-      {/* 底部登出按钮 */}
-      <div className="mt-auto pt-2 border-t border-[var(--od-border-strong)]">
-        <button
-          onClick={handleLogout}
-          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-[var(--od-error)] transition-all duration-200 hover:bg-[color-mix(in_oklab,var(--od-error)_10%,transparent)]"
-        >
-          <LogOut className="h-4 w-4 flex-shrink-0" />
-          <span className="truncate font-medium">登出</span>
-        </button>
+      {/* 底部用户信息栏 */}
+      <div className="border-t border-[var(--od-border)] bg-[var(--od-bg-secondary)] p-3">
+        <div className="flex items-center justify-between rounded-xl bg-[var(--od-bg-tertiary)] p-3 shadow-sm transition-all hover:shadow-md">
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className="relative h-10 w-10 flex-shrink-0">
+              <img
+                src={user?.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` : 'https://cdn.discordapp.com/embed/avatars/0.png'}
+                alt={user?.username}
+                className="h-full w-full rounded-full object-cover ring-2 ring-[var(--od-bg-secondary)]"
+              />
+              <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[var(--od-bg-secondary)] bg-green-500" />
+            </div>
+            <div className="flex flex-col overflow-hidden">
+              <span className="truncate text-sm font-bold text-[var(--od-text-primary)]">
+                {user?.global_name || user?.username || 'Guest'}
+              </span>
+              <span className="truncate text-xs text-[var(--od-text-tertiary)]">
+                @{user?.username}
+              </span>
+            </div>
+          </div>
+
+          <button
+            onClick={handleLogout}
+            className="rounded-lg p-2 text-[var(--od-text-tertiary)] transition-colors hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-error)]"
+            title="登出"
+          >
+            <LogOut className="h-5 w-5" />
+          </button>
+        </div>
       </div>
 
-      {/* 通知中心面板：相对于侧边栏容器定位 */}
+      {/* 通知中心面板 */}
       <NotificationCenter
         open={notificationOpen}
         onClose={() => setNotificationOpen(false)}

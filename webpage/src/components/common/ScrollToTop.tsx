@@ -25,14 +25,13 @@ export function ScrollToTop() {
     });
   };
 
-  if (!isVisible) {
-    return null;
-  }
-
   return (
     <button
       onClick={scrollToTop}
-      className="fixed bottom-24 right-6 z-50 rounded-full bg-[#5865f2] p-3 text-white shadow-lg transition-all duration-300 hover:scale-110 hover:bg-[#4752c4] hover:shadow-xl lg:bottom-6"
+      className={`fixed bottom-24 right-6 z-50 rounded-full bg-[var(--od-accent)] p-3 text-white shadow-lg transition-all duration-300 hover:scale-110 hover:bg-[var(--od-accent-hover)] hover:shadow-xl lg:bottom-6 ${isVisible
+          ? 'pointer-events-auto opacity-100 translate-y-0'
+          : 'pointer-events-none opacity-0 translate-y-4'
+        }`}
       aria-label="回到顶部"
       title="回到顶部"
     >

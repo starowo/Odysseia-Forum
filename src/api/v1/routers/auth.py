@@ -51,10 +51,12 @@ router = APIRouter(prefix="/auth", tags=["认证"])
 async def login():
     """重定向到 Discord OAuth2 授权页面"""
     if not _AUTH_CONFIG:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="认证服务未初始化"
-        )
+        initialize_auth_config()
+        if not _AUTH_CONFIG:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="认证服务未初始化"
+            )
     
     params = {
         "client_id": _AUTH_CONFIG["client_id"],
@@ -71,10 +73,12 @@ async def login():
 async def callback(code: Optional[str] = None):
     """处理 Discord OAuth2 回调"""
     if not _AUTH_CONFIG:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="认证服务未初始化"
-        )
+        initialize_auth_config()
+        if not _AUTH_CONFIG:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="认证服务未初始化"
+            )
     
     if not code:
         error_url = f"{_AUTH_CONFIG['frontend_url']}?error=缺少授权代码"
@@ -180,10 +184,12 @@ async def callback(code: Optional[str] = None):
 async def logout(response: Response):
     """退出登录并清除 session cookie"""
     if not _AUTH_CONFIG:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="认证服务未初始化"
-        )
+        initialize_auth_config()
+        if not _AUTH_CONFIG:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="认证服务未初始化"
+            )
     
     # 清除 cookie 并重定向到前端
     redirect_response = RedirectResponse(
@@ -199,10 +205,12 @@ async def logout(response: Response):
 async def check_auth(request: Request):
     """检查用户认证状态并刷新 token"""
     if not _AUTH_CONFIG:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="认证服务未初始化"
-        )
+        initialize_auth_config()
+        if not _AUTH_CONFIG:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="认证服务未初始化"
+            )
     
     # 从 Authorization header 或 Cookie 中获取 token
     token = None

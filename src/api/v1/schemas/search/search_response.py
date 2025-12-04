@@ -21,8 +21,13 @@ class ThreadDetail(BaseModel):
     reply_count: int = Field(description="帖子回复数")
     display_count: int = Field(description="在搜索结果中的展示次数")
     first_message_excerpt: Optional[str] = Field(description="帖子首条消息摘要")
-    thumbnail_url: Optional[str] = Field(description="帖子缩略图 URL")
+    thumbnail_urls: List[str] = Field(
+        default_factory=list,
+        description="帖子首楼图片 URL 列表（按出现顺序）"
+    )
     tags: List[str] = Field(description="帖子关联的标签列表")
+    is_following: bool = Field(default=False, description="当前用户是否关注")
+    has_update: bool = Field(default=False, description="是否有未读更新")
 
     @field_serializer('thread_id', 'channel_id')
     def serialize_id(self, value: int) -> str:

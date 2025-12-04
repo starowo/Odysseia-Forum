@@ -13,20 +13,26 @@ export function LoginPage() {
 
   const handleLogin = async () => {
     // 在 Mock 模式下，这将由 msw 拦截
-    try {
-      const response = await apiClient.post('/auth/login');
-      if (response.data.token) {
-        localStorage.setItem('auth_token', response.data.token);
-        toast.success('登录成功！');
-        refreshAuth();
-        setTimeout(() => navigate('/', { replace: true }), 300);
+    if (import.meta.env.MODE === 'development' && import.meta.env.VITE_USE_MOCK === 'true') {
+      try {
+        const response = await apiClient.post('/auth/login');
+        if (response.data.token) {
+          localStorage.setItem('auth_token', response.data.token);
+          toast.success('登录成功！');
+          refreshAuth();
+          setTimeout(() => navigate('/', { replace: true }), 300);
+        }
+      } catch (error) {
+        toast.error('登录失败，请稍后重试。');
       }
-    } catch (error) {
-      toast.error('登录失败，请稍后重试。');
-      // 在真实环境中，这里应该跳转到 Discord OAuth 页面
-      // const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:10810/v1';
-      // window.location.href = `${apiUrl}/auth/login`;
+      return;
     }
+
+    // 真实环境：跳转到后端 OAuth 登录接口
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:10810/v1';
+    // 移除末尾可能的斜杠
+    const baseUrl = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
+    window.location.href = `${baseUrl}/auth/login`;
   };
 
   return (

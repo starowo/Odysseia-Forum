@@ -1,7 +1,8 @@
-import { Menu, ChevronUp, SlidersHorizontal, X } from 'lucide-react';
+import { Menu, ChevronUp, X, Search } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { SearchHistoryDropdown } from '@/components/SearchHistory';
+import { SearchSuggestions } from '@/components/SearchSuggestions';
 import { SearchTokenInput } from '@/components/common/SearchTokenInput';
+import type { Channel } from '@/types/thread.types';
 
 interface TopBarProps {
   searchValue: string;
@@ -21,6 +22,7 @@ interface TopBarProps {
   tagMode?: 'included' | 'excluded';
   availableTags?: string[];
   tagStates?: Map<string, 'included' | 'excluded'>;
+  channels?: Channel[];
   onTimeFromChange?: (value: string) => void;
   onTimeToChange?: (value: string) => void;
   onSortMethodChange?: (value: string) => void;
@@ -47,6 +49,7 @@ export function TopBar({
   tagMode = 'included',
   availableTags = [],
   tagStates = new Map(),
+  channels = [],
   onTimeFromChange,
   onTimeToChange,
   onSortMethodChange,
@@ -58,6 +61,8 @@ export function TopBar({
   const debounceTimerRef = useRef<number | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
+  const [isTagExpanded, setIsTagExpanded] = useState(false);
+  const maxTagsToShow = 10;
 
   // 防抖自动搜索
   useEffect(() => {
@@ -85,7 +90,7 @@ export function TopBar({
 
   return (
     <header className="sticky top-0 z-20 bg-[var(--od-bg-secondary)] shadow-lg">
-      <div className="flex items-center gap-3 p-3">
+      <div className="flex items-center gap-3 p-3 lg:pl-0">
         {/* 移动端菜单按钮 */}
         <button
           onClick={onMenuClick}
@@ -96,19 +101,32 @@ export function TopBar({
         </button>
 
         {/* 搜索框（带 Token 支持） */}
-        <div className="relative flex-1">
+        <div className="relative flex-1 min-w-0">
           <SearchTokenInput
             value={searchValue}
             onChange={onSearchChange}
-            onSearch={onSearch}
+            onSearch={() => {
+              onSearch();
+              setShowHistory(false);
+            }}
+            onFocus={() => setShowHistory(true)}
+            onBlur={() => {
+              // 延迟关闭，给用户时间点击建议
+              setTimeout(() => setShowHistory(false), 200);
+            }}
             placeholder="搜索标题、作者或内容... 💡 试试 $tag:标签$ 或 $author:作者$"
           />
-          
-          {/* 搜索历史下拉框 */}
-          <SearchHistoryDropdown
+
+          {/* 搜索建议下拉框 */}
+          <SearchSuggestions
             isOpen={showHistory}
-            onSelectHistory={(query) => {
-              onSelectHistory?.(query);
+            currentQuery={searchValue}
+            availableTags={availableTags}
+            channels={channels}
+            onSelect={(suggestion) => {
+              const newValue = searchValue + suggestion;
+              onSelectHistory?.(newValue);
+              onSearchChange(newValue);
               setShowHistory(false);
             }}
             onClose={() => setShowHistory(false)}
@@ -116,24 +134,26 @@ export function TopBar({
           />
         </div>
 
-        {/* 搜索按钮（移动端隐藏） */}
+        {/* 搜索按钮 */}
         <button
           onClick={onSearch}
-          className="hidden rounded-md bg-[var(--od-accent)] px-4 py-1.5 text-sm font-medium text-white transition-all duration-200 hover:scale-105 hover:bg-[var(--od-accent-hover)] md:block"
+          className="rounded-md bg-[var(--od-accent)] p-2 text-white transition-all duration-200 hover:scale-105 hover:bg-[var(--od-accent-hover)] md:px-4 md:py-1.5"
+          aria-label="搜索"
         >
-          搜索
+          <Search className="h-5 w-5 md:hidden" />
+          <span className="hidden text-sm font-medium md:inline">搜索</span>
         </button>
       </div>
 
-      {/* 高级搜索按钮 */}
-      <div className="bg-[var(--od-bg-secondary)] px-3 pb-3 pt-1">
+      {/* 高级搜索按钮 - 简化样式 */}
+      <div className="flex justify-center px-3 pb-2 pt-1">
         <button
           type="button"
           onClick={() => setIsAdvancedOpen((prev) => !prev)}
-          className="inline-flex w-full items-center justify-center gap-1 rounded-lg bg-[var(--od-bg-tertiary)] px-3 py-1.5 text-xs text-[var(--od-text-tertiary)] transition-all duration-200 hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]"
+          className="inline-flex items-center gap-1.5 px-2 py-1 text-xs text-[var(--od-text-tertiary)] transition-colors duration-200 hover:text-[var(--od-text-primary)]"
         >
           <ChevronUp
-            className={`h-3 w-3 transition-transform ${isAdvancedOpen ? '' : 'rotate-180'}`}
+            className={`h-3.5 w-3.5 transition-transform ${isAdvancedOpen ? '' : 'rotate-180'}`}
           />
           <span>高级搜索</span>
         </button>
@@ -141,9 +161,8 @@ export function TopBar({
 
       {/* 高级搜索折叠面板 */}
       <div
-        className={`bg-[var(--od-bg-secondary)] transition-[max-height,opacity] duration-300 overflow-hidden border-t border-[var(--od-border)] ${
-          isAdvancedOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
-        }`}
+        className={`bg-[var(--od-bg-secondary)] transition-[max-height,opacity] duration-300 overflow-hidden border-t border-[var(--od-border)] ${isAdvancedOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
+          }`}
       >
         <div className="px-3 pb-3 pt-2">
           {/* 快捷填充按钮 */}
@@ -183,7 +202,7 @@ export function TopBar({
           </div>
 
           {/* 筛选器 */}
-          <div className="mb-3 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-2 lg:grid-cols-4">
             {/* 发帖不早于 */}
             <div>
               <label htmlFor="timeFrom" className="mb-1.5 block text-xs font-medium text-[var(--od-text-secondary)]">
@@ -253,7 +272,9 @@ export function TopBar({
             <div className="border-t border-[var(--od-border)] pt-3">
               <div className="mb-3 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <span className="text-sm font-medium text-[var(--od-text-secondary)]">标签筛选</span>
+                  <span className="text-sm font-medium text-[var(--od-text-secondary)]">
+                    标签筛选 ({tagStates.size}/{availableTags.length})
+                  </span>
                   {tagStates.size > 0 && (
                     <button
                       type="button"
@@ -265,41 +286,49 @@ export function TopBar({
                     </button>
                   )}
                 </div>
+
                 <div className="flex items-center gap-3">
-                  <label className="flex items-center gap-2 text-xs text-[var(--od-text-tertiary)]">
-                    <input
-                      type="checkbox"
-                      checked={tagMode === 'excluded'}
-                      onChange={(e) => onTagModeChange?.(e.target.checked ? 'excluded' : 'included')}
-                      className="rounded"
-                    />
-                    排除模式
+                  {/* 反选模式开关 */}
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={tagMode === 'excluded'}
+                        onChange={(e) => onTagModeChange?.(e.target.checked ? 'excluded' : 'included')}
+                      />
+                      <div className="w-9 h-5 bg-[var(--od-bg-tertiary)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-500"></div>
+                    </div>
+                    <span className={`text-xs font-medium ${tagMode === 'excluded' ? 'text-red-500' : 'text-[var(--od-text-secondary)]'}`}>
+                      反选模式
+                    </span>
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => onTagLogicChange?.(tagLogic === 'and' ? 'or' : 'and')}
-                    className="flex items-center gap-2 text-xs text-[var(--od-text-tertiary)] hover:text-[var(--od-text-primary)]"
-                  >
-                    <SlidersHorizontal className="h-4 w-4" />
-                    {tagLogic === 'and' ? 'AND' : 'OR'}
-                  </button>
+
+                  {availableTags.length > maxTagsToShow && (
+                    <button
+                      type="button"
+                      onClick={() => setIsTagExpanded(!isTagExpanded)}
+                      className="text-xs text-[var(--od-link)] hover:underline"
+                    >
+                      {isTagExpanded ? '收起' : `展开全部 (${availableTags.length})`}
+                    </button>
+                  )}
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">
-                {availableTags.map((tag) => {
+                {(isTagExpanded ? availableTags : availableTags.slice(0, maxTagsToShow)).map((tag) => {
                   const state = tagStates.get(tag);
                   return (
                     <button
                       key={tag}
                       type="button"
                       onClick={() => onTagClick?.(tag)}
-                      className={`rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 hover:scale-105 ${
-                        state === 'included'
-                          ? 'bg-[var(--od-accent)] text-white'
-                          : state === 'excluded'
-                          ? 'bg-[var(--od-error)] text-white'
+                      className={`rounded-full px-3 py-1.5 text-sm font-medium transition-all duration-200 hover:scale-105 ${state === 'included'
+                        ? 'bg-[var(--od-accent)] text-white'
+                        : state === 'excluded'
+                          ? 'bg-red-600 text-white line-through'
                           : 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-secondary)] hover:bg-[var(--od-card-hover)]'
-                      }`}
+                        }`}
                     >
                       {tag}
                     </button>

@@ -10,7 +10,6 @@ export function CallbackPage() {
   const refreshAuth = useRefreshAuth();
 
   useEffect(() => {
-    const token = searchParams.get('token');
     const error = searchParams.get('error');
 
     if (error) {
@@ -21,26 +20,30 @@ export function CallbackPage() {
       return;
     }
 
-    if (token) {
-      // 保存token（虽然后端主要使用Cookie，但保存token以备用）
-      localStorage.setItem('auth_token', token);
-      
-      toast.success('登录成功！');
-      
-      // 延迟跳转，确保Cookie已设置
-      setTimeout(() => {
-        // 刷新认证状态
-        refreshAuth();
-        navigate('/', { replace: true });
-      }, 1000);
-    } else {
-      // 可能后端直接设置了Cookie，没有返回token
-      // 尝试检查认证状态
-      setTimeout(async () => {
-        refreshAuth();
-        navigate('/', { replace: true });
-      }, 1000);
+    // Token is now extracted in App.tsx via hash
+    // Just handle redirect restoration here
+    const savedRedirect = sessionStorage.getItem('login_redirect');
+    const queryRedirect = searchParams.get('redirect');
+
+    sessionStorage.removeItem('login_redirect');
+
+    const targetUrl = savedRedirect || queryRedirect || '/';
+
+    // Extract path from full URL if needed
+    let redirectPath = targetUrl;
+    try {
+      const url = new URL(targetUrl);
+      redirectPath = url.pathname + url.search + url.hash;
+    } catch {
+      // targetUrl is already a path
     }
+
+    toast.success('登录成功！');
+
+    setTimeout(() => {
+      refreshAuth();
+      navigate(redirectPath, { replace: true });
+    }, 500);
   }, [searchParams, navigate, refreshAuth]);
 
   return (
