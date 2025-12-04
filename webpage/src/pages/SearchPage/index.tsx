@@ -546,7 +546,7 @@ export function SearchPage() {
               className={
                 settings.layoutMode === 'list'
                   ? 'space-y-4 animate-in fade-in duration-300'
-                  : `grid grid-cols-1 gap-4 sm:grid-cols-2 ${settings.sidebarCollapsed ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} animate-in fade-in duration-300`
+                  : `grid grid-cols-2 gap-4 sm:grid-cols-3 ${settings.sidebarCollapsed ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} animate-in fade-in duration-300`
               }
             >
               {Array.from({ length: perPage }).map((_, i) => (
@@ -577,7 +577,7 @@ export function SearchPage() {
               className={
                 settings.layoutMode === 'list'
                   ? 'space-y-4 animate-in fade-in duration-300'
-                  : `grid grid-cols-1 gap-4 sm:grid-cols-2 ${settings.sidebarCollapsed ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} animate-in fade-in duration-300`
+                  : `grid grid-cols-2 gap-4 sm:grid-cols-3 ${settings.sidebarCollapsed ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} animate-in fade-in duration-300`
               }
             >
               {mergedThreads.map((thread) =>

@@ -50,7 +50,7 @@ export function FloatingBanner() {
 
     if (isMinimized) {
         return (
-            <div className="fixed bottom-20 right-6 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="fixed bottom-36 right-6 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
                 <button
                     onClick={() => setIsMinimized(false)}
                     className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--od-accent)] text-white shadow-lg transition-transform hover:scale-110 hover:bg-[var(--od-accent-hover)]"
@@ -64,7 +64,7 @@ export function FloatingBanner() {
 
     return (
         <div
-            className="fixed bottom-20 right-4 z-50 w-80 overflow-hidden rounded-xl border border-[var(--od-border)] bg-[var(--od-card)] shadow-2xl animate-in fade-in slide-in-from-bottom-8 duration-500 group cursor-pointer"
+            className="fixed bottom-36 right-4 z-50 w-80 overflow-hidden rounded-xl border border-[var(--od-border)] bg-[var(--od-card)] shadow-2xl animate-in fade-in slide-in-from-bottom-8 duration-500 group cursor-pointer"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             onClick={() => {
@@ -132,4 +132,3 @@ export function FloatingBanner() {
         </div>
     );
 }
-

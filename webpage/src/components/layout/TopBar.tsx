@@ -1,4 +1,4 @@
-import { Menu, ChevronUp, X } from 'lucide-react';
+import { Menu, ChevronUp, X, Search } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { SearchSuggestions } from '@/components/SearchSuggestions';
 import { SearchTokenInput } from '@/components/common/SearchTokenInput';
@@ -98,7 +98,7 @@ export function TopBar({
         </button>
 
         {/* 搜索框（带 Token 支持） */}
-        <div className="relative flex-1">
+        <div className="relative flex-1 min-w-0">
           <SearchTokenInput
             value={searchValue}
             onChange={onSearchChange}
@@ -131,12 +131,14 @@ export function TopBar({
           />
         </div>
 
-        {/* 搜索按钮（移动端隐藏） */}
+        {/* 搜索按钮 */}
         <button
           onClick={onSearch}
-          className="hidden rounded-md bg-[var(--od-accent)] px-4 py-1.5 text-sm font-medium text-white transition-all duration-200 hover:scale-105 hover:bg-[var(--od-accent-hover)] md:block"
+          className="rounded-md bg-[var(--od-accent)] p-2 text-white transition-all duration-200 hover:scale-105 hover:bg-[var(--od-accent-hover)] md:px-4 md:py-1.5"
+          aria-label="搜索"
         >
-          搜索
+          <Search className="h-5 w-5 md:hidden" />
+          <span className="hidden text-sm font-medium md:inline">搜索</span>
         </button>
       </div>
 
@@ -197,7 +199,7 @@ export function TopBar({
           </div>
 
           {/* 筛选器 */}
-          <div className="mb-3 grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
+          <div className="mb-3 grid grid-cols-2 gap-2 md:grid-cols-2 lg:grid-cols-4">
             {/* 发帖不早于 */}
             <div>
               <label htmlFor="timeFrom" className="mb-1.5 block text-xs font-medium text-[var(--od-text-secondary)]">

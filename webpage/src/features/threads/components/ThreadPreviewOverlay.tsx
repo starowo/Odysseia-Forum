@@ -1,53 +1,55 @@
+import { X, MessageCircle, ThumbsUp, Calendar, Hash, User } from 'lucide-react';
+import { formatDistanceToNow, format } from 'date-fns';
+import { zhCN } from 'date-fns/locale';
 import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+
 import { MarkdownText } from '@/components/common/MarkdownText';
-import { LazyImage } from '@/components/common/LazyImage';
-import type { Thread } from '@/types/thread.types';
-
-import { ThreadActions } from './ThreadActions';
+import { MultiImageGrid } from './MultiImageGrid';
 import { AuthorAvatar } from './AuthorAvatar';
+import { ThreadActions } from './ThreadActions';
+import type { Thread } from '@/types/thread.types';
+import { useSettings } from '@/hooks/useSettings';
+import { fontSizeMap } from '@/lib/settings';
 
-export interface ThreadPreviewOverlayProps {
+interface ThreadPreviewOverlayProps {
   thread: Thread;
   onClose: () => void;
-  externalUrlOverride?: string | null;
   hideExternalButton?: boolean;
 }
 
-/**
- * 帖子预览上浮浮层：
- * - 居中放大展示帖子卡片；
- * - 支持 Markdown、长文本和独立滚动区域；
- * - 保留「在 Discord 中打开」按钮。
- */
-export function ThreadPreviewOverlay({
-  thread,
-  onClose,
-  externalUrlOverride,
-  hideExternalButton,
-}: ThreadPreviewOverlayProps) {
-  // visible 用于控制「刚挂载时从 0 → 1」的入场动画
-  const [visible, setVisible] = useState(false);
-  const [closing, setClosing] = useState(false);
+export function ThreadPreviewOverlay({ thread, onClose, hideExternalButton = false }: ThreadPreviewOverlayProps) {
+  const { settings } = useSettings();
+  const fontSizes = fontSizeMap[settings.fontSize];
+  const [isVisible, setIsVisible] = useState(false);
 
-  // 挂载后下一帧再标记为可见，触发淡入+缩放动画
   useEffect(() => {
-    const id = window.setTimeout(() => {
-      setVisible(true);
-    }, 0);
-    return () => window.clearTimeout(id);
+    setIsVisible(true);
+    document.body.style.overflow = 'hidden';
+
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleClose();
+    };
+    window.addEventListener('keydown', handleEsc);
+
+    return () => {
+      document.body.style.overflow = 'unset';
+      window.removeEventListener('keydown', handleEsc);
+    };
   }, []);
 
-  const handleStartClose = () => {
-    if (closing) return;
-    setClosing(true);
-    setVisible(false);
-    // 等待动画结束再真正卸载
-    window.setTimeout(() => {
-      onClose();
-    }, 220);
+  const handleClose = () => {
+    setIsVisible(false);
+    setTimeout(onClose, 300);
   };
+
+  const createdTime = formatDistanceToNow(new Date(thread.created_at), {
+    addSuffix: true,
+    locale: zhCN,
+  });
+
+  const fullTime = format(new Date(thread.created_at), 'yyyy年MM月dd日 HH:mm', {
+    locale: zhCN,
+  });
 
   const authorName =
     thread.author?.display_name ??
@@ -55,201 +57,110 @@ export function ThreadPreviewOverlay({
     thread.author?.name ??
     '未知用户';
 
-
-
-  // 使用 Portal 将浮层挂到 body 下，避免被侧边栏等容器裁剪
-  if (typeof document === 'undefined') {
-    return null;
-  }
-
-  return createPortal(
+  return (
     <div
-      className={`fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm px-3 sm:px-6 transition-opacity duration-250 ${closing || !visible ? 'opacity-0' : 'opacity-100'
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 transition-all duration-300 ${isVisible ? 'bg-black/60 backdrop-blur-sm' : 'bg-black/0 backdrop-blur-none pointer-events-none'
         }`}
-      onClick={handleStartClose}
+      onClick={handleClose}
     >
       <div
-        className={`relative my-4 flex w-full max-w-4xl h-[85vh] flex-col overflow-hidden rounded-xl bg-[var(--od-card)] shadow-2xl sm:my-6 sm:rounded-2xl transform transition-all duration-250 ease-out ${closing || !visible
-          ? 'scale-95 translate-y-4 opacity-0'
-          : 'scale-100 translate-y-0 opacity-100'
+        className={`flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-[var(--od-card)] shadow-2xl transition-all duration-300 ${isVisible ? 'scale-100 opacity-100 translate-y-0' : 'scale-95 opacity-0 translate-y-4'
           }`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* 关闭按钮 */}
-        <button
-          type="button"
-          onClick={handleStartClose}
-          className="absolute right-3 top-3 z-10 rounded-full bg-black/60 p-1.5 text-xs text-white shadow-md hover:bg-black/80"
-          aria-label="关闭预览"
-        >
-          <X className="h-4 w-4" />
-        </button>
-
-        {/* 顶部大图 / 轮播 */}
-        <div className="relative h-[45%] w-full flex-shrink-0 overflow-hidden bg-[var(--od-bg-tertiary)] group/carousel">
-          {thread.thumbnail_urls && thread.thumbnail_urls.length > 0 ? (
-            <Carousel images={thread.thumbnail_urls} alt={thread.title} />
-          ) : thread.thumbnail_url ? (
-            <LazyImage
-              src={thread.thumbnail_url}
-              alt={thread.title}
-              className="h-full w-full bg-black object-contain"
-            />
-          ) : (
-            <div className="h-full w-full bg-gradient-to-br from-[#18191c] to-[#1e1f22]" />
-          )}
-
-          {thread.has_update && (
-            <div className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-[#23a55a]/90 px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm backdrop-blur-sm z-20">
-              <span className="inline-block h-2 w-2 rounded-full bg-white animate-[pulse_2.4s_ease-in-out_infinite]" />
-              <span>有更新</span>
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-[var(--od-border)] bg-[var(--od-card)] px-6 py-4">
+          <div className="flex items-center gap-3">
+            <AuthorAvatar author={thread.author} className="h-10 w-10" />
+            <div>
+              <div className="font-bold text-[var(--od-text-primary)]">{authorName}</div>
+              <div className="text-xs text-[var(--od-text-tertiary)]">
+                发布于 {createdTime}
+              </div>
             </div>
-          )}
+          </div>
+          <button
+            onClick={handleClose}
+            className="rounded-full p-2 text-[var(--od-text-tertiary)] transition-colors hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
-        {/* 正文区域 - 独立滚动 */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-          {/* 标题 */}
-          <h2 className="mb-3 text-lg font-bold leading-snug text-[var(--od-text-primary)] sm:text-xl">
-            {thread.is_following && (
-              <span className="mr-1 inline-block h-2 w-2 rounded-full bg-[#f23f43]" />
-            )}
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-6 scrollbar-thin">
+          {/* Title */}
+          <h2 className={`mb-4 font-bold leading-tight text-[var(--od-text-primary)] ${fontSizes.title}`}>
             {thread.title}
           </h2>
 
-          {/* 作者信息 */}
-          <div className="mb-3 flex items-center gap-2 text-xs text-[var(--od-text-tertiary)] sm:text-sm">
-            {/* 头像 */}
-            <AuthorAvatar author={thread.author} className="h-10 w-10" size={256} />
-
-            <span className="font-medium text-[var(--od-link)]">{authorName}</span>
-            {thread.channel_id && (
-              <>
-                <span>·</span>
-                <span>频道 {thread.channel_id}</span>
-              </>
-            )}
-          </div>
-
-          {/* 标签 */}
+          {/* Tags */}
           {thread.tags && thread.tags.length > 0 && (
-            <div className="mb-4 flex flex-wrap gap-2">
+            <div className="mb-6 flex flex-wrap gap-2">
               {thread.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="rounded-md bg-[var(--od-bg-secondary)] px-2.5 py-1 text-xs font-medium text-[var(--od-text-secondary)]"
+                  className="flex items-center gap-1 rounded-md bg-[var(--od-bg-secondary)] px-2.5 py-1 text-xs font-medium text-[var(--od-text-secondary)]"
                 >
+                  <Hash className="h-3 w-3" />
                   {tag}
                 </span>
               ))}
             </div>
           )}
 
-          {/* 正文 Markdown */}
-          {thread.first_message_excerpt && thread.first_message_excerpt.trim() !== '...' ? (
-            <div className="od-md text-sm text-[var(--od-text-primary)]">
-              <MarkdownText text={thread.first_message_excerpt} />
+          {/* Images */}
+          {((thread.thumbnail_urls && thread.thumbnail_urls.length > 0) || thread.thumbnail_url) && (
+            <div className="mb-6 overflow-hidden rounded-xl border border-[var(--od-border)]">
+              <MultiImageGrid
+                images={thread.thumbnail_urls || [thread.thumbnail_url!]}
+                alt={thread.title}
+                className="w-full"
+              />
             </div>
-          ) : (
-            <p className="mt-2 text-sm text-[var(--od-text-tertiary)]">
-              当前接口只返回首条消息的摘要，完整内容请在 Discord 中查看。
-            </p>
           )}
 
-          {/* 打开原帖按钮（静态通知可选择隐藏） */}
+          {/* Content Excerpt (Full) - Flat, no background */}
+          {thread.first_message_excerpt && (
+            <div className={`mb-6 ${fontSizes.content} text-[var(--od-text-secondary)]`}>
+              <MarkdownText text={thread.first_message_excerpt} />
+            </div>
+          )}
+
+          {/* Meta Info - Flat Row */}
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-[var(--od-text-tertiary)] border-t border-[var(--od-border)] pt-6">
+            <div className="flex items-center gap-2">
+              <MessageCircle className="h-4 w-4" />
+              <span className="font-bold text-[var(--od-text-primary)]">{thread.reply_count}</span>
+              <span>回复</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <ThumbsUp className="h-4 w-4" />
+              <span className="font-bold text-[var(--od-text-primary)]">{thread.reaction_count}</span>
+              <span>反应</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              <span>{fullTime}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <User className="h-4 w-4" />
+              <span>ID: {thread.thread_id}</span>
+            </div>
+          </div>
+
+          {/* Actions */}
           {!hideExternalButton && (
             <div className="mt-6 flex justify-end">
               <ThreadActions
                 threadId={thread.thread_id}
                 guildId={thread.guild_id}
                 size="md"
+                alwaysVisible={true}
               />
             </div>
           )}
         </div>
-      </div>
-    </div>,
-    document.body,
-  );
-}
-
-function Carousel({ images, alt }: { images: string[]; alt: string }) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-
-  const next = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setCurrentIndex((prev) => (prev + 1) % images.length);
-  };
-
-  const prev = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
-  };
-
-  const goTo = (index: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setCurrentIndex(index);
-  };
-
-  if (images.length === 0) return null;
-  if (images.length === 1) {
-    return (
-      <LazyImage
-        src={images[0]}
-        alt={alt}
-        className="h-full w-full bg-black object-contain"
-      />
-    );
-  }
-
-  return (
-    <div className="relative h-full w-full">
-      {/* Slides */}
-      <div className="h-full w-full relative">
-        {images.map((src, idx) => (
-          <div
-            key={idx}
-            className={`absolute inset-0 transition-opacity duration-300 ${idx === currentIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
-              }`}
-          >
-            <LazyImage
-              src={src}
-              alt={`${alt} ${idx + 1}`}
-              className="h-full w-full bg-black object-contain"
-            />
-          </div>
-        ))}
-      </div>
-
-      {/* Controls */}
-      <button
-        onClick={prev}
-        className="absolute left-2 top-1/2 -translate-y-1/2 z-30 rounded-full bg-black/50 p-1.5 text-white transition-colors hover:bg-black/70 pointer-events-auto"
-      >
-        <ChevronLeft className="h-6 w-6" />
-      </button>
-      <button
-        onClick={next}
-        className="absolute right-2 top-1/2 -translate-y-1/2 z-30 rounded-full bg-black/50 p-1.5 text-white transition-colors hover:bg-black/70 pointer-events-auto"
-      >
-        <ChevronRight className="h-6 w-6" />
-      </button>
-
-      {/* Indicators */}
-      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex gap-1.5">
-        {images.map((_, idx) => (
-          <button
-            key={idx}
-            onClick={(e) => goTo(idx, e)}
-            className={`h-1.5 rounded-full transition-all ${idx === currentIndex ? 'w-4 bg-white' : 'w-1.5 bg-white/50 hover:bg-white/80'
-              }`}
-          />
-        ))}
-      </div>
-
-      {/* Counter */}
-      <div className="absolute bottom-3 right-3 z-20 rounded-full bg-black/50 px-2 py-0.5 text-xs text-white backdrop-blur-sm">
-        {currentIndex + 1} / {images.length}
       </div>
     </div>
   );
