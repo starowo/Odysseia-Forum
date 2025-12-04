@@ -33,6 +33,7 @@ export function SearchPage() {
     selectedChannel,
     sortMethod,
     tagLogic,
+    tagMode,
 
     tagStates,
     page,
@@ -40,6 +41,7 @@ export function SearchPage() {
     setQuery,
     setSortMethod,
     setTagLogic,
+    setTagMode,
 
     toggleTag,
     clearAllTags,
@@ -472,6 +474,8 @@ export function SearchPage() {
           onTimeToChange={setTimeTo}
           onSortMethodChange={(value) => setSortMethod(value as any)}
           onTagLogicChange={setTagLogic}
+          tagMode={tagMode}
+          onTagModeChange={setTagMode}
           onTagClick={handleFilterTagClick}
           onClearAllTags={clearAllTags}
         />
@@ -674,3 +678,4 @@ export function SearchPage() {
     </div>
   );
 }
+// End of SearchPage component

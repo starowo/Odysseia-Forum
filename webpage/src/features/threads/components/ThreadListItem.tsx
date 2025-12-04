@@ -10,6 +10,7 @@ import { useSettings } from '@/hooks/useSettings';
 import { fontSizeMap } from '@/lib/settings';
 import { ThreadActions } from './ThreadActions';
 import { AuthorAvatar } from './AuthorAvatar';
+import { ThreadStatusBadges } from './ThreadStatusBadges';
 
 interface ThreadListItemProps {
   thread: Thread;
@@ -50,10 +51,13 @@ export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick,
           <h3
             className={`mb-1 font-bold leading-snug text-[var(--od-text-primary)] transition-colors duration-200 ${fontSizes.title} line-clamp-2 md:mb-2 break-all`}
           >
-            {thread.is_following && (
-              <span className="mr-1 inline-block h-2 w-2 rounded-full bg-[#f23f43] animate-[pulse_2.4s_ease-in-out_infinite]" />
-            )}
             <HighlightText text={thread.title} highlight={searchQuery} />
+            <ThreadStatusBadges
+              isFollowing={thread.is_following}
+              hasUpdate={thread.has_update}
+              variant="list"
+              className="ml-2"
+            />
           </h3>
 
           {/* 作者和时间 */}

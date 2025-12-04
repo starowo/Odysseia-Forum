@@ -19,6 +19,7 @@ interface TopBarProps {
   timeTo?: string;
   sortMethod?: string;
   tagLogic?: 'and' | 'or';
+  tagMode?: 'included' | 'excluded';
   availableTags?: string[];
   tagStates?: Map<string, 'included' | 'excluded'>;
   channels?: Channel[];
@@ -45,6 +46,7 @@ export function TopBar({
   timeTo = '',
   sortMethod = 'relevance',
   tagLogic = 'and',
+  tagMode = 'included',
   availableTags = [],
   tagStates = new Map(),
   channels = [],
@@ -52,6 +54,7 @@ export function TopBar({
   onTimeToChange,
   onSortMethodChange,
   onTagLogicChange,
+  onTagModeChange,
   onTagClick,
   onClearAllTags,
 }: TopBarProps) {
@@ -283,15 +286,34 @@ export function TopBar({
                     </button>
                   )}
                 </div>
-                {availableTags.length > maxTagsToShow && (
-                  <button
-                    type="button"
-                    onClick={() => setIsTagExpanded(!isTagExpanded)}
-                    className="text-xs text-[var(--od-link)] hover:underline"
-                  >
-                    {isTagExpanded ? '收起' : `展开全部 (${availableTags.length})`}
-                  </button>
-                )}
+
+                <div className="flex items-center gap-3">
+                  {/* 反选模式开关 */}
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={tagMode === 'excluded'}
+                        onChange={(e) => onTagModeChange?.(e.target.checked ? 'excluded' : 'included')}
+                      />
+                      <div className="w-9 h-5 bg-[var(--od-bg-tertiary)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-500"></div>
+                    </div>
+                    <span className={`text-xs font-medium ${tagMode === 'excluded' ? 'text-red-500' : 'text-[var(--od-text-secondary)]'}`}>
+                      反选模式
+                    </span>
+                  </label>
+
+                  {availableTags.length > maxTagsToShow && (
+                    <button
+                      type="button"
+                      onClick={() => setIsTagExpanded(!isTagExpanded)}
+                      className="text-xs text-[var(--od-link)] hover:underline"
+                    >
+                      {isTagExpanded ? '收起' : `展开全部 (${availableTags.length})`}
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="flex flex-wrap gap-2">
                 {(isTagExpanded ? availableTags : availableTags.slice(0, maxTagsToShow)).map((tag) => {

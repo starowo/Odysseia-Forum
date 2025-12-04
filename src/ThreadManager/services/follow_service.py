@@ -382,3 +382,56 @@ class FollowService:
         except Exception as e:
             logger.error(f"检查关注状态失败: {e}", exc_info=True)
             return False
+
+    async def get_follow_status_map(
+        self,
+        user_id: int,
+        thread_ids: List[int]
+    ) -> Dict[int, Dict[str, bool]]:
+        """
+        批量获取帖子的关注状态和更新状态
+        
+        Args:
+            user_id: 用户Discord ID
+            thread_ids: 帖子ID列表
+            
+        Returns:
+            {thread_id: {"is_following": bool, "has_update": bool}}
+        """
+        if not thread_ids:
+            return {}
+            
+        try:
+            # 查询指定帖子中用户关注的记录
+            statement = (
+                select(ThreadFollow, Thread)
+                .join(Thread, ThreadFollow.thread_id == Thread.thread_id)
+                .where(
+                    and_(
+                        ThreadFollow.user_id == user_id,
+                        ThreadFollow.thread_id.in_(thread_ids)
+                    )
+                )
+            )
+            
+            result = await self.session.execute(statement)
+            rows = result.all()
+            
+            status_map = {}
+            for follow, thread in rows:
+                has_update = (
+                    thread.latest_update_at is not None and
+                    (follow.last_viewed_at is None or
+                     thread.latest_update_at > follow.last_viewed_at)
+                )
+                
+                status_map[thread.thread_id] = {
+                    "is_following": True,
+                    "has_update": has_update
+                }
+                
+            return status_map
+            
+        except Exception as e:
+            logger.error(f"批量获取关注状态失败: {e}", exc_info=True)
+            return {}

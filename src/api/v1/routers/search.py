@@ -145,8 +145,23 @@ async def execute_search(request: SearchRequest, current_user: Dict[str, Any] = 
                 exclude_thread_ids=exclude_thread_ids,
             )
 
+        # 获取当前用户的关注状态
+        follow_status_map = {}
+        try:
+            user_id = int(current_user["id"]) if current_user and "id" in current_user else None
+            if user_id is not None:
+                async with async_session_factory() as session:
+                    follow_service = FollowService(session)
+                    thread_ids = [t.thread_id for t in threads]
+                    follow_status_map = await follow_service.get_follow_status_map(user_id, thread_ids)
+        except Exception as e:
+            print(f"获取关注状态失败: {e}")
+
         results = []
         for thread in threads:
+            # 获取该帖子的关注状态
+            status_info = follow_status_map.get(thread.thread_id, {})
+            
             # 手动创建 ThreadDetail 对象，确保字段正确映射
             thread_detail = ThreadDetail(
                 thread_id=thread.thread_id,
@@ -163,6 +178,8 @@ async def execute_search(request: SearchRequest, current_user: Dict[str, Any] = 
                 first_message_excerpt=thread.first_message_excerpt,
                 thumbnail_urls=thread.thumbnail_urls or [],
                 tags=[tag.name for tag in thread.tags],
+                is_following=status_info.get("is_following", False),
+                has_update=status_info.get("has_update", False),
             )
             results.append(thread_detail)
 

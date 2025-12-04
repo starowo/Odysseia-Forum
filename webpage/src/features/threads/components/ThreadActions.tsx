@@ -9,6 +9,7 @@ interface ThreadActionsProps {
     variant?: 'default' | 'white';
     alwaysVisible?: boolean;
     className?: string;
+    externalUrlOverride?: string | null;
 }
 
 /**
@@ -16,10 +17,10 @@ interface ThreadActionsProps {
  * variant: 'default' (主题色，用于普通背景) | 'white' (白色，用于深色背景/图片上)
  * alwaysVisible: 是否在桌面端始终显示（不依赖 group-hover）
  */
-export function ThreadActions({ threadId, guildId, size = 'md', variant = 'default', alwaysVisible = false, className }: ThreadActionsProps) {
+export function ThreadActions({ threadId, guildId, size = 'md', variant = 'default', alwaysVisible = false, className, externalUrlOverride }: ThreadActionsProps) {
     const finalGuildId = guildId || import.meta.env.VITE_GUILD_ID || '@me';
-    const discordUrl = `https://discord.com/channels/${finalGuildId}/${threadId}`;
-    const discordAppUrl = `discord://discord.com/channels/${finalGuildId}/${threadId}`;
+    const discordUrl = externalUrlOverride || `https://discord.com/channels/${finalGuildId}/${threadId}`;
+    const discordAppUrl = externalUrlOverride || `discord://discord.com/channels/${finalGuildId}/${threadId}`;
 
     const sizeClasses = {
         sm: {

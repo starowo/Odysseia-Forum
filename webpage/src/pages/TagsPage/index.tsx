@@ -150,7 +150,7 @@ export function TagsPage() {
               <div className="rounded-xl border border-[var(--od-border)] bg-[var(--od-card)] p-5 shadow-sm transition-all duration-200 hover:shadow-md sm:col-span-2 lg:col-span-1">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-[var(--od-text-secondary)]">平均每标签</p>
+                    <p className="text-sm text-[var(--od-text-secondary)]">平均帖子/每标签</p>
                     <p className="mt-1 text-3xl font-bold text-[var(--od-text-primary)]">
                       {totalTags > 0 ? Math.round(totalThreads / totalTags) : 0}
                     </p>
@@ -206,8 +206,7 @@ export function TagsPage() {
 
                     <div className="relative flex items-start justify-between">
                       <div className="flex-1 overflow-hidden">
-                        <div className="mb-2 flex items-center gap-2">
-                          <TagIcon className="h-4 w-4 flex-shrink-0 text-[var(--od-accent)]" />
+                        <div className="mb-2 flex items-center">
                           <h3 className="truncate font-semibold text-[var(--od-text-primary)] transition-colors group-hover:text-[var(--od-accent)]">
                             {tag.name}
                           </h3>

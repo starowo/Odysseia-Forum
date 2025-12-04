@@ -6,7 +6,7 @@ import { searchApi } from '@/features/search/api/searchApi';
 import { toast } from 'sonner';
 
 export function GlobalThreadPreview() {
-    const { previewThread, previewThreadId, setPreviewThread } = useSearchStore();
+    const { previewThread, previewThreadId, setPreviewThread, previewOptions } = useSearchStore();
 
     // Fetch thread details if only ID is provided
     const { data: fetchedThread, isError } = useQuery({
@@ -33,6 +33,8 @@ export function GlobalThreadPreview() {
         <ThreadPreviewOverlay
             thread={threadToShow}
             onClose={() => setPreviewThread(null)}
+            externalUrlOverride={previewOptions?.externalUrlOverride}
+            hideExternalButton={previewOptions?.hideExternalButton}
         />
     );
 }

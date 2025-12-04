@@ -30,12 +30,12 @@ export function AboutPage() {
   return (
     <MainLayout showTopBar={false}>
       <div
-        className="w-full min-h-full bg-cover bg-center bg-no-repeat flex items-center justify-center p-8"
+        className="w-full min-h-screen bg-cover bg-center bg-no-repeat flex items-center justify-center p-8"
         style={{ backgroundImage: `url(${backgroundImage})` }}
       >
         <div className="max-w-2xl w-full">
           {/* 主卡片 - 调整透明度 */}
-          <div className="rounded-2xl bg-[color-mix(in_oklab,var(--od-bg-secondary)_85%,transparent)] backdrop-blur-lg p-8 border border-[var(--od-border-strong)]/60 shadow-2xl">
+          <div className="rounded-2xl bg-[color-mix(in_oklab,var(--od-bg-secondary)_60%,transparent)] backdrop-blur-lg p-8 border border-[var(--od-border-strong)]/60 shadow-2xl">
             {/* Logo - 点击触发 oneko 小猫彩蛋 */}
             <div
               className="mb-8 flex justify-center cursor-pointer select-none"

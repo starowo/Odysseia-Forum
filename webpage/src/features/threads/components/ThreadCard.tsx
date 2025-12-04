@@ -11,6 +11,7 @@ import { fetchImagesApi } from '@/features/threads/api/fetchImagesApi';
 import { MultiImageGrid } from './MultiImageGrid';
 import { ThreadActions } from './ThreadActions';
 import { AuthorAvatar } from './AuthorAvatar';
+import { ThreadStatusBadges } from './ThreadStatusBadges';
 
 interface ThreadCardProps {
   thread: Thread;
@@ -180,13 +181,12 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
         </div>
       </div>
 
-      {/* Update Badge */}
-      {thread.has_update && (
-        <div className="absolute left-2 top-2 z-20 flex items-center gap-1 rounded-full bg-[#23a55a]/90 px-2 py-0.5 text-xs font-semibold text-white shadow-sm backdrop-blur-sm">
-          <span className="inline-block h-2 w-2 rounded-full bg-white animate-[pulse_2.4s_ease-in-out_infinite]" />
-          <span>有更新</span>
-        </div>
-      )}
+      {/* Status Badges */}
+      <ThreadStatusBadges
+        isFollowing={thread.is_following}
+        hasUpdate={thread.has_update}
+        variant="card"
+      />
 
       {/* Bottom Content Area */}
       <div className="absolute bottom-0 left-0 right-0 z-20 flex flex-col p-3 text-white">
@@ -216,9 +216,7 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
 
         {/* Title */}
         <h3 className="mb-2 line-clamp-2 text-sm font-bold leading-snug text-white drop-shadow-md md:text-base">
-          {thread.is_following && (
-            <span className="mr-1 inline-block h-2 w-2 rounded-full bg-[#f23f43] animate-[pulse_2.4s_ease-in-out_infinite]" />
-          )}
+
           <HighlightText text={thread.title} highlight={searchQuery} className="text-white" />
         </h3>
 

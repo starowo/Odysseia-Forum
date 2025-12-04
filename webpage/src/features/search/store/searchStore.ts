@@ -31,6 +31,10 @@ interface SearchState {
   bannerList: { id: string; image: string; title: string; description: string }[];
   previewThread: import('@/types/thread.types').Thread | null;
   previewThreadId: string | null;
+  previewOptions: {
+    externalUrlOverride?: string | null;
+    hideExternalButton?: boolean;
+  };
 
   // Actions
   setQuery: (query: string) => void;
@@ -47,8 +51,14 @@ interface SearchState {
   setMainBannerVisible: (visible: boolean) => void;
   setActiveBanner: (banner: { id: string; image: string; title: string; description: string } | null) => void;
   setBannerList: (banners: { id: string; image: string; title: string; description: string }[]) => void;
-  setPreviewThread: (thread: import('@/types/thread.types').Thread | null) => void;
-  setPreviewThreadId: (id: string | null) => void;
+  setPreviewThread: (
+    thread: import('@/types/thread.types').Thread | null,
+    options?: { externalUrlOverride?: string | null; hideExternalButton?: boolean }
+  ) => void;
+  setPreviewThreadId: (
+    id: string | null,
+    options?: { externalUrlOverride?: string | null; hideExternalButton?: boolean }
+  ) => void;
   clearFilters: () => void;
 }
 
@@ -71,6 +81,7 @@ export const useSearchStore = create<SearchState>()(
       bannerList: [],
       previewThread: null,
       previewThreadId: null,
+      previewOptions: {},
 
       // Actions
       setQuery: (query) => {
@@ -157,12 +168,20 @@ export const useSearchStore = create<SearchState>()(
         set({ bannerList: banners });
       },
 
-      setPreviewThread: (thread) => {
-        set({ previewThread: thread, previewThreadId: null });
+      setPreviewThread: (thread, options) => {
+        set({
+          previewThread: thread,
+          previewThreadId: null,
+          previewOptions: options || {},
+        });
       },
 
-      setPreviewThreadId: (id) => {
-        set({ previewThreadId: id, previewThread: null });
+      setPreviewThreadId: (id, options) => {
+        set({
+          previewThreadId: id,
+          previewThread: null,
+          previewOptions: options || {},
+        });
       },
 
       clearFilters: () => {

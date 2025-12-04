@@ -7,24 +7,33 @@ import { MarkdownText } from '@/components/common/MarkdownText';
 import { MultiImageGrid } from './MultiImageGrid';
 import { AuthorAvatar } from './AuthorAvatar';
 import { ThreadActions } from './ThreadActions';
+import { ThreadStatusBadges } from './ThreadStatusBadges';
 import type { Thread } from '@/types/thread.types';
 import { useSettings } from '@/hooks/useSettings';
 import { fontSizeMap } from '@/lib/settings';
+import { useLockBodyScroll } from '@/hooks/useLockBodyScroll';
 
 interface ThreadPreviewOverlayProps {
   thread: Thread;
   onClose: () => void;
+  externalUrlOverride?: string | null;
   hideExternalButton?: boolean;
 }
 
-export function ThreadPreviewOverlay({ thread, onClose, hideExternalButton = false }: ThreadPreviewOverlayProps) {
+export function ThreadPreviewOverlay({
+  thread,
+  onClose,
+  externalUrlOverride,
+  hideExternalButton,
+}: ThreadPreviewOverlayProps) {
   const { settings } = useSettings();
   const fontSizes = fontSizeMap[settings.fontSize];
   const [isVisible, setIsVisible] = useState(false);
 
+  useLockBodyScroll(true);
+
   useEffect(() => {
     setIsVisible(true);
-    document.body.style.overflow = 'hidden';
 
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') handleClose();
@@ -32,7 +41,6 @@ export function ThreadPreviewOverlay({ thread, onClose, hideExternalButton = fal
     window.addEventListener('keydown', handleEsc);
 
     return () => {
-      document.body.style.overflow = 'unset';
       window.removeEventListener('keydown', handleEsc);
     };
   }, []);
@@ -92,6 +100,12 @@ export function ThreadPreviewOverlay({ thread, onClose, hideExternalButton = fal
           {/* Title */}
           <h2 className={`mb-4 font-bold leading-tight text-[var(--od-text-primary)] ${fontSizes.title}`}>
             {thread.title}
+            <ThreadStatusBadges
+              isFollowing={thread.is_following}
+              hasUpdate={thread.has_update}
+              variant="detail"
+              className="ml-3 align-middle"
+            />
           </h2>
 
           {/* Tags */}
@@ -157,6 +171,7 @@ export function ThreadPreviewOverlay({ thread, onClose, hideExternalButton = fal
                 guildId={thread.guild_id}
                 size="md"
                 alwaysVisible={true}
+                externalUrlOverride={externalUrlOverride}
               />
             </div>
           )}
