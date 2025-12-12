@@ -24,6 +24,8 @@ class ThreadDetail(BaseModel):
     )
     tags: List[str] = Field(description="帖子关联的标签列表")
     collected_flag: bool = Field(default=False, description="当前用户是否收藏了此帖")
+    is_following: bool = Field(default=False, description="当前用户是否关注")
+    has_update: bool = Field(default=False, description="是否有未读更新")
 
     @field_serializer("thread_id", "channel_id")
     def serialize_id(self, value: int) -> str:
