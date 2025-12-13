@@ -1,5 +1,6 @@
 import re
 from typing import Tuple
+
 from shared.exceptions import InvalidRangeFormat
 
 

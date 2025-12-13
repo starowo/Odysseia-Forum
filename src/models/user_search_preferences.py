@@ -1,5 +1,6 @@
-from typing import Optional, List
-from sqlmodel import Field, SQLModel, JSON, Column
+from typing import List, Optional
+
+from sqlmodel import JSON, Column, Field, SQLModel
 
 
 class UserSearchPreferences(SQLModel, table=True):

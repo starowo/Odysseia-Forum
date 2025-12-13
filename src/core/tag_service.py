@@ -1,60 +1,78 @@
 import logging
-from collections import defaultdict
-from typing import List, Dict
-from sqlalchemy.ext.asyncio import async_sessionmaker
+from typing import List, Sequence, cast
 
-from ThreadManager.thread_manager_service import ThreadManagerService
+from sqlalchemy import ColumnElement
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select
+
+from models import Tag, Thread
 
 logger = logging.getLogger(__name__)
 
 
 class TagService:
-    """
-    一个封装了标签数据访问和缓存的服务
-    """
+    """封装与 Tag 表相关的数据库操作。"""
 
-    def __init__(self, session_factory: async_sessionmaker):
-        self.session_factory = session_factory
-        self._id_to_name: Dict[int, str] = {}
-        self._name_to_ids: Dict[str, List[int]] = defaultdict(list)
-        self._unique_tag_names: List[str] = []
+    def __init__(self, session: AsyncSession):
+        self.session = session
 
-    async def build_cache(self):
+    async def get_or_create_tags(self, tags_data: dict[int, str]) -> List[Tag]:
         """
-        从数据库加载所有标签，并构建/重建缓存。
-        这应该在机器人启动时以及索引更新后调用。
+        根据标签ID和名称的字典，获取或创建标签对象。
         """
-        logger.debug("Building tag cache...")
-        async with self.session_factory() as session:
-            repo = ThreadManagerService(session)
-            all_tags = await repo.get_all_tags()
+        if not tags_data:
+            return []
 
-        self._id_to_name.clear()
-        self._name_to_ids.clear()
+        tag_ids = list(tags_data.keys())
+        values_to_insert = [{"id": id, "name": name} for id, name in tags_data.items()]
 
-        temp_name_to_ids = defaultdict(list)
-        for tag in all_tags:
-            self._id_to_name[tag.id] = tag.name
-            temp_name_to_ids[tag.name].append(tag.id)
+        # 使用 INSERT ... ON CONFLICT DO UPDATE 一次性完成创建和更新
+        insert_stmt = sqlite_insert(Tag).values(values_to_insert)
 
-        self._name_to_ids = dict(temp_name_to_ids)
-        self._unique_tag_names = sorted(self._name_to_ids.keys())
-        logger.info(
-            f"Tag cache built. Found {len(all_tags)} tags, {len(self._unique_tag_names)} unique names."
+        # 构建 ON CONFLICT ... DO UPDATE 子句
+        # 当 'id' 冲突时，更新 'name' 字段
+        # 'excluded' 是一个特殊的对象，代表了在 INSERT 语句中试图插入的值
+        update_stmt = insert_stmt.on_conflict_do_update(
+            index_elements=["id"], set_={"name": insert_stmt.excluded.name}
         )
 
-    def get_name_by_id(self, tag_id: int) -> str | None:
-        """从缓存中通过ID获取标签名称。"""
-        return self._id_to_name.get(tag_id)
+        await self.session.execute(update_stmt)
 
-    def get_ids_by_name(self, tag_name: str) -> List[int]:
-        """从缓存中通过名称获取所有对应的标签ID。"""
-        return self._name_to_ids.get(tag_name, [])
+        # 查询所有相关的标签对象
+        final_statement = select(Tag).where(cast(ColumnElement, Tag.id).in_(tag_ids))
+        result = await self.session.execute(final_statement)
+        return list(result.scalars().all())
 
-    def get_all_tag_details(self) -> Dict[str, List[int]]:
-        """获取所有标签名称及其对应的ID列表。"""
-        return self._name_to_ids
+    async def get_tags_for_channels(self, channel_ids: List[int]) -> Sequence[Tag]:
+        """获取指定频道列表内的所有唯一标签"""
+        statement = (
+            select(Tag)
+            .join(Thread, Tag.threads)  # type: ignore
+            .where(cast(ColumnElement, Thread.channel_id).in_(channel_ids))
+            .distinct()
+        )
+        result = await self.session.execute(statement)
+        return result.scalars().all()
 
-    def get_unique_tag_names(self) -> List[str]:
-        """获取所有去重并排序后的标签名称列表。"""
-        return self._unique_tag_names
+    async def get_all_tags(self) -> Sequence[Tag]:
+        """获取数据库中所有的标签。"""
+        statement = select(Tag)
+        result = await self.session.execute(statement)
+        return result.scalars().all()
+
+    async def get_all_unique_tags_from_indexed_threads(self) -> Sequence[Tag]:
+        """获取所有已索引帖子中的唯一标签"""
+        statement = select(Tag).join(Thread, Tag.threads).distinct()  # type: ignore
+        result = await self.session.execute(statement)
+        return result.scalars().all()
+
+    async def update_tag_name(self, tag_id: int, new_name: str):
+        """更新指定ID的标签的名称。"""
+        statement = select(Tag).where(Tag.id == tag_id)  # type: ignore
+        result = await self.session.execute(statement)
+        tag = result.scalars().first()
+        if tag:
+            tag.name = new_name
+            self.session.add(tag)
+            await self.session.commit()

@@ -1,8 +1,11 @@
-import discord
 from typing import TYPE_CHECKING, List
 
-from .base_management_view import BaseManagementView
-from .thread_select import ThreadSelect
+import discord
+
+from collection.views.base_management_view import BaseManagementView
+from collection.views.thread_select import ThreadSelect
+from core.collection_service import CollectionService
+from core.thread_service import ThreadService
 from shared.enum.collection_type import CollectionType
 
 if TYPE_CHECKING:
@@ -45,12 +48,18 @@ class BatchCollectView(BaseManagementView):
             )
             return
 
-        async with self.cog.get_collection_service() as service:
-            result = await service.add_collections(
+        async with self.cog.get_session() as session:
+            collection_service = CollectionService(session)
+            result = await collection_service.add_collections(
                 interaction.user.id, CollectionType.THREAD, thread_ids
             )
+
+            if result.added_count > 0:
+                thread_service = ThreadService(session)
+                await thread_service.update_collection_counts(result.added_ids, 1)
+
             await interaction.response.send_message(
-                f"操作完成！成功收藏 {result['added']} 个帖子，{result['duplicates']} 个已存在。",
+                f"操作完成！成功收藏 {result.added_count} 个帖子，{result.duplicate_count} 个已存在。",
                 ephemeral=True,
                 delete_after=10,
             )
@@ -78,12 +87,18 @@ class BatchCollectView(BaseManagementView):
             return
 
         thread_ids = [int(tid) for tid in self.selected_threads]
-        async with self.cog.get_collection_service() as service:
-            result = await service.add_collections(
+        async with self.cog.get_session() as session:
+            collection_service = CollectionService(session)
+            result = await collection_service.add_collections(
                 interaction.user.id, CollectionType.THREAD, thread_ids
             )
+
+            if result.added_count > 0:
+                thread_service = ThreadService(session)
+                await thread_service.update_collection_counts(result.added_ids, 1)
+
             await interaction.response.send_message(
-                f"操作完成！成功收藏 {result['added']} 个帖子，{result['duplicates']} 个已存在。",
+                f"操作完成！成功收藏 {result.added_count} 个帖子，{result.duplicate_count} 个已存在。",
                 ephemeral=True,
                 delete_after=10,
             )

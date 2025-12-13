@@ -1,19 +1,21 @@
+import logging
+from contextlib import asynccontextmanager
+from typing import TYPE_CHECKING, AsyncIterator
+
 import discord
 from discord import app_commands
 from discord.ext import commands
-from sqlalchemy.ext.asyncio import async_sessionmaker
-from typing import TYPE_CHECKING, AsyncIterator
-import logging
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from .listeners import CollectionListenerCog
-from shared.safe_defer import safe_defer
-from .collection_service import CollectionService
+from collection.listeners import CollectionListenerCog
+from core.collection_service import CollectionService
+from core.thread_service import ThreadService
 from shared.enum.collection_type import CollectionType
-from contextlib import asynccontextmanager
+from shared.safe_defer import safe_defer
 
 if TYPE_CHECKING:
     from bot_main import MyBot
-    from .listeners import CollectionListenerCog
+    from collection.listeners import CollectionListenerCog
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +33,18 @@ class CollectionCog(commands.Cog, name="CollectionCog"):
         async with self.session_factory() as session:
             yield CollectionService(session)
 
+    @asynccontextmanager
+    async def get_thread_service(self) -> AsyncIterator[ThreadService]:
+        """提供一个 ThreadService 的实例，并管理 session 的生命周期"""
+        async with self.session_factory() as session:
+            yield ThreadService(session)
+
+    @asynccontextmanager
+    async def get_session(self) -> AsyncIterator[AsyncSession]:
+        """提供一个数据库 session，用于需要多个服务协同工作的场景"""
+        async with self.session_factory() as session:
+            yield session
+
     async def cog_load(self):
         """在Cog加载时，注册上下文菜单并加载监听器 Cog"""
 
@@ -39,11 +53,11 @@ class CollectionCog(commands.Cog, name="CollectionCog"):
 
         # 注册上下文菜单
         collect_menu = app_commands.ContextMenu(
-            name="收藏此帖",
+            name="⭐ 收藏此帖",
             callback=self.collect_thread_context_menu,
         )
         remove_menu = app_commands.ContextMenu(
-            name="移除收藏",
+            name="➖ 移除收藏",
             callback=self.remove_collection_context_menu,
         )
         self.bot.tree.add_command(collect_menu)
@@ -65,18 +79,22 @@ class CollectionCog(commands.Cog, name="CollectionCog"):
         thread_id = message.channel.id
         user_id = interaction.user.id
 
-        async with self.get_collection_service() as service:
-            success = await service.add_collection(
+        async with self.get_session() as session:
+            collection_service = CollectionService(session)
+            success = await collection_service.add_collection(
                 user_id=user_id, target_type=CollectionType.THREAD, target_id=thread_id
             )
+            if success:
+                thread_service = ThreadService(session)
+                await thread_service.update_collection_counts([thread_id], 1)
 
         if success:
             await interaction.followup.send(
-                f"✅ **{message.channel.name}** 已成功添加至您的收藏！", ephemeral=True
+                f"✅ 「 **{message.channel.name}** 」已成功添加至您的收藏！", ephemeral=True
             )
         else:
             await interaction.followup.send(
-                f"🤔 您之前已经收藏过 **{message.channel.name}** 了。", ephemeral=True
+                f"🤔 您之前已经收藏过「 **{message.channel.name}** 」了", ephemeral=True
             )
 
     async def remove_collection_context_menu(
@@ -94,10 +112,14 @@ class CollectionCog(commands.Cog, name="CollectionCog"):
         thread_id = message.channel.id
         user_id = interaction.user.id
 
-        async with self.get_collection_service() as service:
-            success = await service.remove_collection(
+        async with self.get_session() as session:
+            collection_service = CollectionService(session)
+            success = await collection_service.remove_collection(
                 user_id=user_id, target_type=CollectionType.THREAD, target_id=thread_id
             )
+            if success:
+                thread_service = ThreadService(session)
+                await thread_service.update_collection_counts([thread_id], -1)
 
         if success:
             await interaction.followup.send(

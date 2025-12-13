@@ -1,13 +1,14 @@
-import discord
 from typing import TYPE_CHECKING, Sequence, Set
 
+import discord
+
+from search.strategies import DefaultSearchStrategy
 from shared.safe_defer import safe_defer
-from .generic_search_view import GenericSearchView
-from ..strategies import DefaultSearchStrategy
+from search.views.generic_search_view import GenericSearchView
 
 if TYPE_CHECKING:
-    from ..cog import Search
-    from ..dto.search_state import SearchStateDTO
+    from search.cog import Search
+    from search.dto.search_state import SearchStateDTO
 
 
 class ChannelSelectionView(discord.ui.View):
@@ -204,23 +205,23 @@ class ChannelSelectionView(discord.ui.View):
             final_selected_ids = []
 
         # 重新获取合并后的标签（基于最终选择的频道）
-        merged_tags = self.cog.get_merged_tags(final_selected_ids)
-        correct_tag_names = [tag.name for tag in merged_tags]
-        correct_tag_names_set = set(correct_tag_names)
+        merged_tag_names = self.cog.get_merged_tag_names(final_selected_ids)
+        merged_tag_names_set = set(merged_tag_names)
 
         # 过滤已有偏好中的标签，确保它们在当前选定的频道中依然有效
         self.search_state.include_tags = self.search_state.include_tags.intersection(
-            correct_tag_names_set
+            merged_tag_names_set
         )
         self.search_state.exclude_tags = self.search_state.exclude_tags.intersection(
-            correct_tag_names_set
+            merged_tag_names_set
         )
 
         # 更新状态
         self.search_state.channel_ids = final_selected_ids
-        self.search_state.all_available_tags = correct_tag_names
+        self.search_state.all_available_tags = merged_tag_names
 
-        # 启动通用搜索视图
+        
+
         generic_view = GenericSearchView(
             self.cog, interaction, self.search_state, strategy=DefaultSearchStrategy()
         )

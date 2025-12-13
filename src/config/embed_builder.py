@@ -1,6 +1,8 @@
-import discord
 from typing import List, Optional
-from shared.models.bot_config import BotConfig
+
+import discord
+
+from models import BotConfig
 
 
 class ConfigEmbedBuilder:

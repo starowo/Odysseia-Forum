@@ -1,16 +1,17 @@
 """Banner申请和管理Cog"""
 
 import logging
+from typing import TYPE_CHECKING, cast
+
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
-from typing import TYPE_CHECKING, cast
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from src.shared.safe_defer import safe_defer
-from .banner_service import BannerService
-from .views.banner_application_button_view import BannerApplicationButtonView
-from .views.review_view import ReviewView
+from banner.banner_service import BannerService
+from banner.views.banner_application_button_view import BannerApplicationButtonView
+from banner.views.review_view import ReviewView
+from shared.safe_defer import safe_defer
 
 if TYPE_CHECKING:
     from bot_main import MyBot
@@ -270,6 +271,6 @@ class BannerManagement(commands.Cog):
 
 async def setup(bot: "MyBot"):
     """设置Cog"""
-    from src.shared.database import AsyncSessionFactory
+    from shared.database import AsyncSessionFactory
 
     await bot.add_cog(BannerManagement(bot, AsyncSessionFactory))

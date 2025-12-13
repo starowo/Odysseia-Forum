@@ -1,9 +1,9 @@
-import discord
 from typing import TYPE_CHECKING
 
+import discord
 
 if TYPE_CHECKING:
-    from ..cog import Search
+    from search.cog import Search
 
 
 class GlobalSearchView(discord.ui.View):

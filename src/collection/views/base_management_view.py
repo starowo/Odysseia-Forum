@@ -1,12 +1,13 @@
-import discord
-from typing import TYPE_CHECKING, List, Optional, Callable, Awaitable, Tuple, Set
+from typing import TYPE_CHECKING, Awaitable, Callable, List, Optional, Set, Tuple
 
-from shared.models import Thread
+import discord
+
+from models import Thread
 from shared.safe_defer import safe_defer
 from shared.views.components.page_jump_modal import PageJumpModal
 
 if TYPE_CHECKING:
-    from ..cog import CollectionCog
+    from collection.cog import CollectionCog
 
 
 class BaseManagementView(discord.ui.View):

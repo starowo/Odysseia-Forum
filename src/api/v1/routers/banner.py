@@ -1,13 +1,14 @@
 """Banner申请API路由"""
 
 import logging
+from typing import TYPE_CHECKING, Any, Dict, Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import async_sessionmaker
-from typing import Dict, Any, Optional, TYPE_CHECKING
 
-from ..dependencies.security import require_auth, get_current_user
-from src.banner.banner_service import BannerService, send_review_message
+from api.v1.dependencies.security import get_current_user, require_auth
+from banner.banner_service import BannerService, send_review_message
 
 if TYPE_CHECKING:
     from bot_main import MyBot

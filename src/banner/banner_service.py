@@ -2,18 +2,19 @@
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timezone, timedelta
-from typing import Optional, List, Tuple, TYPE_CHECKING
-from sqlmodel import select, and_, desc
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from datetime import datetime, timedelta, timezone
+from typing import TYPE_CHECKING, List, Optional, Tuple
 
-from shared.models.banner_application import (
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+from sqlmodel import and_, desc, select
+
+from models import (
     BannerApplication,
     BannerCarousel,
     BannerWaitlist,
-    ApplicationStatus,
+    Thread,
 )
-from shared.models.thread import Thread
+from shared.enum.application_status import ApplicationStatus
 
 if TYPE_CHECKING:
     from bot_main import MyBot
@@ -52,7 +53,8 @@ async def send_review_message(
         bool: 是否发送成功
     """
     import discord
-    from src.banner.views.review_view import ReviewView
+
+    from banner.views.review_view import ReviewView
 
     review_thread_id = config.get("review_thread_id")
     if not review_thread_id:

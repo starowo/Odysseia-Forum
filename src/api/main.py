@@ -1,23 +1,19 @@
 import json
+
 from fastapi import FastAPI
-from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.openapi.docs import get_swagger_ui_html
-from fastapi.openapi.utils import get_openapi
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.openapi.docs import get_swagger_ui_html
-from fastapi.openapi.utils import get_openapi
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from .v1.routers import (
-    preferences,
-    search,
+from fastapi.middleware.gzip import GZipMiddleware
+
+from api.v1.routers import (
     auth,
-    follows,
-    fetch_images,
     banner,
+    booklists,
     meta,
     collections,
-    booklists,
+    fetch_images,
+    follows,
+    preferences,
+    search,
 )
 
 # 读取配置

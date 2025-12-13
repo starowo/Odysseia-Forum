@@ -1,6 +1,7 @@
+from typing import cast
+
 import discord
 from discord.ui import Label
-from typing import cast
 
 
 class KeywordModal(discord.ui.Modal, title="设置关键词过滤"):

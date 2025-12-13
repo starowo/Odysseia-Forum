@@ -1,16 +1,16 @@
 import logging
+from typing import TYPE_CHECKING, cast
+
 import discord
 from discord import app_commands
 from discord.ext import commands
-from typing import TYPE_CHECKING, cast
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from config.config_service import ConfigService
+from config.general_config_handler import GeneralConfigHandler
+from config.mutex_tags_handler import MutexTagsHandler
+from core.tag_cache_service import TagCacheService
 from shared.safe_defer import safe_defer
-
-from .mutex_tags_handler import MutexTagsHandler
-from .general_config_handler import GeneralConfigHandler
-from core.tag_service import TagService
-from .config_service import ConfigService
 
 if TYPE_CHECKING:
     from bot_main import MyBot
@@ -59,7 +59,7 @@ class Configuration(commands.Cog):
         bot: "MyBot",
         session_factory: async_sessionmaker,
         api_scheduler,
-        tag_service: TagService,
+        tag_service: TagCacheService,
         config_service: ConfigService,
     ):
         self.bot = bot

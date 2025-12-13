@@ -1,7 +1,9 @@
-from pydantic import BaseModel, Field, field_serializer
-from typing import Optional, List
 from datetime import datetime
-from .author import AuthorDetail
+from typing import List, Optional
+
+from pydantic import BaseModel, Field, field_serializer
+
+from api.v1.schemas.search.author import AuthorDetail
 
 
 class ThreadDetail(BaseModel):

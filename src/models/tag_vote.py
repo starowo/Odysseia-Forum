@@ -1,9 +1,9 @@
-from typing import Optional, TYPE_CHECKING
-from sqlmodel import Field, SQLModel, Relationship, UniqueConstraint
+from typing import TYPE_CHECKING, Optional
+
+from sqlmodel import Field, Relationship, SQLModel, UniqueConstraint
 
 if TYPE_CHECKING:
-    from .tag import Tag
-    from .thread import Thread
+    from models import Tag, Thread
 
 
 class TagVote(SQLModel, table=True):

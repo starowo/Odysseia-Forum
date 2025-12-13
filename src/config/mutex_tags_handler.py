@@ -1,20 +1,19 @@
 import logging
-import discord
 from typing import TYPE_CHECKING, List, Optional
 
-from shared.safe_defer import safe_defer
-from config.config_service import ConfigService
-from config.views.mutex_config_view import MutexConfigView
-from config.views.components.delete_group_modal import DeleteGroupModal
-
-from config.views.add_mutex_group_view import AddMutexGroupView
-
-from shared.api_scheduler import APIScheduler
+import discord
 from sqlalchemy.ext.asyncio import async_sessionmaker
+
+from config.config_service import ConfigService
+from config.views.add_mutex_group_view import AddMutexGroupView
+from config.views.components.delete_group_modal import DeleteGroupModal
+from config.views.mutex_config_view import MutexConfigView
+from shared.api_scheduler import APIScheduler
+from shared.safe_defer import safe_defer
 
 if TYPE_CHECKING:
     from bot_main import MyBot
-    from core.tag_service import TagService
+    from core.tag_cache_service import TagCacheService
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +24,7 @@ class MutexTagsHandler:
         bot: "MyBot",
         session_factory: async_sessionmaker,
         api_scheduler: APIScheduler,
-        tag_service: "TagService",
+        tag_service: "TagCacheService",
     ):
         self.bot = bot
         self.session_factory = session_factory

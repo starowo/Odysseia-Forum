@@ -1,11 +1,12 @@
 """审核视图"""
 
 import logging
-import discord
 from typing import TYPE_CHECKING
+
+import discord
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from src.banner.banner_service import BannerService
+from banner.banner_service import BannerService
 
 if TYPE_CHECKING:
     from bot_main import MyBot

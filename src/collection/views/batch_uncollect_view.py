@@ -1,9 +1,12 @@
-import discord
 from typing import TYPE_CHECKING, List
 
-from .base_management_view import BaseManagementView
-from .thread_select import ThreadSelect
-from .confirmation_view import ConfirmationView
+import discord
+
+from collection.views.base_management_view import BaseManagementView
+from collection.views.confirmation_view import ConfirmationView
+from collection.views.thread_select import ThreadSelect
+from core.collection_service import CollectionService
+from core.thread_service import ThreadService
 from shared.enum.collection_type import CollectionType
 
 if TYPE_CHECKING:
@@ -41,12 +44,18 @@ class BatchUncollectView(BaseManagementView):
             )
             return
 
-        async with self.cog.get_collection_service() as service:
-            result = await service.remove_collections(
+        async with self.cog.get_session() as session:
+            collection_service = CollectionService(session)
+            result = await collection_service.remove_collections(
                 interaction.user.id, CollectionType.THREAD, thread_ids
             )
+
+            if result.removed_count > 0:
+                thread_service = ThreadService(session)
+                await thread_service.update_collection_counts(result.removed_ids, -1)
+
             await interaction.response.edit_message(
-                content=f"操作完成！成功取消收藏 {result['removed']} 个帖子。",
+                content=f"操作完成！成功取消收藏 {result.removed_count} 个帖子。",
                 view=None,
             )
 
@@ -89,12 +98,18 @@ class BatchUncollectView(BaseManagementView):
             return
 
         thread_ids = [int(tid) for tid in self.selected_threads]
-        async with self.cog.get_collection_service() as service:
-            result = await service.remove_collections(
+        async with self.cog.get_session() as session:
+            collection_service = CollectionService(session)
+            result = await collection_service.remove_collections(
                 interaction.user.id, CollectionType.THREAD, thread_ids
             )
+
+            if result.removed_count > 0:
+                thread_service = ThreadService(session)
+                await thread_service.update_collection_counts(result.removed_ids, -1)
+
             await interaction.response.send_message(
-                f"操作完成！成功取消收藏 {result['removed']} 个帖子。",
+                f"操作完成！成功取消收藏 {result.removed_count} 个帖子。",
                 ephemeral=True,
                 delete_after=10,
             )

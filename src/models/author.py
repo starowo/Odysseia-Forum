@@ -1,6 +1,7 @@
-from typing import Optional
-from sqlmodel import Field, SQLModel, BigInteger, Column
 from datetime import datetime, timezone
+from typing import Optional
+
+from sqlmodel import BigInteger, Column, Field, SQLModel
 
 
 class Author(SQLModel, table=True):

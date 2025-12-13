@@ -1,11 +1,11 @@
 """JWT utility functions for authentication"""
 
-import hmac
-import hashlib
-import json
 import base64
+import hashlib
+import hmac
+import json
 import time
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
 
 
 def base64url_encode(data: bytes) -> str:

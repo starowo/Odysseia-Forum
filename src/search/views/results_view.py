@@ -1,12 +1,13 @@
-import discord
 import math
 from typing import TYPE_CHECKING
 
+import discord
+
 from search.qo.thread_search import ThreadSearchQuery
-from ...shared.views.components.page_jump_modal import PageJumpModal
+from shared.views.components.page_jump_modal import PageJumpModal
 
 if TYPE_CHECKING:
-    from ..cog import Search
+    from search.cog import Search
 
 
 class SearchResultsView(discord.ui.View):

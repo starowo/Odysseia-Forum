@@ -1,5 +1,6 @@
-import discord
 from typing import Callable, Coroutine
+
+import discord
 
 from shared.safe_defer import safe_defer
 

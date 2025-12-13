@@ -1,13 +1,12 @@
-from typing import List, Optional, TYPE_CHECKING
 from datetime import datetime, timezone
-from sqlmodel import Field, SQLModel, Relationship, BigInteger, Column, JSON
+from typing import TYPE_CHECKING, List, Optional
 
-from .thread_tag_link import ThreadTagLink
+from sqlmodel import JSON, BigInteger, Column, Field, Relationship, SQLModel
+
+from models import ThreadTagLink
 
 if TYPE_CHECKING:
-    from .tag import Tag
-    from .tag_vote import TagVote
-    from .author import Author
+    from models import Author, Tag, TagVote
 
 
 class Thread(SQLModel, table=True):
@@ -35,6 +34,7 @@ class Thread(SQLModel, table=True):
     latest_update_link: Optional[str] = Field(
         default=None, description="最新版消息链接"
     )
+    collection_count: int = Field(default=0, description="被收藏次数")
 
     # 帖子是否在搜索中显示
     show_flag: bool = Field(

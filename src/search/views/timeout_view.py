@@ -1,11 +1,12 @@
-import discord
 from typing import TYPE_CHECKING, Type
 
-from .components.continue_button import ContinueButton
+import discord
+
+from search.views.components.continue_button import ContinueButton
 
 if TYPE_CHECKING:
-    from ..cog import Search
-    from .generic_search_view import GenericSearchView
+    from search.cog import Search
+    from search.views.generic_search_view import GenericSearchView
 
 
 class TimeoutView(discord.ui.View):

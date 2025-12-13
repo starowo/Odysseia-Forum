@@ -1,5 +1,6 @@
-import discord
 from typing import Callable, Coroutine
+
+import discord
 
 
 class ConfirmButton(discord.ui.Button):

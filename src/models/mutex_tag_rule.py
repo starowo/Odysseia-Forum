@@ -1,8 +1,9 @@
-from typing import Optional, TYPE_CHECKING
-from sqlmodel import Field, SQLModel, Relationship
+from typing import TYPE_CHECKING, Optional
+
+from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
-    from .mutex_tag_group import MutexTagGroup
+    from models import MutexTagGroup
 
 
 class MutexTagRule(SQLModel, table=True):

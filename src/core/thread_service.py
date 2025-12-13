@@ -1,53 +1,25 @@
 import logging
-from typing import List, Sequence, cast
 from datetime import datetime
-from shared.models.tag_vote import TagVote
-from sqlmodel import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import update, ColumnElement, case
-from sqlalchemy.orm import selectinload
-from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+from typing import List, Sequence, cast
 
-from shared.models.thread import Thread
-from shared.models.tag import Tag
-from shared.models.thread_tag_link import ThreadTagLink
-from .update_data_dto import UpdateData
+from sqlalchemy import ColumnElement, case, update
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+from sqlmodel import select
+
+from core.tag_service import TagService
+from models import TagVote, Thread, ThreadTagLink
+from ThreadManager.update_data_dto import UpdateData
 
 logger = logging.getLogger(__name__)
 
 
-class ThreadManagerService:
-    """封装与标签系统相关的数据库操作。"""
+class ThreadService:
+    """封装与 Thread 表相关的数据库操作。"""
 
     def __init__(self, session: AsyncSession):
         self.session = session
-
-    async def get_or_create_tags(self, tags_data: dict[int, str]) -> List[Tag]:
-        """
-        根据标签ID和名称的字典，获取或创建标签对象。
-        """
-        if not tags_data:
-            return []
-
-        tag_ids = list(tags_data.keys())
-        values_to_insert = [{"id": id, "name": name} for id, name in tags_data.items()]
-
-        # 1. 使用 INSERT ... ON CONFLICT DO UPDATE 一次性完成创建和更新
-        insert_stmt = sqlite_insert(Tag).values(values_to_insert)
-
-        # 构建 ON CONFLICT ... DO UPDATE 子句
-        # 当 'id' 冲突时，更新 'name' 字段
-        # 'excluded' 是一个特殊的对象，代表了在 INSERT 语句中试图插入的值
-        update_stmt = insert_stmt.on_conflict_do_update(
-            index_elements=["id"], set_={"name": insert_stmt.excluded.name}
-        )
-
-        await self.session.execute(update_stmt)
-
-        # 2. 查询所有相关的标签对象
-        final_statement = select(Tag).where(cast(ColumnElement, Tag.id).in_(tag_ids))
-        result = await self.session.execute(final_statement)
-        return list(result.scalars().all())
+        self.tag_service = TagService(session)
 
     async def add_or_update_thread_with_tags(
         self, thread_data: dict, tags_data: dict[int, str]
@@ -65,7 +37,7 @@ class ThreadManagerService:
         db_thread = result.scalars().first()
 
         # 获取或创建所有相关标签
-        tags = await self.get_or_create_tags(tags_data)
+        tags = await self.tag_service.get_or_create_tags(tags_data)
 
         if db_thread:
             # 更新帖子
@@ -99,7 +71,7 @@ class ThreadManagerService:
         await self.session.commit()
 
     async def delete_thread_index(self, thread_id: int):
-        """删除帖子的所有相关索引数据"""
+        """删除帖子记录"""
         statement = select(Thread).where(Thread.thread_id == thread_id)  # type: ignore
         result = await self.session.execute(statement)
         db_thread = result.scalars().first()
@@ -110,7 +82,7 @@ class ThreadManagerService:
     async def update_thread_activity(
         self, thread_id: int, last_active_at: datetime, reply_count: int
     ):
-        """仅更新帖子的活跃时间和回复数"""
+        """更新帖子的活跃时间和回复数"""
         stmt = (
             update(Thread)
             .where(Thread.thread_id == thread_id)  # type: ignore
@@ -125,7 +97,7 @@ class ThreadManagerService:
     async def update_thread_last_active_at(
         self, thread_id: int, last_active_at: datetime
     ):
-        """仅更新帖子的最后活跃时间"""
+        """更新帖子的最后活跃时间"""
         stmt = (
             update(Thread)
             .where(Thread.thread_id == thread_id)  # type: ignore
@@ -137,7 +109,7 @@ class ThreadManagerService:
     async def update_thread_reaction_count(
         self, thread_id: int, reaction_count: int
     ) -> bool:
-        """仅更新帖子的反应数。如果更新成功（至少影响了一行），则返回 True，否则返回 False。"""
+        """更新帖子的反应数。如果更新成功（至少影响了一行），则返回 True，否则返回 False。"""
         stmt = (
             update(Thread)
             .where(Thread.thread_id == thread_id)  # type: ignore
@@ -148,33 +120,6 @@ class ThreadManagerService:
         await self.session.commit()
         # 返回 rowcount 是否大于 0
         return result.rowcount > 0
-
-    async def get_tags_for_channels(self, channel_ids: List[int]) -> Sequence[Tag]:
-        """获取指定频道列表内的所有唯一标签"""
-        statement = (
-            select(Tag)
-            .join(Thread, Tag.threads)  # type: ignore
-            .where(cast(ColumnElement, Thread.channel_id).in_(channel_ids))
-            .distinct()
-        )
-        result = await self.session.execute(statement)
-        return result.scalars().all()
-
-    async def get_all_tags(self) -> Sequence[Tag]:
-        """获取数据库中所有的标签。"""
-        statement = select(Tag)
-        result = await self.session.execute(statement)
-        return result.scalars().all()
-
-    async def update_tag_name(self, tag_id: int, new_name: str):
-        """更新指定ID的标签的名称。"""
-        statement = select(Tag).where(Tag.id == tag_id)  # type: ignore
-        result = await self.session.execute(statement)
-        tag = result.scalars().first()
-        if tag:
-            tag.name = new_name
-            self.session.add(tag)
-            await self.session.commit()
 
     async def record_tag_vote(
         self,
@@ -334,7 +279,7 @@ class ThreadManagerService:
 
     async def get_existing_thread_ids(self, thread_ids: List[int]) -> List[int]:
         """
-        从给定的ID列表中，查询并返回那些在数据库中真实存在的ID。
+        从给定的ID列表中，查询并返回那些在数据库中真实存在的记录ID
         """
         if not thread_ids:
             return []
@@ -383,3 +328,30 @@ class ThreadManagerService:
         result = await self.session.execute(stmt)
         await self.session.commit()
         return result.rowcount > 0
+
+    async def update_collection_counts(self, thread_ids: List[int], delta: int) -> None:
+        """
+        批量更新帖子的被收藏次数
+        """
+        if not thread_ids:
+            return
+
+        try:
+            statement = (
+                update(Thread)
+                .where(Thread.thread_id.in_(thread_ids))  # type: ignore
+                .values(collection_count=Thread.collection_count + delta)
+                .execution_options(synchronize_session=False)
+            )
+            await self.session.execute(statement)
+            await self.session.commit()
+        except Exception as e:
+            logger.error(f"批量更新帖子收藏数失败: {e}", exc_info=True)
+            await self.session.rollback()
+            raise
+
+    async def get_all_indexed_channel_ids(self) -> Sequence[int]:
+        """从数据库获取所有已索引的频道ID"""
+        statement = select(Thread.channel_id).distinct()
+        result = await self.session.execute(statement)
+        return result.scalars().all()

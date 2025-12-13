@@ -1,6 +1,8 @@
+from typing import List, Optional
+
 from pydantic import BaseModel, Field
-from typing import Optional, List
-from src.shared.enum.default_preferences import DefaultPreferences
+
+from shared.enum.default_preferences import DefaultPreferences
 
 
 class SearchRequest(BaseModel):
@@ -74,11 +76,11 @@ class SearchRequest(BaseModel):
         description="排序方法：'comprehensive'(综合排序), "
         "'created_at'(发帖时间), 'last_active'(最后活跃时间), "
         "'reaction_count'(点赞数), 'reply_count'(回复数), "
-        "'custom'(自定义)",
+        "'collected_at'(收藏时间), 'custom'(自定义)",
     )
     custom_base_sort: str = Field(
         default="comprehensive",
-        description="当排序方法为 'custom' 时，作为基础的排序算法",
+        description="当排序方法为 'custom' 时，作为基础的排序算法。可选值与'sort_method'相同，除了'custom'",
     )
     sort_order: str = Field(
         default="desc", description="排序顺序：'asc'(升序) 或 'desc'(降序)"

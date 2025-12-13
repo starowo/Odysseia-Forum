@@ -1,10 +1,11 @@
 import logging
 from typing import Optional
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.user_search_preferences import UserSearchPreferences
+from core.tag_cache_service import TagCacheService
+from models import UserSearchPreferences
 from search.dto.user_search_preferences import UserSearchPreferencesDTO
-from core.tag_service import TagService
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +13,7 @@ logger = logging.getLogger(__name__)
 class PreferencesRepository:
     """封装与用户偏好设置相关的数据库操作。"""
 
-    def __init__(self, session: AsyncSession, tag_service: TagService):
+    def __init__(self, session: AsyncSession, tag_service: TagCacheService):
         self.session = session
         self.tag_service = tag_service
 

@@ -1,17 +1,17 @@
+import logging
+from typing import TYPE_CHECKING
+
 import discord
 from discord.ext import commands
-from typing import TYPE_CHECKING
-import logging
 
-from .views.batch_collect_view import BatchCollectView
-from .views.batch_uncollect_view import BatchUncollectView
-
-from shared.models.thread import Thread
+from collection.views.batch_collect_view import BatchCollectView
+from collection.views.batch_uncollect_view import BatchUncollectView
+from models import Thread
 from shared.enum.collection_type import CollectionType
 
 if TYPE_CHECKING:
     from bot_main import MyBot
-    from .cog import CollectionCog
+    from collection.cog import CollectionCog
 
 logger = logging.getLogger(__name__)
 

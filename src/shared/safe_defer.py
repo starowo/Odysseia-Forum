@@ -1,5 +1,6 @@
-import discord
 import logging
+
+import discord
 
 # 获取一个模块级别的 logger
 logger = logging.getLogger(__name__)

@@ -1,20 +1,21 @@
-import discord
-from typing import List, TYPE_CHECKING, Optional
-from .search_strategy import SearchStrategy
-from shared.views.tag_select import TagSelect
-from ..views.components.keyword_modal import KeywordButton
-from ..views.components.tag_logic_button import TagLogicButton
-from ..views.components.sort_order_button import SortOrderButton
-from ..views.components.sort_method_select import SortMethodSelect
-from ..views.components.tag_page_button import TagPageButton
-from ..constants import SortMethod
+from typing import TYPE_CHECKING, List, Optional
 
+import discord
+
+from search.constants import SortMethod
+from search.strategies.search_strategy import SearchStrategy
+from search.views.components.keyword_modal import KeywordButton
+from search.views.components.sort_method_select import SortMethodSelect
+from search.views.components.sort_order_button import SortOrderButton
+from search.views.components.tag_logic_button import TagLogicButton
+from search.views.components.tag_page_button import TagPageButton
+from shared.views.tag_select import TagSelect
 
 if TYPE_CHECKING:
-    from ..cog import Search
-    from ..qo.thread_search import ThreadSearchQuery
-    from ..dto.search_state import SearchStateDTO
-    from ..views.generic_search_view import GenericSearchView
+    from search.cog import Search
+    from search.dto.search_state import SearchStateDTO
+    from search.qo.thread_search import ThreadSearchQuery
+    from search.views import GenericSearchView
 
 
 class DefaultSearchStrategy(SearchStrategy):
@@ -26,8 +27,7 @@ class DefaultSearchStrategy(SearchStrategy):
     async def get_available_tags(
         self, cog: "Search", state: "SearchStateDTO"
     ) -> List[str]:
-        tags = cog.get_merged_tags(state.channel_ids)
-        return [tag.name for tag in tags]
+        return cog.get_merged_tag_names(state.channel_ids)
 
     def modify_query(self, query: "ThreadSearchQuery") -> "ThreadSearchQuery":
         # 默认策略不做任何修改

@@ -1,5 +1,6 @@
-from typing import Optional
 from datetime import datetime, timezone
+from typing import Optional
+
 from sqlmodel import Field, SQLModel, UniqueConstraint
 
 
@@ -18,11 +19,14 @@ class BooklistItem(SQLModel, table=True):
     booklist_id: int = Field(index=True, description="所属书单ID")
     thread_id: int = Field(index=True, description="关联的帖子ID")
 
-    # 排序权重，数字越小越靠前，或者按加入时间排
+    # （可选的）排序数据，用于控制展示顺序
     display_order: int = Field(default=0, index=True)
 
     # 推荐语/备注 (用户在这个书单里对这个帖子的特殊评价)
-    comment: Optional[str] = Field(default=None, description="书单主对该帖子的推荐语")
+    comment: Optional[str] = Field(default=None, description="书单主对该帖子的备注")
+
+    # Discord 展示消息ID
+    display_message_id: Optional[int] = Field(default=None, description="展示消息的ID")
 
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc), description="加入书单的时间"

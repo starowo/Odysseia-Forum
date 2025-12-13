@@ -1,5 +1,6 @@
-import discord
 from typing import List, Optional
+
+import discord
 
 from search.constants import SortMethod
 

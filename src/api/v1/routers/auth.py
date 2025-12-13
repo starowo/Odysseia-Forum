@@ -4,11 +4,12 @@ import json
 import logging
 from typing import Optional
 from urllib.parse import urlencode
-from fastapi import APIRouter, Request, HTTPException, status, Response
-from fastapi.responses import RedirectResponse, JSONResponse
-import httpx
 
-from ..utils.jwt_utils import sign_jwt, verify_jwt
+import httpx
+from fastapi import APIRouter, HTTPException, Request, Response, status
+from fastapi.responses import JSONResponse, RedirectResponse
+
+from api.v1.utils.jwt_utils import sign_jwt, verify_jwt
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +68,7 @@ async def login():
         "client_id": _AUTH_CONFIG["client_id"],
         "redirect_uri": _AUTH_CONFIG["redirect_uri"],
         "response_type": "code",
-        "scope": "identify guilds.members.read"
+        "scope": "identify guilds.members.read",
     }
 
     auth_url = f"https://discord.com/api/oauth2/authorize?{urlencode(params)}"

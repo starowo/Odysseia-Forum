@@ -1,5 +1,6 @@
-import discord
 from typing import Callable, Coroutine, Literal
+
+import discord
 
 
 class TagPageButton(discord.ui.Button):

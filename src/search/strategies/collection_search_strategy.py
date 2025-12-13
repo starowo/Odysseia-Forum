@@ -1,21 +1,23 @@
 import logging
+from typing import TYPE_CHECKING, Awaitable, Callable, List, Optional
+
 import discord
-from typing import List, TYPE_CHECKING, Optional, Callable, Awaitable
-from .search_strategy import SearchStrategy
-from ..search_service import SearchService
+
+from search.constants import SortMethod
+from search.search_service import SearchService
+from search.strategies.search_strategy import SearchStrategy
+from search.views.components.keyword_modal import KeywordButton
+from search.views.components.sort_method_select import SortMethodSelect
+from search.views.components.sort_order_button import SortOrderButton
+from search.views.components.tag_logic_button import TagLogicButton
+from search.views.components.tag_page_button import TagPageButton
 from shared.views.tag_select import TagSelect
-from ..views.components.keyword_modal import KeywordButton
-from ..views.components.tag_logic_button import TagLogicButton
-from ..views.components.sort_order_button import SortOrderButton
-from ..views.components.sort_method_select import SortMethodSelect
-from ..views.components.tag_page_button import TagPageButton
-from ..constants import SortMethod
 
 if TYPE_CHECKING:
-    from ..cog import Search
-    from ..qo.thread_search import ThreadSearchQuery
-    from ..dto.search_state import SearchStateDTO
-    from ..views.generic_search_view import GenericSearchView
+    from search.cog import Search
+    from search.dto.search_state import SearchStateDTO
+    from search.qo.thread_search import ThreadSearchQuery
+    from search.views import GenericSearchView
 
 logger = logging.getLogger(__name__)
 

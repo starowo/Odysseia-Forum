@@ -2,12 +2,12 @@ import asyncio
 import logging
 from collections import Counter
 from typing import TYPE_CHECKING
+
+from sqlalchemy import case, func
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlmodel import update
-from sqlalchemy import case, func
 
-from shared.models.thread import Thread
-from shared.models.bot_config import BotConfig
+from models import BotConfig, Thread
 from shared.enum.search_config_type import SearchConfigType
 
 if TYPE_CHECKING:

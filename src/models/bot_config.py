@@ -1,7 +1,8 @@
-from typing import Optional
 from datetime import datetime, timezone
-from sqlmodel import Field, SQLModel, BigInteger, Column
+from typing import Optional
+
 from sqlalchemy.types import Float
+from sqlmodel import BigInteger, Column, Field, SQLModel
 
 
 class BotConfig(SQLModel, table=True):

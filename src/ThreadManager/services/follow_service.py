@@ -1,12 +1,12 @@
 import logging
 from datetime import datetime, timezone
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Optional
+
+from sqlalchemy import and_, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, and_, func
 from sqlmodel import col
 
-from shared.models.thread_follow import ThreadFollow
-from shared.models.thread import Thread
+from models import Thread, ThreadFollow
 
 logger = logging.getLogger(__name__)
 
@@ -112,7 +112,7 @@ class FollowService:
             self.session.add_all(follows)
             await self.session.commit()
 
-            logger.info(f"为帖子 {thread_id} 批量添加了 {len(new_user_ids)} 个关注")
+            # logger.info(f"为帖子 {thread_id} 批量添加了 {len(new_user_ids)} 个关注")
             return len(new_user_ids)
 
         except Exception as e:
@@ -223,7 +223,7 @@ class FollowService:
         """
         try:
             # 构建查询，使用selectinload加载tags，joinedload加载author
-            from sqlalchemy.orm import selectinload, joinedload
+            from sqlalchemy.orm import joinedload, selectinload
 
             statement = (
                 select(Thread, ThreadFollow)
