@@ -1,7 +1,9 @@
-import discord
-import re  # 导入正则表达式模块
-from shared.models.thread import Thread as ThreadModel
+import re
 from datetime import timezone
+
+import discord
+
+from models import Thread as ThreadModel
 
 
 class ThreadEmbedBuilder:

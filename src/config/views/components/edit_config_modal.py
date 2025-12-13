@@ -1,7 +1,9 @@
-import discord
 from typing import TYPE_CHECKING, Dict
+
+import discord
+
+from models import BotConfig
 from shared.enum.search_config_type import SearchConfigType
-from shared.models.bot_config import BotConfig
 
 if TYPE_CHECKING:
     from config.general_config_handler import GeneralConfigHandler

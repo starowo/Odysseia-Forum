@@ -4,11 +4,12 @@ import json
 import logging
 from typing import Optional
 from urllib.parse import urlencode
-from fastapi import APIRouter, Request, HTTPException, status, Response
-from fastapi.responses import RedirectResponse, JSONResponse
-import httpx
 
-from ..utils.jwt_utils import sign_jwt, verify_jwt
+import httpx
+from fastapi import APIRouter, HTTPException, Request, Response, status
+from fastapi.responses import JSONResponse, RedirectResponse
+
+from api.v1.utils.jwt_utils import sign_jwt, verify_jwt
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +65,7 @@ async def login():
         "client_id": _AUTH_CONFIG["client_id"],
         "redirect_uri": _AUTH_CONFIG["redirect_uri"],
         "response_type": "code",
-        "scope": "identify"
+        "scope": "identify",
     }
 
     auth_url = f"https://discord.com/api/oauth2/authorize?{urlencode(params)}"
@@ -131,10 +132,10 @@ async def callback(code: Optional[str] = None):
             # 验证用户是否在服务器中
             bot_token = _AUTH_CONFIG.get("bot_token")
             member_response = await client.get(
-                    f"https://discord.com/api/guilds/{_AUTH_CONFIG['guild_id']}/members/{user['id']}",
-                    headers={"Authorization": f"Bot {bot_token}"}
-                )
-            
+                f"https://discord.com/api/guilds/{_AUTH_CONFIG['guild_id']}/members/{user['id']}",
+                headers={"Authorization": f"Bot {bot_token}"},
+            )
+
             if member_response.status_code != 200:
                 error_url = f"{_AUTH_CONFIG['frontend_url']}?error=你不在社区内"
                 return RedirectResponse(url=error_url, status_code=302)

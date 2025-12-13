@@ -1,7 +1,7 @@
-from .search_strategy import SearchStrategy
-from .default_search_strategy import DefaultSearchStrategy
-from .collection_search_strategy import CollectionSearchStrategy
-from .author_search_strategy import AuthorSearchStrategy
+from search.strategies.author_search_strategy import AuthorSearchStrategy
+from search.strategies.collection_search_strategy import CollectionSearchStrategy
+from search.strategies.default_search_strategy import DefaultSearchStrategy
+from search.strategies.search_strategy import SearchStrategy
 
 __all__ = [
     "SearchStrategy",

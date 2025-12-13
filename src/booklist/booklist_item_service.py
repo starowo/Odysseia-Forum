@@ -1,14 +1,13 @@
 import logging
-from typing import Optional, List, Tuple
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select, and_, func, asc, desc
+from typing import List, Optional, Tuple
 
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import and_, asc, desc, func, select
+
+from api.v1.schemas.booklist import BooklistItemUpdateRequest
 from api.v1.schemas.booklist.booklist_item_detail import BooklistItemDetail
 from api.v1.schemas.search.author import AuthorDetail
-from shared.models.author import Author
-from shared.models.booklist_item import BooklistItem
-from shared.models.thread import Thread
-from src.api.v1.schemas.booklist import BooklistItemUpdateRequest
+from models import Author, BooklistItem, Thread
 
 logger = logging.getLogger(__name__)
 
@@ -99,13 +98,12 @@ class BooklistItemService:
         self,
         booklist_id: int,
         display_type: int,
-        page: int = 1,
-        per_page: int = 50,
+        limit: int = 50,
+        offset: int = 0,
     ) -> Tuple[List[BooklistItemDetail], int]:
         """
         分页获取书单内的帖子详情，并根据指定的排序方式排序
         """
-        offset = (page - 1) * per_page
 
         query = (
             select(BooklistItem, Thread, Author)
@@ -128,7 +126,7 @@ class BooklistItemService:
         total = count_result.scalar_one_or_none() or 0
 
         # 获取数据
-        data_stmt = query.offset(offset).limit(per_page)
+        data_stmt = query.offset(offset * limit).limit(limit)
         result = await self.session.execute(data_stmt)
         rows = result.all()
 

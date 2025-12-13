@@ -1,15 +1,17 @@
 import logging
+
 import discord
 from sqlalchemy.ext.asyncio import async_sessionmaker
-from sqlmodel import select
-from shared.models.thread import Thread
+
+from core.thread_service import ThreadService
 
 logger = logging.getLogger(__name__)
 
 
 class CacheService:
     """
-    一个统一的服务，用于缓存和提供整个机器人共享的数据状态。
+    缓存 BOT 共享数据的服务<br>
+    目前存储的数据包括：已索引的频道
     """
 
     def __init__(self, bot, session_factory: async_sessionmaker):
@@ -17,7 +19,6 @@ class CacheService:
         self.session_factory = session_factory
         self.indexed_channel_ids: set[int] = set()
         self.indexed_channels: dict[int, discord.ForumChannel] = {}
-        self.global_merged_tags: list[str] = []
         logger.debug("CacheService 已初始化")
 
     async def build_or_refresh_cache(self):
@@ -25,36 +26,44 @@ class CacheService:
         从数据库加载数据，构建或刷新所有缓存。
         这个方法应该在机器人启动时和索引更新后被调用。
         """
-        await self.bot.wait_until_ready()
         logger.debug("正在刷新 CacheService...")
+        # 从数据库获取所有已索引的频道ID
         async with self.session_factory() as session:
-            # 从数据库获取所有已索引的频道ID
-            statement = select(Thread.channel_id).distinct()
-            result = await session.execute(statement)
-            self.indexed_channel_ids = set(result.scalars().all())
+            thread_service = ThreadService(session)
+            indexed_channel_ids = await thread_service.get_all_indexed_channel_ids()
+            self.indexed_channel_ids = set(indexed_channel_ids)
 
-            new_channel_cache = {}
-            for channel_id in self.indexed_channel_ids:
-                channel = self.bot.get_channel(channel_id)
-                if isinstance(channel, discord.ForumChannel):
-                    new_channel_cache[channel_id] = channel
-                else:
-                    logger.warning(f"无法找到或频道类型错误 (ID: {channel_id})")
-            self.indexed_channels = new_channel_cache
-
-        logger.debug("正在预计算全局合并标签...")
-        all_tags_names = set()
-        for channel in self.indexed_channels.values():
-            all_tags_names.update(tag.name for tag in channel.available_tags)
-
-        self.global_merged_tags = sorted(list(all_tags_names))
-        logger.info(
-            f"全局合并标签预计算完成，共 {len(self.global_merged_tags)} 个唯一标签。"
-        )
+        # 获取频道对象
+        new_channel_cache = {}
+        for channel_id in self.indexed_channel_ids:
+            channel = await self._get_channel_safely(channel_id)
+            if channel and isinstance(channel, discord.ForumChannel):
+                new_channel_cache[channel_id] = channel
+            elif channel:
+                logger.warning(f"频道 (ID: {channel_id}) 不是论坛频道，已跳过。")
+        self.indexed_channels = new_channel_cache
 
         logger.info(
             f"CacheService 刷新完毕。缓存了 {len(self.indexed_channel_ids)} 个频道ID 和 {len(self.indexed_channels)} 个频道对象。"
         )
+
+    async def _get_channel_safely(
+        self, channel_id: int
+    ) -> discord.ForumChannel | None:
+        """优先从缓存获取频道，失败则从 API 获取。"""
+        channel = self.bot.get_channel(channel_id)
+        if channel:
+            return channel
+
+        try:
+            return await self.bot.fetch_channel(channel_id)
+        except discord.NotFound:
+            logger.warning(f"无法找到频道 (ID: {channel_id})，机器人可能不在该服务器中。")
+        except discord.Forbidden:
+            logger.warning(f"没有权限访问频道 (ID: {channel_id})。")
+        except Exception as e:
+            logger.error(f"获取频道 (ID: {channel_id}) 时发生未知错误: {e}")
+        return None
 
     def is_channel_indexed(self, channel_id: int) -> bool:
         """检查频道ID是否已索引。"""
@@ -71,7 +80,3 @@ class CacheService:
     def get_indexed_channel_ids_list(self) -> list[int]:
         """从缓存中获取已索引的频道ID列表。"""
         return list(self.indexed_channel_ids)
-
-    def get_global_merged_tags(self) -> list[str]:
-        """获取预计算的全局合并标签列表。"""
-        return self.global_merged_tags

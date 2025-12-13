@@ -1,11 +1,12 @@
 """频道选择视图"""
 
 import logging
-import discord
 from typing import TYPE_CHECKING
+
+import discord
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from src.banner.banner_service import BannerService
+from banner.banner_service import BannerService
 
 if TYPE_CHECKING:
     from bot_main import MyBot
@@ -94,7 +95,7 @@ class ChannelSelectionView(discord.ui.View):
                 application = result.application
 
             # 使用共享函数发送审核消息
-            from src.banner.banner_service import send_review_message
+            from banner.banner_service import send_review_message
 
             success = await send_review_message(
                 bot=self.bot,

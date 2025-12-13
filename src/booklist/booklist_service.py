@@ -1,18 +1,13 @@
 import logging
 from typing import List, Optional, Tuple
-from sqlalchemy import false
+
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select, delete, and_, func, desc, asc, or_
+from sqlmodel import and_, asc, delete, desc, func, or_, select
 
 from api.v1.schemas.booklist.booklist_item_add_data import BooklistItemAddData
-from api.v1.schemas.search.author import AuthorDetail
+from models import Booklist, BooklistItem, UserCollection
 from shared.enum.collection_type import CollectionType
-from shared.models.booklist import Booklist
-from shared.models.booklist_item import BooklistItem
-from shared.models.user_collection import UserCollection
-from shared.models.thread import Thread
-from shared.models.author import Author
-from src.api.v1.schemas.booklist import BooklistItemDetail
 
 logger = logging.getLogger(__name__)
 
@@ -73,31 +68,46 @@ class BooklistService:
         cover_image_url: Optional[str] = None,
         is_public: Optional[bool] = None,
         display_type: Optional[int] = None,
+        display_thread_id: Optional[int] = None,
+        display_channel_id: Optional[int] = None,
+        display_guild_id: Optional[int] = None,
     ) -> Optional[Booklist]:
         """
         更新书单信息
         """
-        booklist = await self.get_booklist(booklist_id)
-        if not booklist:
-            return None
+        update_values = {
+            "title": title,
+            "description": description,
+            "cover_image_url": cover_image_url,
+            "is_public": is_public,
+            "display_type": display_type,
+            "display_thread_id": display_thread_id,
+            "display_channel_id": display_channel_id,
+            "display_guild_id": display_guild_id,
+        }
 
-        if title is not None:
-            booklist.title = title
-        if description is not None:
-            booklist.description = description
-        if cover_image_url is not None:
-            booklist.cover_image_url = cover_image_url
-        if is_public is not None:
-            booklist.is_public = is_public
-        if display_type is not None:
-            booklist.display_type = display_type
+        # 移除未提供值的键
+        update_data = {k: v for k, v in update_values.items() if v is not None}
 
-        self.session.add(booklist)
+        if not update_data:
+            return await self.get_booklist(booklist_id)
+
         try:
+            statement = (
+                update(Booklist)
+                .where(Booklist.id == booklist_id)  # type: ignore
+                .values(**update_data)
+            )
+            result = await self.session.execute(statement)
+
+            if result.rowcount == 0:
+                await self.session.rollback()
+                return None  # 书单不存在
+
             await self.session.commit()
-            await self.session.refresh(booklist)
             logger.info(f"书单 {booklist_id} 已更新")
-            return booklist
+            return await self.get_booklist(booklist_id)
+
         except Exception as e:
             logger.error(f"更新书单失败: {e}", exc_info=True)
             await self.session.rollback()
@@ -126,16 +136,16 @@ class BooklistService:
         owner_id: Optional[int] = None,
         is_public: Optional[bool] = None,
         keywords: Optional[str] = None,
+        included_thread_id: Optional[int] = None,
         collected_by_user_id: Optional[int] = None,
         sort_method: int = 4,
         sort_order: str = "desc",
-        page: int = 1,
-        per_page: int = 20,
+        limit: int = 10,
+        offset: int = 0,
     ) -> Tuple[List[Booklist], int]:
         """
         分页搜索书单
         """
-        offset = (page - 1) * per_page
         query = select(Booklist)
 
         if owner_id is not None:
@@ -159,20 +169,29 @@ class BooklistService:
                     UserCollection.target_type == CollectionType.BOOKLIST.value,
                 ),
             )
+        if included_thread_id is not None:
+            query = query.join(
+                BooklistItem,
+                Booklist.id == BooklistItem.booklist_id,  # type: ignore
+            ).where(BooklistItem.thread_id == included_thread_id)
 
         # 排序
-        sort_field = {
+        sort_field_map = {
             1: Booklist.item_count,
             2: Booklist.view_count,
             3: Booklist.collection_count,
             4: Booklist.created_at,
             5: Booklist.updated_at,
-        }.get(sort_method, Booklist.created_at)
+            6: UserCollection.created_at,
+        }
+        sort_field = sort_field_map.get(sort_method, Booklist.created_at)
 
-        if sort_order.lower() == "asc":
-            query = query.order_by(asc(sort_field))
-        else:
-            query = query.order_by(desc(sort_field))
+        # 如果按收藏时间排序，但 collected_by_user_id 未提供，则回退到默认排序
+        if sort_method == 6 and collected_by_user_id is None:
+            sort_field = Booklist.created_at
+
+        order_func = asc if sort_order.lower() == "asc" else desc
+        query = query.order_by(order_func(sort_field))
 
         # 计数
         count_stmt = select(func.count()).select_from(query.alias("sub"))
@@ -180,7 +199,7 @@ class BooklistService:
         total = count_result.scalar_one_or_none() or 0
 
         # 获取数据
-        data_stmt = query.offset(offset).limit(per_page)
+        data_stmt = query.offset(offset * limit).limit(limit)
         result = await self.session.execute(data_stmt)
         booklists = result.scalars().all()
 
@@ -284,7 +303,7 @@ class BooklistService:
                     booklist.item_count = 0
                 self.session.add(booklist)
                 await self.session.commit()
-            logger.info(f"{deleted_count} 个帖子已从书单 {booklist_id} 移除")
+            # logger.info(f"{deleted_count} 个帖子已从书单 {booklist_id} 移除")
 
         return deleted_count
 
@@ -309,3 +328,25 @@ class BooklistService:
                 booklist.collection_count = 0
             self.session.add(booklist)
             await self.session.commit()
+
+    async def update_collection_counts(
+        self, booklist_ids: List[int], delta: int
+    ) -> None:
+        """
+        批量更新书单的被收藏次数
+        """
+        if not booklist_ids:
+            return
+
+        try:
+            statement = (
+                update(Booklist)
+                .where(Booklist.id.in_(booklist_ids))  # type: ignore
+                .values(collection_count=Booklist.collection_count + delta)
+            )
+            await self.session.execute(statement)
+            await self.session.commit()
+        except Exception as e:
+            logger.error(f"批量更新书单收藏数失败: {e}", exc_info=True)
+            await self.session.rollback()
+            raise

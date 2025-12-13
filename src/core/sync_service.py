@@ -1,45 +1,71 @@
-import discord
+import asyncio
 import datetime
 import logging
 import re
-import asyncio
-from typing import Coroutine, Optional, Union, TYPE_CHECKING, List
+from typing import TYPE_CHECKING, Coroutine, List, Optional, Union
+
+import discord
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from ThreadManager.thread_manager_service import ThreadManagerService
+from core.author_service import AuthorRepository
+from core.thread_service import ThreadService
+from shared.discord_utils import DiscordUtils
 
 if TYPE_CHECKING:
     from bot_main import MyBot
-    from .author_service import AuthorService
 
 logger = logging.getLogger(__name__)
 
 
 class SyncService:
     """
-    负责将 Discord 帖子数据同步到数据库的服务
+    将 Discord 帖子数据同步到数据库
     """
 
     def __init__(
         self,
         bot: "MyBot",
         session_factory: async_sessionmaker,
-        author_service: "AuthorService",
     ):
         self.bot = bot
         self.session_factory = session_factory
-        self.author_service = author_service
 
-    @staticmethod
-    async def _fetch_message_wrapper(fetch_coro: Coroutine) -> discord.Message | None:
+    async def _save_author_to_db(
+        self,
+        author_id: int,
+        guild: discord.Guild,
+        source_member: discord.Member | discord.User | None = None,
+    ) -> None:
         """
-        包装一个获取消息的协程
-        如果协程成功，返回消息对象；如果抛出 NotFound，返回 None。
+        获取作者信息并保存到数据库。
         """
+        # 获取用户对象
+        user_obj = await DiscordUtils.get_or_fetch_user(
+            bot=self.bot,
+            user_id=author_id,
+            guild=guild,
+            source_member=source_member,
+        )
+
+        if not user_obj:
+            return
+
+        # 准备要插入或更新的数据
+        author_data = {
+            "id": user_obj.id,
+            "name": user_obj.name,
+            "global_name": user_obj.global_name,
+            "display_name": user_obj.display_name,
+            "avatar_url": user_obj.display_avatar.url,
+        }
+
+        # 存储数据
         try:
-            return await fetch_coro
-        except discord.NotFound:
-            return None
+            async with self.session_factory() as session:
+                repository = AuthorRepository(session)
+                await repository.upsert_author(author_data)
+        except Exception as e:
+            logger.error(f"更新作者 {author_id} 信息到数据库时失败: {e}", exc_info=True)
 
     async def _parse_thread_data(self, thread: discord.Thread) -> Optional[dict]:
         """
@@ -227,7 +253,7 @@ class SyncService:
 
         if final_author_id and thread.guild:
             asyncio.create_task(
-                self.author_service.get_or_fetch_author(
+                self._save_author_to_db(
                     author_id=final_author_id,
                     guild=thread.guild,
                     source_member=source_user_for_author_service,
@@ -273,7 +299,7 @@ class SyncService:
                         f"sync_thread: 获取到的 channel {thread_id} 不是一个帖子，将标记为未找到。"
                     )
                     async with self.session_factory() as session:
-                        repo = ThreadManagerService(session=session)
+                        repo = ThreadService(session=session)
                         await repo.increment_not_found_count(thread_id=thread_id)
                     return
                 thread = fetched_channel
@@ -282,7 +308,7 @@ class SyncService:
                     f"sync_thread: 无法找到帖子 {thread_id}，可能已被删除。将增加其 not_found_count。"
                 )
                 async with self.session_factory() as session:
-                    repo = ThreadManagerService(session=session)
+                    repo = ThreadService(session=session)
                     await repo.increment_not_found_count(thread_id=thread_id)
                 return
             except Exception as e:
@@ -304,7 +330,7 @@ class SyncService:
                     f"sync_thread (fetch_if_incomplete): 无法找到帖子 {thread.id}，可能已被删除。将增加其 not_found_count。"
                 )
                 async with self.session_factory() as session:
-                    repo = ThreadManagerService(session=session)
+                    repo = ThreadService(session=session)
                     await repo.increment_not_found_count(thread_id=thread.id)
                 return
 
@@ -323,7 +349,7 @@ class SyncService:
 
         # 先保存帖子数据
         async with self.session_factory() as session:
-            repo = ThreadManagerService(session=session)
+            repo = ThreadService(session=session)
             await repo.add_or_update_thread_with_tags(
                 thread_data=thread_data, tags_data=tags_data
             )
@@ -331,8 +357,9 @@ class SyncService:
         # 检查是否是首次被关注（检查关注表而不是帖子表）
         is_first_follow = False
         async with self.session_factory() as session:
-            from sqlmodel import select, func
-            from shared.models.thread_follow import ThreadFollow
+            from sqlmodel import func, select
+
+            from models import ThreadFollow
 
             # 检查该帖子是否有任何关注记录
             statement = (

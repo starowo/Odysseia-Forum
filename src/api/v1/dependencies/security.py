@@ -1,11 +1,12 @@
 import json
 import logging
 import sys
-from typing import Optional, Dict, Any
-from fastapi import HTTPException, status, Request, Depends
+from typing import Any, Dict, Optional
+
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import APIKeyHeader
 
-from ..utils.jwt_utils import verify_jwt
+from api.v1.utils.jwt_utils import verify_jwt
 
 logger = logging.getLogger(__name__)
 

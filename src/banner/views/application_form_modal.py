@@ -1,12 +1,13 @@
 """Banner申请表单Modal"""
 
 import logging
-import discord
 from typing import TYPE_CHECKING
+
+import discord
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from src.banner.banner_service import BannerService
-from .channel_selection_view import ChannelSelectionView
+from banner.banner_service import BannerService
+from banner.views.channel_selection_view import ChannelSelectionView
 
 if TYPE_CHECKING:
     from bot_main import MyBot
@@ -88,6 +89,12 @@ class ApplicationFormModal(discord.ui.Modal, title="Banner申请"):
                     return
 
                 thread = validation.thread
+
+            if not thread:
+                await interaction.followup.send(
+                    "❌ 无法获取有效的帖子信息，请检查帖子ID或联系管理员。", ephemeral=True
+                )
+                return
 
             # 显示频道选择视图
             view = ChannelSelectionView(

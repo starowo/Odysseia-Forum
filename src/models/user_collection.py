@@ -1,6 +1,8 @@
-from typing import Optional
-from sqlmodel import Field, SQLModel, BigInteger, Column, UniqueConstraint
 from datetime import datetime, timezone
+from typing import Optional
+
+from sqlmodel import BigInteger, Column, Field, SQLModel, UniqueConstraint
+
 from shared.enum.collection_type import CollectionType
 
 
@@ -22,7 +24,9 @@ class UserCollection(SQLModel, table=True):
     )
 
     target_type: int = Field(
-        default=CollectionType.THREAD.value, index=True, description="收藏目标的类型"
+        default=CollectionType.THREAD.value,
+        index=True,
+        description="收藏目标的类型 : 1=帖子, 2=书单, 默认为 1 (帖子)",
     )
 
     target_id: int = Field(
@@ -30,7 +34,7 @@ class UserCollection(SQLModel, table=True):
         description="目标对象的ID (Thread 的 discord ID 或 Booklist ID)",
     )
 
-    create_at: datetime = Field(
+    created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         nullable=False,
         description="收藏时间 (UTC)",

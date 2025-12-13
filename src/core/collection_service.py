@@ -1,13 +1,13 @@
 import logging
-from typing import List, Dict, Any, Tuple, Sequence, TypeVar, Type
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import delete, and_, select, func, desc
-from sqlalchemy.exc import IntegrityError
+from typing import List, Sequence, Tuple, Type, TypeVar
+
 from sqlalchemy.dialects.sqlite import insert
-from shared.models.booklist import Booklist
-from shared.models.user_collection import UserCollection
-from shared.models.thread_follow import ThreadFollow
-from shared.models.thread import Thread
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import and_, delete, desc, func, select
+
+from collection.dto import BatchAddResult, BatchRemoveResult
+from models import Booklist, Thread, ThreadFollow, UserCollection
 from shared.enum.collection_type import CollectionType
 
 logger = logging.getLogger(__name__)
@@ -83,7 +83,7 @@ class CollectionService:
 
     async def add_collections(
         self, user_id: int, target_type: int, target_ids: List[int]
-    ) -> Dict[str, Any]:
+    ) -> BatchAddResult:
         """
         批量添加收藏（同一类型）。
 
@@ -93,33 +93,45 @@ class CollectionService:
             target_ids: 目标ID列表
 
         Returns:
-            包含成功添加数量和重复数量的字典。
+            包含成功添加的ID列表和计数的 DTO
         """
         if not target_ids:
-            return {"added": 0, "duplicates": 0}
+            return BatchAddResult(added_ids=[], added_count=0, duplicate_count=0)
 
-        # 构建插入值列表
+        # 找出哪些是新的收藏
+        existing_stmt = select(UserCollection.target_id).where(
+            UserCollection.user_id == user_id,
+            UserCollection.target_type == target_type,
+            UserCollection.target_id.in_(target_ids),  # type: ignore
+        )
+        result = await self.session.execute(existing_stmt)
+        existing_ids = set(result.scalars().all())
+        new_ids = [tid for tid in target_ids if tid not in existing_ids]
+
+        if not new_ids:
+            return BatchAddResult(
+                added_ids=[], added_count=0, duplicate_count=len(target_ids)
+            )
+
+        # 只插入新的收藏
         values = [
             {"user_id": user_id, "target_type": target_type, "target_id": tid}
-            for tid in target_ids
+            for tid in new_ids
         ]
-        stmt = (
-            insert(UserCollection)
-            .values(values)
-            .on_conflict_do_nothing(
-                index_elements=["user_id", "target_type", "target_id"]
-            )
+        if values:
+            stmt = insert(UserCollection).values(values)
+            await self.session.execute(stmt)
+            await self.session.commit()
+
+        return BatchAddResult(
+            added_ids=new_ids,
+            added_count=len(new_ids),
+            duplicate_count=len(target_ids) - len(new_ids),
         )
-        result = await self.session.execute(stmt)
-        await self.session.commit()
-        # 获取插入的行数
-        added = result.rowcount if result.rowcount is not None else 0
-        duplicates = len(target_ids) - added
-        return {"added": added, "duplicates": duplicates}
 
     async def remove_collections(
         self, user_id: int, target_type: int, target_ids: List[int]
-    ) -> Dict[str, Any]:
+    ) -> BatchRemoveResult:
         """
         批量移除收藏（同一类型）。
 
@@ -129,23 +141,43 @@ class CollectionService:
             target_ids: 目标ID列表
 
         Returns:
-            包含成功移除数量和未找到数量的字典。
+            包含成功移除的ID列表和计数的 DTO
         """
         if not target_ids:
-            return {"removed": 0, "not_found": 0}
+            return BatchRemoveResult(removed_ids=[], removed_count=0, not_found_count=0)
 
-        statement = delete(UserCollection).where(
+        # 找出实际存在的收藏
+        select_stmt = select(UserCollection.target_id).where(
             and_(
                 UserCollection.user_id == user_id,
                 UserCollection.target_type == target_type,
                 UserCollection.target_id.in_(target_ids),  # type: ignore
             )
         )
-        result = await self.session.execute(statement)
+        result = await self.session.execute(select_stmt)
+        ids_to_remove = list(result.scalars().all())
+
+        if not ids_to_remove:
+            return BatchRemoveResult(
+                removed_ids=[], removed_count=0, not_found_count=len(target_ids)
+            )
+
+        # 删除这些收藏
+        delete_stmt = delete(UserCollection).where(
+            and_(
+                UserCollection.user_id == user_id,
+                UserCollection.target_type == target_type,
+                UserCollection.target_id.in_(ids_to_remove),  # type: ignore
+            )
+        )
+        await self.session.execute(delete_stmt)
         await self.session.commit()
-        removed = result.rowcount
-        not_found = len(target_ids) - removed
-        return {"removed": removed, "not_found": not_found}
+
+        return BatchRemoveResult(
+            removed_ids=ids_to_remove,
+            removed_count=len(ids_to_remove),
+            not_found_count=len(target_ids) - len(ids_to_remove),
+        )
 
     async def get_followed_not_collected_threads(
         self, user_id: int, page: int, per_page: int
@@ -217,7 +249,7 @@ class CollectionService:
         if model_class is Thread:
             join_on_condition = Thread.thread_id == UserCollection.target_id
         elif model_class is Booklist:
-            join_on_condition = model_class.id == UserCollection.target_id
+            join_on_condition = Booklist.id == UserCollection.target_id
         else:
             raise AttributeError(
                 f"Model {model_class.__name__} does not have a recognized primary key for joining."
@@ -242,7 +274,7 @@ class CollectionService:
 
         # 获取数据
         data_stmt = (
-            base_query.order_by(desc(UserCollection.create_at))
+            base_query.order_by(desc(UserCollection.created_at))
             .offset(offset)
             .limit(per_page)
         )

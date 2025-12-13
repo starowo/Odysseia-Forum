@@ -1,26 +1,26 @@
-import discord
 import re
+from typing import TYPE_CHECKING, Optional, Set
 
-from typing import TYPE_CHECKING, Set, Optional
+import discord
 
 from search.dto.search_state import SearchStateDTO
-from shared.safe_defer import safe_defer
-from ..qo.thread_search import ThreadSearchQuery
-from .results_view import SearchResultsView
-from .components.keyword_modal import KeywordModal
-from .timeout_view import TimeoutView
-from .combined_search_view import CombinedSearchView
-from .custom_search_settings_view import CustomSearchSettingsView
-from shared.enum.default_preferences import DefaultPreferences
-from ..strategies import (
-    SearchStrategy,
-    DefaultSearchStrategy,
-    CollectionSearchStrategy,
+from search.qo.thread_search import ThreadSearchQuery
+from search.strategies import (
     AuthorSearchStrategy,
+    CollectionSearchStrategy,
+    DefaultSearchStrategy,
+    SearchStrategy,
 )
+from search.views.combined_search_view import CombinedSearchView
+from search.views.custom_search_settings_view import CustomSearchSettingsView
+from search.views.results_view import SearchResultsView
+from search.views.timeout_view import TimeoutView
+from search.views.components.keyword_modal import KeywordModal
+from shared.enum.default_preferences import DefaultPreferences
+from shared.safe_defer import safe_defer
 
 if TYPE_CHECKING:
-    from ..cog import Search
+    from search.cog import Search
 
 
 class GenericSearchView(discord.ui.View):

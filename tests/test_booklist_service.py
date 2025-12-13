@@ -11,10 +11,10 @@ import os
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
 
-from shared.models.booklist import Booklist
-from shared.models.booklist_item import BooklistItem
-from shared.models.thread import Thread
-from shared.models.author import Author
+from models import Booklist
+from models import BooklistItem
+from models import Thread
+from models import Author
 from booklist.booklist_service import BooklistService
 
 # 使用内存数据库进行测试

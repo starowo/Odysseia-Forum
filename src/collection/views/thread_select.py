@@ -1,6 +1,8 @@
+from typing import Awaitable, Callable, List, Set
+
 import discord
-from typing import List, Set, Callable, Awaitable
-from shared.models import Thread
+
+from models import Thread
 
 
 class ThreadSelect(discord.ui.Select):

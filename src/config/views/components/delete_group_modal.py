@@ -1,5 +1,6 @@
-import discord
 from typing import TYPE_CHECKING
+
+import discord
 
 if TYPE_CHECKING:
     from config.mutex_tags_handler import MutexTagsHandler

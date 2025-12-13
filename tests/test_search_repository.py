@@ -14,10 +14,10 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
 
 from shared.fts5_tokenizer import register_jieba_tokenizer
-from shared.models.thread import Thread
+from models import Thread
 from search.search_service import SearchService
 from search.qo.thread_search import ThreadSearchQuery
-from core.tag_service import TagService
+from core.tag_cache_service import TagCacheService
 
 # 使用内存数据库进行测试
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
@@ -244,9 +244,9 @@ async def test_search_exclusion_scenarios(
     对反选关键词的各种场景进行参数化测试。
     """
     # 1. 准备
-    tag_service = TagService(session_factory=db_session_factory)
+    tag_service = TagCacheService(session_factory=db_session_factory)
     await tag_service.build_cache()
-    repo = SearchService(session=seeded_db_session, tag_service=tag_service)
+    repo = SearchService(session=seeded_db_session, tag_cache_service=tag_service)
 
     # 2. 构建查询
     query = ThreadSearchQuery(

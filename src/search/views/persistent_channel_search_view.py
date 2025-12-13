@@ -1,12 +1,13 @@
-import discord
 from typing import TYPE_CHECKING
 
-from .generic_search_view import GenericSearchView
-from ..strategies import DefaultSearchStrategy
+import discord
+
+from search.strategies import DefaultSearchStrategy
+from search.views import GenericSearchView
 from shared.safe_defer import safe_defer
 
 if TYPE_CHECKING:
-    from ..cog import Search
+    from search.cog import Search
 
 
 class PersistentChannelSearchView(discord.ui.View):

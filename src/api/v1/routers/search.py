@@ -1,21 +1,23 @@
+from typing import Any, Dict
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import async_sessionmaker
-from src.search.cog import Search
-from src.collection.cog import CollectionCog
-from src.shared.enum.collection_type import CollectionType
-from src.search.qo.thread_search import ThreadSearchQuery
-from src.search.search_service import SearchService
+
+from api.v1.dependencies.security import get_current_user, require_auth
+from api.v1.schemas.banner import BannerItem
+from api.v1.schemas.search import SearchRequest, SearchResponse, ThreadDetail
+from api.v1.schemas.search.author import AuthorDetail
+from banner.banner_service import BannerService
+from collection.cog import CollectionCog
 from config.config_service import ConfigService
-from src.shared.enum.search_config_type import SearchConfigType, SearchConfigDefaults
-from src.shared.keyword_parser import KeywordParser
-from ..dependencies.security import require_auth, get_current_user
-from ..schemas.search import SearchRequest, SearchResponse, ThreadDetail
-from ..schemas.search.author import AuthorDetail
-from ..schemas.banner import BannerItem
-from src.core.cache_service import CacheService
-from src.banner.banner_service import BannerService
+from core.cache_service import CacheService
+from search.cog import Search
+from search.qo.thread_search import ThreadSearchQuery
+from search.search_service import SearchService
+from shared.enum.collection_type import CollectionType
+from shared.enum.search_config_type import SearchConfigDefaults, SearchConfigType
+from shared.keyword_parser import KeywordParser
 from ThreadManager.services.follow_service import FollowService
-from typing import Dict, Any
 
 # 全局变量，将在应用启动时由 bot_main.py 注入
 search_cog_instance: Search | None = None
@@ -154,11 +156,12 @@ async def execute_search(
             )
 
             # 当排序方法为按创建时间排序时，不记录展示次数。其它外的排序方法均记录展示次数。
+            # 当排序方法为按创建时间或收藏时间排序时，不记录展示次数
             count_view = not (
-                query_object.sort_method == "created_at"
+                query_object.sort_method in ["created_at", "collected_at"]
                 or (
                     query_object.sort_method == "custom"
-                    and query_object.custom_base_sort == "created_at"
+                    and query_object.custom_base_sort in ["created_at", "collected_at"]
                 )
             )
 

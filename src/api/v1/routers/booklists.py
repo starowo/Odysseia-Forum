@@ -1,27 +1,27 @@
 """书单相关路由"""
 
 import logging
-from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy import null
+from typing import Any, Dict, List, Optional
 
-from shared.database import AsyncSessionFactory
-from src.collection.cog import CollectionCog
-from src.shared.enum.collection_type import CollectionType
-from src.booklist.booklist_service import BooklistService
-from src.booklist.booklist_item_service import BooklistItemService
-from src.api.v1.dependencies.security import require_auth
-from src.api.v1.schemas.booklist import (
-    BooklistDetail,
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from api.v1.dependencies.security import require_auth
+from api.v1.schemas.base import PaginatedResponse
+from api.v1.schemas.booklist import (
     BooklistCreateResponse,
-    BooklistUpdateResponse,
-    BooklistItemDetail,
+    BooklistDetail,
     BooklistItemAddResponse,
-    BooklistItemUpdateRequest,
+    BooklistItemDetail,
     BooklistItemsAddRequest,
     BooklistItemsDeleteRequest,
+    BooklistItemUpdateRequest,
+    BooklistUpdateResponse,
 )
-from src.api.v1.schemas.base import PaginatedResponse
+from booklist.booklist_item_service import BooklistItemService
+from booklist.booklist_service import BooklistService
+from collection.cog import CollectionCog
+from shared.database import AsyncSessionFactory
+from shared.enum.collection_type import CollectionType
 
 logger = logging.getLogger(__name__)
 
@@ -86,8 +86,11 @@ async def create_booklist(
     response_model=PaginatedResponse[BooklistDetail],
 )
 async def list_public_booklists(
-    owner_id: Optional[int] = Query(None, description="筛选创建者用户ID"),
+    owner_id: Optional[int] = Query(None, description="创建者用户ID"),
     keywords: Optional[str] = Query(None, description="模糊搜索关键词，匹配标题和描述"),
+    included_thread_id: Optional[int] = Query(
+        None, description="筛选包含指定帖子ID的书单"
+    ),
     search_by_collect: Optional[bool] = Query(
         None, description="从当前用户收藏的书单中筛选"
     ),
@@ -98,8 +101,13 @@ async def list_public_booklists(
     sort_order: str = Query(
         "desc", description="排序顺序: 'asc'(升序) 或 'desc'(降序)"
     ),
-    page: int = Query(1, ge=1, description="页码，从1开始"),
-    per_page: int = Query(20, ge=1, le=100, description="每页数量"),
+    limit: int = Query(
+        default=10,
+        ge=1,
+        le=100,
+        description="每次请求返回的数量 (范围: 1-100)",
+    ),
+    offset: int = Query(default=0, ge=0, description="结果的偏移页，从0开始"),
     current_user: Dict[str, Any] = Depends(require_auth),
 ):
     """
@@ -107,38 +115,32 @@ async def list_public_booklists(
 
     - owner_id: 按创建者筛选
     - keywords: 模糊搜索关键词(标题和简介)
-    - collected_by_user_id: 筛选某用户收藏的书单
+    - included_thread_id: 筛选包含指定帖子ID的书单
     - sort_method: 排序方式 (1: 书单内帖子数, 2: 浏览数, 3: 收藏数, 4: 创建时间, 5: 更新时间)
     - sort_order: 排序顺序 ('asc' 或 'desc')
-    - page: 页码
-    - per_page: 每页数量
+    - limit: 返回数量
+    - offset: 偏移页
     """
     try:
-        collected_by_user_id = None
-        if search_by_collect:
-            collected_by_user_id = int(current_user["id"])
-
         async with AsyncSessionFactory() as session:
             service = BooklistService(session)
             booklists, total = await service.list_booklists(
                 owner_id=owner_id,
                 is_public=True,  # 强制只搜索公开书单
                 keywords=keywords,
-                collected_by_user_id=collected_by_user_id,
+                included_thread_id=included_thread_id,
+                collected_by_user_id=None,
                 sort_method=sort_method,
                 sort_order=sort_order,
-                page=page,
-                per_page=per_page,
+                limit=limit,
+                offset=offset,
             )
 
         results = [
             BooklistDetail.model_validate(b, from_attributes=True) for b in booklists
         ]
         return PaginatedResponse(
-            total=total,
-            limit=per_page,
-            offset=(page - 1) * per_page,
-            results=results,
+            total=total, limit=limit, offset=offset, results=results
         )
 
     except Exception as e:
@@ -156,15 +158,26 @@ async def list_public_booklists(
 async def list_my_booklists(
     is_public: Optional[bool] = Query(None, description="筛选公开状态 (不传则不筛选)"),
     keywords: Optional[str] = Query(None, description="模糊搜索关键词，匹配标题和描述"),
+    collect_by_current_user: Optional[bool] = Query(
+        None, description="从当前用户收藏的书单中筛选"
+    ),
+    create_by_current_user: Optional[bool] = Query(
+        None, description="从当前用户创建的书单中筛选"
+    ),
     sort_method: int = Query(
         4,
-        description="排序方法: 1-书单内帖子数量, 2-被浏览次数,3-被收藏次数,4-创建时间,5-最后更新时间",
+        description="排序方法: 1-帖子数, 2-浏览数, 3-收藏数, 4-创建时间, 5-最后更新时间",
     ),
     sort_order: str = Query(
         "desc", description="排序顺序: 'asc'(升序) 或 'desc'(降序)"
     ),
-    page: int = Query(1, ge=1, description="页码，从1开始"),
-    per_page: int = Query(20, ge=1, le=100, description="每页数量"),
+    limit: int = Query(
+        default=10,
+        ge=1,
+        le=100,
+        description="每次请求返回的数量 (范围: 1-100)",
+    ),
+    offset: int = Query(default=0, ge=0, description="结果的偏移页，从0开始"),
     current_user: Dict[str, Any] = Depends(require_auth),
 ):
     """
@@ -172,25 +185,32 @@ async def list_my_booklists(
 
     - is_public: 按公开状态筛选
     - keywords: 模糊搜索关键词(标题和简介)
-    - sort_method: 排序方式 (1: 书单内帖子数, 2: 浏览数, 3: 收藏数, 4: 创建时间, 5: 更新时间)
+    - sort_method: 排序方式 (1: 帖子数, 2: 浏览数, 3: 收藏数, 4: 创建时间, 5: 更新时间, 6-收藏时间 collect_by_current_user=true 时可用,)
     - sort_order: 排序顺序 ('asc' 或 'desc')
-    - page: 页码
-    - per_page: 每页数量
+    - limit: 返回数量
+    - offset: 偏移页
     """
     try:
         user_id = int(current_user["id"])
+        owner_id = None
+        collected_by_user_id = None
+
+        if create_by_current_user:
+            owner_id = user_id
+        if collect_by_current_user:
+            collected_by_user_id = user_id
 
         async with AsyncSessionFactory() as session:
             service = BooklistService(session)
             booklists, total = await service.list_booklists(
-                owner_id=user_id,
+                owner_id=owner_id,
                 is_public=is_public,
                 keywords=keywords,
-                collected_by_user_id=None,
+                collected_by_user_id=collected_by_user_id,
                 sort_method=sort_method,
                 sort_order=sort_order,
-                page=page,
-                per_page=per_page,
+                limit=limit,
+                offset=offset,
             )
 
         # 检查收藏状态
@@ -215,10 +235,7 @@ async def list_my_booklists(
             results.append(detail)
 
         return PaginatedResponse(
-            total=total,
-            limit=per_page,
-            offset=(page - 1) * per_page,
-            results=results,
+            total=total, limit=limit, offset=offset, results=results
         )
     except Exception as e:
         logger.error(f"列出我的书单失败: {e}", exc_info=True)
@@ -492,16 +509,21 @@ async def remove_threads_from_booklist(
 )
 async def get_booklist_items(
     booklist_id: int,
-    page: int = Query(1, ge=1, description="页码，从1开始"),
-    per_page: int = Query(50, ge=1, le=100, description="每页数量"),
+    limit: int = Query(
+        default=50,
+        ge=1,
+        le=100,
+        description="每次请求返回的数量 (范围: 1-100)",
+    ),
+    offset: int = Query(default=0, ge=0, description="结果的偏移页，从0开始"),
     current_user: Dict[str, Any] = Depends(require_auth),
 ):
     """
     分页获取书单内的帖子详情
 
     - booklist_id: 书单ID
-    - page: 页码
-    - per_page: 每页数量
+    - limit: 返回数量
+    - offset: 偏移页
     """
     try:
         async with AsyncSessionFactory() as session:
@@ -521,8 +543,8 @@ async def get_booklist_items(
             items, total = await item_service.get_booklist_items_with_details(
                 booklist_id=booklist_id,
                 display_type=booklist.display_type,
-                page=page,
-                per_page=per_page,
+                limit=limit,
+                offset=offset,
             )
 
             # 检查收藏状态
@@ -544,12 +566,7 @@ async def get_booklist_items(
                 if item.thread_id in collected_thread_ids:
                     item.collected_flag = True
 
-        return PaginatedResponse(
-            total=total,
-            limit=per_page,
-            offset=(page - 1) * per_page,
-            results=items,
-        )
+        return PaginatedResponse(total=total, limit=limit, offset=offset, results=items)
 
     except HTTPException:
         raise

@@ -1,16 +1,17 @@
 import asyncio
-import discord
 from typing import TYPE_CHECKING, Optional
 
+import discord
+
 from search.dto.search_state import SearchStateDTO
-from shared.safe_defer import safe_defer
+from search.views.components.number_range_modal import NumberRangeModal
+from search.views.components.sort_method_select import SortMethodSelect
 from shared.enum.default_preferences import DefaultPreferences
+from shared.safe_defer import safe_defer
 from shared.views.components.time_range_modal import TimeRangeModal
-from .components.sort_method_select import SortMethodSelect
-from .components.number_range_modal import NumberRangeModal
 
 if TYPE_CHECKING:
-    from .generic_search_view import GenericSearchView
+    from search.views.generic_search_view import GenericSearchView
 
 
 class CustomSearchSettingsView(discord.ui.View):

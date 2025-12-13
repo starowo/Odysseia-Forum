@@ -1,11 +1,11 @@
-from typing import List, TYPE_CHECKING
-from sqlmodel import Field, SQLModel, Relationship
+from typing import TYPE_CHECKING, List
 
-from .thread_tag_link import ThreadTagLink
+from sqlmodel import Field, Relationship, SQLModel
+
+from models import ThreadTagLink
 
 if TYPE_CHECKING:
-    from .thread import Thread
-    from .tag_vote import TagVote
+    from models import TagVote, Thread
 
 
 class Tag(SQLModel, table=True):

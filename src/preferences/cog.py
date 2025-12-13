@@ -1,13 +1,14 @@
-import discord
-from discord.ext import commands
-from discord import app_commands
 import logging
 from typing import TYPE_CHECKING, Optional
 
-from shared.safe_defer import safe_defer
+import discord
+from discord import app_commands
+from discord.ext import commands
 from sqlalchemy.ext.asyncio import async_sessionmaker
-from ..preferences.preferences_service import PreferencesService
-from ..preferences.views.preferences_view import PreferencesView
+
+from preferences.preferences_service import PreferencesService
+from preferences.views.preferences_view import PreferencesView
+from shared.safe_defer import safe_defer
 
 if TYPE_CHECKING:
     from bot_main import MyBot

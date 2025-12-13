@@ -1,3 +1,3 @@
-from .cog import CollectionCog
+from collection.cog import CollectionCog
 
 __all__ = ["CollectionCog"]

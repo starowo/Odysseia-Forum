@@ -1,11 +1,12 @@
-import discord
 from typing import TYPE_CHECKING
+
+import discord
 
 from shared.safe_defer import safe_defer
 
 if TYPE_CHECKING:
-    from ...preferences_service import PreferencesService
-    from ..preferences_view import PreferencesView
+    from preferences.preferences_service import PreferencesService
+    from preferences.views.preferences_view import PreferencesView
 
 
 class ResultsPerPageModal(discord.ui.Modal, title="设置每页结果数量"):

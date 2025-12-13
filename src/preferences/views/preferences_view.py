@@ -1,19 +1,20 @@
 import logging
-import discord
 from typing import TYPE_CHECKING, Optional
 
-from shared.safe_defer import safe_defer
+import discord
+
 from preferences.preferences_repository import PreferencesRepository
-from ...search.dto.user_search_preferences import UserSearchPreferencesDTO
-from ...search.views.components.keyword_modal import KeywordModal
-from shared.views.components.time_range_modal import TimeRangeModal
-from .components.results_per_page_modal import ResultsPerPageModal
-from shared.enum.default_preferences import DefaultPreferences
-from ...search.views.components.sort_method_select import SortMethodSelect
+from preferences.views.components.results_per_page_modal import ResultsPerPageModal
 from search.constants import SortMethod
+from search.dto.user_search_preferences import UserSearchPreferencesDTO
+from search.views.components.keyword_modal import KeywordModal
+from search.views.components.sort_method_select import SortMethodSelect
+from shared.enum.default_preferences import DefaultPreferences
+from shared.safe_defer import safe_defer
+from shared.views.components.time_range_modal import TimeRangeModal
 
 if TYPE_CHECKING:
-    from ..preferences_service import PreferencesService
+    from preferences.preferences_service import PreferencesService
 
 logger = logging.getLogger(__name__)
 

@@ -1,5 +1,6 @@
-from typing import Optional
 from datetime import datetime, timezone
+from typing import Optional
+
 from sqlmodel import Field, SQLModel
 
 
@@ -29,6 +30,11 @@ class Booklist(SQLModel, table=True):
     item_count: int = Field(default=0, description="书单内帖子数量")
     view_count: int = Field(default=0, description="被浏览次数")
     collection_count: int = Field(default=0, description="被收藏次数")
+
+    # Discord 展示位置
+    display_thread_id: Optional[int] = Field(default=None, description="展示帖子的ID")
+    display_channel_id: Optional[int] = Field(default=None, description="展示频道的ID")
+    display_guild_id: Optional[int] = Field(default=None, description="展示服务器的ID")
 
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc), description="创建时间"

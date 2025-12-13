@@ -18,23 +18,22 @@ import asyncio
 import uvicorn
 
 from shared.database import AsyncSessionFactory, init_db, close_db
-from src.ThreadManager.cog import ThreadManager
-from src.core.tag_service import TagService
-from src.core.cache_service import CacheService
-from src.core.sync_service import SyncService
-from src.core.impression_cache_service import ImpressionCacheService
-from src.core.author_service import AuthorService
-from src.indexer.cog import Indexer
-from src.search.cog import Search
-from src.preferences.cog import Preferences
-from src.preferences.preferences_service import PreferencesService
-from src.auditor.cog import Auditor
-from src.config.cog import Configuration
-from src.banner.cog import BannerManagement
-from src.config.config_service import ConfigService
-from src.collection.cog import CollectionCog
-from src.shared.api_scheduler import APIScheduler
-from src.api.v1.routers import (
+from ThreadManager.cog import ThreadManager
+from core.tag_cache_service import TagCacheService
+from core.cache_service import CacheService
+from core.sync_service import SyncService
+from core.impression_cache_service import ImpressionCacheService
+from indexer.cog import Indexer
+from search.cog import Search
+from preferences.cog import Preferences
+from preferences.preferences_service import PreferencesService
+from auditor.cog import Auditor
+from config.cog import Configuration
+from banner.cog import BannerManagement
+from config.config_service import ConfigService
+from collection.cog import CollectionCog
+from shared.api_scheduler import APIScheduler
+from api.v1.routers import (
     preferences as preferences_api,
     search as search_api,
     meta as meta_api,
@@ -42,9 +41,9 @@ from src.api.v1.routers import (
     banner as banner_api,
     booklists as booklists_api,
 )
-from src.api.main import app as fastapi_app
-from src.api.v1.dependencies.security import initialize_api_security
-from src.api.v1.routers.auth import initialize_auth_config
+from api.main import app as fastapi_app
+from api.v1.dependencies.security import initialize_api_security
+from api.v1.routers.auth import initialize_auth_config
 
 logger = logging.getLogger(__name__)
 
@@ -59,11 +58,10 @@ class MyBot(commands.Bot):
 
         self.config = config
         self.db_url = config["db_url"]
-        self.tag_service: TagService
+        self.tag_cache_service: TagCacheService
         self.cache_service: CacheService
         self.sync_service: SyncService
         self.impression_cache_service: ImpressionCacheService
-        self.author_service: AuthorService
         self.config_service: ConfigService
 
         # 从配置初始化API调度器
@@ -82,10 +80,14 @@ class MyBot(commands.Bot):
     async def on_index_updated_global(self):
         """接收 'index_updated' 事件并刷新缓存"""
         logger.debug("接收 'index_updated' 事件，开始刷新缓存")
-        if self.tag_service:
-            await self.tag_service.build_cache()
+        tasks = []
+        if self.tag_cache_service:
+            tasks.append(self.tag_cache_service.build_cache())
         if self.cache_service:
-            await self.cache_service.build_or_refresh_cache()
+            tasks.append(self.cache_service.build_or_refresh_cache())
+
+        if tasks:
+            await asyncio.gather(*tasks)
         if self.config_service:
             await self.config_service.build_or_refresh_cache()
         logger.info("核心缓存刷新完毕")
@@ -125,29 +127,28 @@ class MyBot(commands.Bot):
             await self.config_service.build_or_refresh_cache()
 
         # 1. 初始化核心服务
-        self.tag_service = TagService(AsyncSessionFactory)
+        self.tag_cache_service = TagCacheService(AsyncSessionFactory)
         self.cache_service = CacheService(self, AsyncSessionFactory)
-        self.author_service = AuthorService(
-            bot=self, session_factory=AsyncSessionFactory
-        )
         self.sync_service = SyncService(
             bot=self,
             session_factory=AsyncSessionFactory,
-            author_service=self.author_service,
         )
         self.impression_cache_service = ImpressionCacheService(
             bot=self, session_factory=AsyncSessionFactory
         )
         self.impression_cache_service.start()
 
-        asyncio.create_task(self.tag_service.build_cache())
-        asyncio.create_task(self.cache_service.build_or_refresh_cache())
+        # 并行构建缓存
+        await asyncio.gather(
+            self.tag_cache_service.build_cache(),
+            self.cache_service.build_or_refresh_cache(),
+        )
 
         # 1.5. 初始化共享服务
         preferences_service = PreferencesService(
             bot=self,
             session_factory=AsyncSessionFactory,
-            tag_service=self.tag_service,
+            tag_service=self.tag_cache_service,
             cache_service=self.cache_service,
         )
 
@@ -164,14 +165,14 @@ class MyBot(commands.Bot):
                 bot=self,
                 session_factory=AsyncSessionFactory,
                 config=self.config,
-                tag_service=self.tag_service,
+                tag_service=self.tag_cache_service,
                 sync_service=self.sync_service,
             ),
             Search(
                 bot=self,
                 session_factory=AsyncSessionFactory,
                 config=self.config,
-                tag_service=self.tag_service,
+                tag_service=self.tag_cache_service,
                 cache_service=self.cache_service,
                 preferences_service=preferences_service,
                 impression_cache_service=self.impression_cache_service,
@@ -193,7 +194,7 @@ class MyBot(commands.Bot):
                 bot=self,
                 session_factory=AsyncSessionFactory,
                 api_scheduler=self.api_scheduler,
-                tag_service=self.tag_service,
+                tag_service=self.tag_cache_service,
                 config_service=self.config_service,
             ),
             BannerManagement(

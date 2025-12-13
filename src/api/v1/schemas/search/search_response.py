@@ -1,11 +1,10 @@
-from pydantic import BaseModel, Field, field_serializer
-from typing import Optional, List
-from datetime import datetime
+from typing import List
 
+from pydantic import Field
+
+from api.v1.schemas.banner import BannerItem
+from api.v1.schemas.base import PaginatedResponse
 from api.v1.schemas.search.thread_detail import ThreadDetail
-from ..base import PaginatedResponse
-from .author import AuthorDetail
-from ..banner import BannerItem
 
 
 class SearchResponse(PaginatedResponse[ThreadDetail]):

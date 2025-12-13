@@ -1,12 +1,13 @@
 """关注列表相关路由"""
 
 import logging
-from typing import Dict, Any
+from typing import Any, Dict
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from api.v1.dependencies.security import get_current_user
 from shared.database import AsyncSessionFactory
 from ThreadManager.services.follow_service import FollowService
-from ..dependencies.security import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -154,8 +155,9 @@ async def remove_follow(
         user_id = int(current_user["id"])
 
         # 检查是否是用户自己的帖子
-        from shared.models.thread import Thread
         from sqlmodel import select
+
+        from models import Thread
 
         async with AsyncSessionFactory() as session:
             # 查询帖子作者

@@ -1,16 +1,17 @@
-import discord
 from typing import TYPE_CHECKING, Type
 
-from ...dto.search_state import SearchStateDTO
-from ...strategies import (
-    DefaultSearchStrategy,
+import discord
+
+from search.dto.search_state import SearchStateDTO
+from search.strategies import (
     AuthorSearchStrategy,
     CollectionSearchStrategy,
+    DefaultSearchStrategy,
 )
 
 if TYPE_CHECKING:
-    from ...cog import Search
-    from ..generic_search_view import GenericSearchView
+    from search.cog import Search
+    from search.views import GenericSearchView
 
 
 class ContinueButton(discord.ui.Button):

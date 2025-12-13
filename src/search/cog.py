@@ -1,30 +1,31 @@
+import asyncio
+import logging
+import re
+from typing import TYPE_CHECKING, Sequence
+
 import discord
 from discord import app_commands
 from discord.ext import commands
-import logging
-import re
-import asyncio
-from typing import TYPE_CHECKING, Sequence
-
-from shared.safe_defer import safe_defer
-from .dto.tag import TagDTO
-from .views.global_search_view import GlobalSearchView
 from sqlalchemy.ext.asyncio import async_sessionmaker
-from .search_service import SearchService
-from core.tag_service import TagService
+
+from config.config_service import ConfigService
 from core.cache_service import CacheService
 from core.impression_cache_service import ImpressionCacheService
+from core.tag_cache_service import TagCacheService
+from preferences.preferences_service import PreferencesService
+from search.dto.search_state import SearchStateDTO
 from search.qo.thread_search import ThreadSearchQuery
-from .views.channel_selection_view import ChannelSelectionView
-from config.config_service import ConfigService
-from shared.enum.search_config_type import SearchConfigType, SearchConfigDefaults
-from .views.generic_search_view import GenericSearchView
-from .views.persistent_channel_search_view import PersistentChannelSearchView
-from ..preferences.preferences_service import PreferencesService
-from .views.thread_embed_builder import ThreadEmbedBuilder
-from .dto.search_state import SearchStateDTO
-from .strategies import AuthorSearchStrategy, CollectionSearchStrategy
-
+from search.search_service import SearchService
+from search.strategies import AuthorSearchStrategy, CollectionSearchStrategy
+from search.views import (
+    ChannelSelectionView,
+    GenericSearchView,
+    GlobalSearchView,
+    PersistentChannelSearchView,
+    ThreadEmbedBuilder,
+)
+from shared.enum.search_config_type import SearchConfigDefaults, SearchConfigType
+from shared.safe_defer import safe_defer
 
 if TYPE_CHECKING:
     from bot_main import MyBot
@@ -41,7 +42,7 @@ class Search(commands.Cog):
         bot: "MyBot",
         session_factory: async_sessionmaker,
         config: dict,
-        tag_service: TagService,
+        tag_service: TagCacheService,
         cache_service: CacheService,
         preferences_service: PreferencesService,
         impression_cache_service: ImpressionCacheService,
@@ -72,26 +73,21 @@ class Search(commands.Cog):
         )
         self.bot.tree.add_command(search_user_context_menu)
 
-    def get_merged_tags(self, channel_ids: list[int]) -> list[TagDTO]:
+    def get_merged_tag_names(self, channel_ids: list[int]) -> list[str]:
         """
-        获取多个频道的合并tags列表，重名tag会被合并显示
+        获取多个频道的合并tag名列表 (去重)
         """
         # 空列表表示搜索全部频道，直接使用预计算的全局标签缓存
         if not channel_ids:
-            all_tags_names = self.cache_service.get_global_merged_tags()
-        else:
-            # 从指定频道获取标签并合并
-            all_tags_names_set = set()
-            for channel_id in channel_ids:
-                channel = self.cache_service.indexed_channels.get(channel_id)
-                if channel:
-                    all_tags_names_set.update(
-                        tag.name for tag in channel.available_tags
-                    )
-            all_tags_names = sorted(list(all_tags_names_set))
+            return self.tag_service.get_global_merged_tags()
 
-        # 返回 TagDTO 对象列表，确保后续代码可以安全地访问 .id 和 .name
-        return [TagDTO(id=0, name=tag_name) for tag_name in all_tags_names]
+        # 从指定频道获取标签并合并
+        all_tags_names_set = set()
+        for channel_id in channel_ids:
+            channel = self.cache_service.indexed_channels.get(channel_id)
+            if channel:
+                all_tags_names_set.update(tag.name for tag in channel.available_tags)
+        return sorted(list(all_tags_names_set))
 
     @staticmethod
     def _compile_highlight_regex(keywords_str: str) -> re.Pattern | None:
@@ -461,19 +457,16 @@ class Search(commands.Cog):
                     strength_weight=strength_weight,
                 )
 
-            # 当排序方法为按创建时间排序时，不记录展示次数
-            count_view = search_qo.sort_method == "created_at" or (
-                search_qo.sort_method == "custom"
-                and search_qo.custom_base_sort == "created_at"
+            # 当排序方法为按创建时间或收藏时间排序时，不记录展示次数
+            count_view = not (
+                search_qo.sort_method in ["created_at", "collected_at"]
+                or (
+                    search_qo.sort_method == "custom"
+                    and search_qo.custom_base_sort in ["created_at", "collected_at"]
+                )
             )
 
-            # 当排序方法为按创建时间排序时，不记录展示次数
-            count_view = search_qo.sort_method == "created_at" or (
-                search_qo.sort_method == "custom"
-                and search_qo.custom_base_sort == "created_at"
-            )
-
-            if threads and not count_view:
+            if threads and count_view:
                 thread_ids_to_update = [t.id for t in threads if t.id is not None]
                 # 调用服务，将这些帖子的新增展示量存入内存缓存
                 await self.impression_cache_service.increment(thread_ids_to_update)

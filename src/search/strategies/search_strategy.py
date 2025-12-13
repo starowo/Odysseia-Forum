@@ -1,12 +1,13 @@
 import abc
+from typing import TYPE_CHECKING, List, Optional
+
 import discord
-from typing import List, TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from ..cog import Search
-    from ..qo.thread_search import ThreadSearchQuery
-    from ..dto.search_state import SearchStateDTO
-    from ..views.generic_search_view import GenericSearchView
+    from search.cog import Search
+    from search.dto.search_state import SearchStateDTO
+    from search.qo.thread_search import ThreadSearchQuery
+    from search.views import GenericSearchView
 
 
 class SearchStrategy(abc.ABC):
