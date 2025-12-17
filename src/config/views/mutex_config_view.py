@@ -1,6 +1,7 @@
 import logging
+from typing import TYPE_CHECKING, List
+
 import discord
-from typing import List, TYPE_CHECKING
 
 from shared.safe_defer import safe_defer
 

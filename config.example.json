@@ -24,14 +24,16 @@
 
 
   "api": {
+    "_comment_api": "API 服务配置，用于启动 FastAPI 服务器",
     "host": "0.0.0.0",
     "port": 10810,
-    "secret_key": "在这里填入一个保密的随机字符串密钥",
+
     "enable_docs": true,
-    "_comment_api": "API 服务配置，用于启动 FastAPI 服务器",
     "_comment_enable_docs": "是否启用 API 文档 (docs 和 redoc)，生产环境建议设置为 false",
+
     "enable_ssl": false,
     "_comment_enable_ssl": "是否启用SSL，生产环境建议设置为 true",
+
     "ssl_cert_path": "ssl/cert.pem",
     "_comment_ssl_cert_path": "SSL证书路径",
     "ssl_key_path": "ssl/key.pem",

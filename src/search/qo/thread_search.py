@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
-from typing import Optional, List
+from typing import List, Optional
+
 from shared.enum.default_preferences import DefaultPreferences
 
 
@@ -27,3 +28,6 @@ class ThreadSearchQuery:
     created_before: Optional[str] = None
     active_after: Optional[str] = None
     active_before: Optional[str] = None
+
+    # 指定为哪个用户搜索收藏
+    user_id_for_collection_search: Optional[int] = None

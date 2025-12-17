@@ -18,32 +18,32 @@ import asyncio
 import uvicorn
 
 from shared.database import AsyncSessionFactory, init_db, close_db
-from src.ThreadManager.cog import ThreadManager
-from src.core.tag_service import TagService
-from src.core.cache_service import CacheService
-from src.core.sync_service import SyncService
-from src.core.impression_cache_service import ImpressionCacheService
-from src.core.author_service import AuthorService
-from src.indexer.cog import Indexer
-from src.search.cog import Search
-from src.preferences.cog import Preferences
-from src.preferences.preferences_service import PreferencesService
-from src.auditor.cog import Auditor
-from src.config.cog import Configuration
-from src.banner.cog import BannerManagement
+from ThreadManager.cog import ThreadManager
+from core.tag_cache_service import TagCacheService
+from core.cache_service import CacheService
+from core.sync_service import SyncService
+from core.impression_cache_service import ImpressionCacheService
+from indexer.cog import Indexer
+from search.cog import Search
+from preferences.cog import Preferences
+from preferences.preferences_service import PreferencesService
+from auditor.cog import Auditor
+from config.cog import Configuration
+from banner.cog import BannerManagement
 from config.config_service import ConfigService
-from src.shared.api_scheduler import APIScheduler
-from src.api.v1.routers import (
+from collection.cog import CollectionCog
+from shared.api_scheduler import APIScheduler
+from api.v1.routers import (
     preferences as preferences_api,
     search as search_api,
     meta as meta_api,
-    auth as auth_api,
     fetch_images as fetch_images_api,
     banner as banner_api,
+    booklists as booklists_api,
 )
-from src.api.main import app as fastapi_app
-from src.api.v1.dependencies.security import initialize_api_security
-from src.api.v1.routers.auth import initialize_auth_config
+from api.main import app as fastapi_app
+from api.v1.dependencies.security import initialize_api_security
+from api.v1.routers.auth import initialize_auth_config
 
 logger = logging.getLogger(__name__)
 
@@ -58,11 +58,10 @@ class MyBot(commands.Bot):
 
         self.config = config
         self.db_url = config["db_url"]
-        self.tag_service: TagService
+        self.tag_cache_service: TagCacheService
         self.cache_service: CacheService
         self.sync_service: SyncService
         self.impression_cache_service: ImpressionCacheService
-        self.author_service: AuthorService
         self.config_service: ConfigService
 
         # 从配置初始化API调度器
@@ -81,11 +80,17 @@ class MyBot(commands.Bot):
     async def on_index_updated_global(self):
         """接收 'index_updated' 事件并刷新缓存"""
         logger.debug("接收 'index_updated' 事件，开始刷新缓存")
-        if self.tag_service:
-            await self.tag_service.build_cache()
+        tasks = []
+        if self.tag_cache_service:
+            tasks.append(self.tag_cache_service.build_cache())
         if self.cache_service:
-            await self.cache_service.build_or_refresh_cache()
-        logger.info("Core 缓存刷新完毕")
+            tasks.append(self.cache_service.build_or_refresh_cache())
+
+        if tasks:
+            await asyncio.gather(*tasks)
+        if self.config_service:
+            await self.config_service.build_or_refresh_cache()
+        logger.info("核心缓存刷新完毕")
 
     def reload_config(self):
         """重新加载配置文件"""
@@ -122,29 +127,28 @@ class MyBot(commands.Bot):
             await self.config_service.build_or_refresh_cache()
 
         # 1. 初始化核心服务
-        self.tag_service = TagService(AsyncSessionFactory)
+        self.tag_cache_service = TagCacheService(AsyncSessionFactory)
         self.cache_service = CacheService(self, AsyncSessionFactory)
-        self.author_service = AuthorService(
-            bot=self, session_factory=AsyncSessionFactory
-        )
         self.sync_service = SyncService(
             bot=self,
             session_factory=AsyncSessionFactory,
-            author_service=self.author_service,
         )
         self.impression_cache_service = ImpressionCacheService(
             bot=self, session_factory=AsyncSessionFactory
         )
         self.impression_cache_service.start()
 
-        asyncio.create_task(self.tag_service.build_cache())
-        asyncio.create_task(self.cache_service.build_or_refresh_cache())
+        # 并行构建缓存
+        await asyncio.gather(
+            self.tag_cache_service.build_cache(),
+            self.cache_service.build_or_refresh_cache(),
+        )
 
         # 1.5. 初始化共享服务
         preferences_service = PreferencesService(
             bot=self,
             session_factory=AsyncSessionFactory,
-            tag_service=self.tag_service,
+            tag_service=self.tag_cache_service,
             cache_service=self.cache_service,
         )
 
@@ -161,14 +165,14 @@ class MyBot(commands.Bot):
                 bot=self,
                 session_factory=AsyncSessionFactory,
                 config=self.config,
-                tag_service=self.tag_service,
+                tag_service=self.tag_cache_service,
                 sync_service=self.sync_service,
             ),
             Search(
                 bot=self,
                 session_factory=AsyncSessionFactory,
                 config=self.config,
-                tag_service=self.tag_service,
+                tag_service=self.tag_cache_service,
                 cache_service=self.cache_service,
                 preferences_service=preferences_service,
                 impression_cache_service=self.impression_cache_service,
@@ -190,10 +194,14 @@ class MyBot(commands.Bot):
                 bot=self,
                 session_factory=AsyncSessionFactory,
                 api_scheduler=self.api_scheduler,
-                tag_service=self.tag_service,
+                tag_service=self.tag_cache_service,
                 config_service=self.config_service,
             ),
             BannerManagement(
+                bot=self,
+                session_factory=AsyncSessionFactory,
+            ),
+            CollectionCog(
                 bot=self,
                 session_factory=AsyncSessionFactory,
             ),
@@ -205,11 +213,6 @@ class MyBot(commands.Bot):
 
         # 3. 注册全局事件监听器
         self.add_listener(self.on_index_updated_global, "on_index_updated")
-
-        # 4. 启动索引同步服务
-        # asyncio.create_task(
-        #    start_index_sync(self, config=self.config, interval_minutes=30)
-        #)
 
         # --- 同步应用程序命令 ---
         try:
@@ -259,17 +262,23 @@ async def main():
         # 从已加载的 Cogs 中获取服务实例
         preferences_cog = bot.get_cog("Preferences")
         search_cog = bot.get_cog("Search")
+        collection_cog = bot.get_cog("CollectionCog")
 
         if preferences_cog:
             preferences_api.preferences_cog_instance = preferences_cog
         if search_cog:
             search_api.search_cog_instance = search_cog
+        if collection_cog:
+            search_api.collection_cog_instance = collection_cog
+            booklists_api.collection_cog_instance = collection_cog
         search_api.async_session_factory = AsyncSessionFactory
         meta_api.cache_service_instance = bot.cache_service
         search_api.cache_service_instance = bot.cache_service
         search_api.config_service_instance = bot.config_service
 
-        auth_section = bot.config.get("auth", {}) if isinstance(bot.config, dict) else {}
+        auth_section = (
+            bot.config.get("auth", {}) if isinstance(bot.config, dict) else {}
+        )
         fetch_images_api.configure_fetch_images_router(
             session_factory=AsyncSessionFactory,
             bot_token=auth_section.get("bot_token"),
@@ -296,8 +305,12 @@ async def main():
         host=api_config.get("host", "0.0.0.0"),
         port=api_config.get("port", 10810),
         log_level="info",
-        ssl_keyfile=api_config.get("ssl_key_path", None) if api_config.get("enable_ssl", False) else None,
-        ssl_certfile=api_config.get("ssl_cert_path", None) if api_config.get("enable_ssl", False) else None,
+        ssl_keyfile=api_config.get("ssl_key_path", None)
+        if api_config.get("enable_ssl", False)
+        else None,
+        ssl_certfile=api_config.get("ssl_cert_path", None)
+        if api_config.get("enable_ssl", False)
+        else None,
     )
     server = uvicorn.Server(uvicorn_config)
 

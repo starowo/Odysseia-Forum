@@ -1,9 +1,10 @@
-import discord
 import logging
-from shared.safe_defer import safe_defer
 
-from ..thread_manager_service import ThreadManagerService
-from .components.vote_button import TagVoteButton
+import discord
+
+from core.thread_service import ThreadService
+from shared.safe_defer import safe_defer
+from ThreadManager.views.components.vote_button import TagVoteButton
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +72,7 @@ class TagVoteView(discord.ui.View):
         await safe_defer(interaction)
         try:
             async with self.session_factory() as session:
-                repo = ThreadManagerService(session)
+                repo = ThreadService(session)
                 # 调用repo方法，返回更新后的统计数据
                 updated_stats = await repo.record_tag_vote(
                     user_id=interaction.user.id,

@@ -1,12 +1,13 @@
-import discord
-from typing import List, TYPE_CHECKING, Optional
 import logging
+from typing import TYPE_CHECKING, List, Optional
 
+import discord
+
+from config.views.components.tag_page_button import TagPageButton
 from shared.safe_defer import safe_defer
-from .components.tag_page_button import TagPageButton
 
 if TYPE_CHECKING:
-    from ..mutex_tags_handler import MutexTagsHandler
+    from config.mutex_tags_handler import MutexTagsHandler
 
 logger = logging.getLogger(__name__)
 

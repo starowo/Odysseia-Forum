@@ -7,8 +7,8 @@ from sqlmodel import SQLModel
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../src")))
 
-from src.shared.models import *  # noqa: F403
-from src.shared.fts5_tokenizer import register_jieba_tokenizer
+from models import *  # noqa: F403
+from shared.fts5_tokenizer import register_jieba_tokenizer
 
 
 # this is the Alembic Config object, which provides

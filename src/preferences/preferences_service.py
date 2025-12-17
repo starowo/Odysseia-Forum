@@ -1,21 +1,23 @@
 from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING, Dict, List, Optional
+
 import discord
 from discord import app_commands
-from typing import Dict, List, Optional, TYPE_CHECKING
-
 from sqlalchemy.ext.asyncio import async_sessionmaker
+
 from core.cache_service import CacheService
+from core.tag_cache_service import TagCacheService
+from preferences.preferences_repository import PreferencesRepository
+from preferences.views.channel_preferences_view import ChannelPreferencesView
+from preferences.views.tag_preferences_view import TagPreferencesView
+from search.dto.user_search_preferences import UserSearchPreferencesDTO
 from shared.safe_defer import safe_defer
 from shared.utils import process_string_to_set
-from .preferences_repository import PreferencesRepository
-from search.dto.user_search_preferences import UserSearchPreferencesDTO
-from core.tag_service import TagService
-from .views.tag_preferences_view import TagPreferencesView
-from .views.channel_preferences_view import ChannelPreferencesView
 
 if TYPE_CHECKING:
-    from .views.preferences_view import PreferencesView
+    from preferences.views.preferences_view import PreferencesView
 
 # 获取一个模块级别的 logger
 logger = logging.getLogger(__name__)
@@ -31,7 +33,7 @@ class PreferencesService:
         self,
         bot: "MyBot",
         session_factory: async_sessionmaker,
-        tag_service: TagService,
+        tag_service: TagCacheService,
         cache_service: CacheService,
     ):
         self.bot = bot

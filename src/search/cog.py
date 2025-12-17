@@ -1,29 +1,31 @@
+import asyncio
+import logging
+import re
+from typing import TYPE_CHECKING, Sequence
+
 import discord
 from discord import app_commands
 from discord.ext import commands
-import logging
-import re
-import asyncio
-from typing import TYPE_CHECKING, Sequence
-
-from shared.safe_defer import safe_defer
-from .dto.tag import TagDTO
-from .views.global_search_view import GlobalSearchView
 from sqlalchemy.ext.asyncio import async_sessionmaker
-from .search_service import SearchService
-from core.tag_service import TagService
+
+from config.config_service import ConfigService
 from core.cache_service import CacheService
 from core.impression_cache_service import ImpressionCacheService
+from core.tag_cache_service import TagCacheService
+from preferences.preferences_service import PreferencesService
+from search.dto.search_state import SearchStateDTO
 from search.qo.thread_search import ThreadSearchQuery
-from .views.channel_selection_view import ChannelSelectionView
-from config.config_service import ConfigService
-from shared.enum.search_config_type import SearchConfigType, SearchConfigDefaults
-from .views.generic_search_view import GenericSearchView
-from .views.persistent_channel_search_view import PersistentChannelSearchView
-from ..preferences.preferences_service import PreferencesService
-from .views.thread_embed_builder import ThreadEmbedBuilder
-from .dto.search_state import SearchStateDTO
-
+from search.search_service import SearchService
+from search.strategies import AuthorSearchStrategy, CollectionSearchStrategy
+from search.views import (
+    ChannelSelectionView,
+    GenericSearchView,
+    GlobalSearchView,
+    PersistentChannelSearchView,
+    ThreadEmbedBuilder,
+)
+from shared.enum.search_config_type import SearchConfigDefaults, SearchConfigType
+from shared.safe_defer import safe_defer
 
 if TYPE_CHECKING:
     from bot_main import MyBot
@@ -40,7 +42,7 @@ class Search(commands.Cog):
         bot: "MyBot",
         session_factory: async_sessionmaker,
         config: dict,
-        tag_service: TagService,
+        tag_service: TagCacheService,
         cache_service: CacheService,
         preferences_service: PreferencesService,
         impression_cache_service: ImpressionCacheService,
@@ -71,26 +73,21 @@ class Search(commands.Cog):
         )
         self.bot.tree.add_command(search_user_context_menu)
 
-    def get_merged_tags(self, channel_ids: list[int]) -> list[TagDTO]:
+    def get_merged_tag_names(self, channel_ids: list[int]) -> list[str]:
         """
-        获取多个频道的合并tags列表，重名tag会被合并显示
+        获取多个频道的合并tag名列表 (去重)
         """
         # 空列表表示搜索全部频道，直接使用预计算的全局标签缓存
         if not channel_ids:
-            all_tags_names = self.cache_service.get_global_merged_tags()
-        else:
-            # 从指定频道获取标签并合并
-            all_tags_names_set = set()
-            for channel_id in channel_ids:
-                channel = self.cache_service.indexed_channels.get(channel_id)
-                if channel:
-                    all_tags_names_set.update(
-                        tag.name for tag in channel.available_tags
-                    )
-            all_tags_names = sorted(list(all_tags_names_set))
+            return self.tag_service.get_global_merged_tags()
 
-        # 返回 TagDTO 对象列表，确保后续代码可以安全地访问 .id 和 .name
-        return [TagDTO(id=0, name=tag_name) for tag_name in all_tags_names]
+        # 从指定频道获取标签并合并
+        all_tags_names_set = set()
+        for channel_id in channel_ids:
+            channel = self.cache_service.indexed_channels.get(channel_id)
+            if channel:
+                all_tags_names_set.update(tag.name for tag in channel.available_tags)
+        return sorted(list(all_tags_names_set))
 
     @staticmethod
     def _compile_highlight_regex(keywords_str: str) -> re.Pattern | None:
@@ -321,16 +318,11 @@ class Search(commands.Cog):
                 )
                 return
 
-            # 获取该作者使用过的所有标签，并确保唯一性
-            author_tags = await self.get_tags_for_author(author.id)
-            author_tag_names = sorted({tag.name for tag in author_tags})
-
             # 定义需要强制覆盖用户偏好的字段
             overrides = {
                 "channel_ids": all_channel_ids,
                 "include_authors": {author.id},
                 "exclude_authors": set(),
-                "all_available_tags": author_tag_names,
                 "include_tags": set(),
                 "exclude_tags": set(),
                 "page": 1,
@@ -339,8 +331,11 @@ class Search(commands.Cog):
                 interaction.user.id, overrides
             )
 
+            # 创建作者搜索策略
+            strategy = AuthorSearchStrategy(author_id=author.id)
+
             # 创建通用搜索视图
-            view = GenericSearchView(self, interaction, search_state)
+            view = GenericSearchView(self, interaction, search_state, strategy=strategy)
 
             # 启动视图
             await view.start()
@@ -364,6 +359,42 @@ class Search(commands.Cog):
     ):
         """右键点击消息，搜索该消息作者的作品"""
         await self._quick_author_search(interaction, author=message.author)
+
+    @commands.Cog.listener()
+    async def on_open_collection_search(self, interaction: discord.Interaction):
+        """处理收藏搜索事件"""
+        await self.start_collection_search(interaction)
+
+    async def start_collection_search(self, interaction: discord.Interaction):
+        """启动用户收藏搜索流程"""
+        try:
+            await safe_defer(interaction, ephemeral=True)
+
+            # 创建收藏搜索策略
+            strategy = CollectionSearchStrategy(user_id=interaction.user.id)
+
+            # 从用户偏好创建初始状态
+            # 收藏搜索不预设频道和作者，但会加载用户的其他偏好
+            initial_state = await self._create_initial_state_from_prefs(
+                interaction.user.id, overrides={"page": 1}
+            )
+
+            # 创建 GenericSearchView 实例，并注入策略
+            view = GenericSearchView(
+                cog=self,
+                interaction=interaction,
+                search_state=initial_state,
+                strategy=strategy,
+            )
+
+            # 启动视图，总是发送新的私密消息，避免修改公开面板
+            await view.start(send_new_ephemeral=True)
+
+        except Exception as e:
+            logger.error(f"启动收藏搜索时出错: {e}", exc_info=True)
+            if not interaction.response.is_done():
+                await safe_defer(interaction, ephemeral=True)
+            await interaction.followup.send("❌ 启动收藏搜索失败。", ephemeral=True)
 
     async def get_tags_for_author(self, author_id: int):
         """获取给定作者使用过的全部标签"""
@@ -419,14 +450,23 @@ class Search(commands.Cog):
 
                 threads, total_threads = await repo.search_threads_with_count(
                     search_qo,
-                    offset,
-                    limit,
-                    total_display_count,
-                    exploration_factor,
-                    strength_weight,
+                    limit=limit,
+                    offset=offset,
+                    total_display_count=total_display_count,
+                    exploration_factor=exploration_factor,
+                    strength_weight=strength_weight,
                 )
 
-            if threads:
+            # 当排序方法为按创建时间或收藏时间排序时，不记录展示次数
+            count_view = not (
+                search_qo.sort_method in ["created_at", "collected_at"]
+                or (
+                    search_qo.sort_method == "custom"
+                    and search_qo.custom_base_sort in ["created_at", "collected_at"]
+                )
+            )
+
+            if threads and count_view:
                 thread_ids_to_update = [t.id for t in threads if t.id is not None]
                 # 调用服务，将这些帖子的新增展示量存入内存缓存
                 await self.impression_cache_service.increment(thread_ids_to_update)

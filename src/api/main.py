@@ -1,24 +1,36 @@
 import json
+
 from fastapi import FastAPI
-from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.cors import CORSMiddleware
-from .v1.routers import preferences, search, auth, follows, fetch_images, banner, meta
+from fastapi.middleware.gzip import GZipMiddleware
+
+from .v1.routers import (
+    auth,
+    banner,
+    booklists,
+    collections,
+    fetch_images,
+    follows,
+    meta,
+    preferences,
+    search,
+)
 
 # 读取配置
 try:
     with open("config.json", "r", encoding="utf-8") as f:
         config = json.load(f)
     enable_docs = config.get("api", {}).get("enable_docs", True)
-    
+
     # CORS配置：支持配置多个允许的源
     api_config = config.get("api", {})
     cors_origins = api_config.get("cors_origins", [])
-    
+
     # 向后兼容：如果没有配置cors_origins，使用frontend_url
     if not cors_origins:
         frontend_url = config.get("auth", {}).get("frontend_url", "*")
         cors_origins = [frontend_url] if frontend_url else ["*"]
-    
+
 except (FileNotFoundError, KeyError):
     enable_docs = True
     cors_origins = ["*"]
@@ -67,6 +79,8 @@ app.include_router(follows.router, prefix="/v1")
 app.include_router(fetch_images.router, prefix="/v1")
 app.include_router(banner.router, prefix="/v1")
 app.include_router(meta.router, prefix="/v1")
+app.include_router(collections.router, prefix="/v1")
+app.include_router(booklists.router, prefix="/v1")
 
 
 # 包含 v1 的健康检查端点
@@ -90,6 +104,8 @@ async def root():
             "search": "/v1/search",
             "follows": "/v1/follows",
             "fetch-images": "/v1/fetch-images",
-            "banner": "/v1/banner"
+            "banner": "/v1/banner",
+            "collections": "/v1/collections",
+            "booklists": "/v1/booklists",
         },
     }

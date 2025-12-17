@@ -1,5 +1,6 @@
+from typing import Generic, List, TypeVar
+
 from pydantic import BaseModel, Field
-from typing import List, TypeVar, Generic
 
 DataType = TypeVar("DataType")
 

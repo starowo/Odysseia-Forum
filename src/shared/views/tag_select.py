@@ -1,5 +1,6 @@
+from typing import Awaitable, Callable, List, Set
+
 import discord
-from typing import List, Set, Callable, Awaitable
 
 
 class TagSelect(discord.ui.Select):
@@ -25,9 +26,17 @@ class TagSelect(discord.ui.Select):
         end_idx = start_idx + self.tags_per_page
         current_page_tags = self.all_tags[start_idx:end_idx]
 
+        # 去重
+        seen_tags = set()
+        unique_current_page_tags = []
+        for tag in current_page_tags:
+            if tag not in seen_tags:
+                seen_tags.add(tag)
+                unique_current_page_tags.append(tag)
+
         options = [
             discord.SelectOption(label=tag_name, value=tag_name)
-            for tag_name in current_page_tags
+            for tag_name in unique_current_page_tags
         ]
 
         if self.selected_tags:

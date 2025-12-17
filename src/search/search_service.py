@@ -1,28 +1,28 @@
 import logging
 import re
 from typing import Sequence
-import rjieba
-from sqlmodel import select, func, and_, case, cast, Float
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload, joinedload
 
-from shared.database import thread_fts_table
-from shared.models.thread import Thread
-from shared.models.tag import Tag
-from shared.models.author import Author
+import rjieba
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload, selectinload
+from sqlmodel import Float, and_, case, cast, func, select
+
+from core.tag_cache_service import TagCacheService
+from models import Author, Tag, Thread, ThreadTagLink, UserCollection
 from search.qo.thread_search import ThreadSearchQuery
-from core.tag_service import TagService
-from shared.range_parser import parse_range_string
+from shared.database import thread_fts_table
+from shared.enum.collection_type import CollectionType
 from shared.enum.default_preferences import DefaultPreferences
+from shared.range_parser import parse_range_string
 from shared.time_parser import parse_time_string
 
 
 class SearchService:
     """封装与搜索相关的数据库操作。"""
 
-    def __init__(self, session: AsyncSession, tag_service: TagService):
+    def __init__(self, session: AsyncSession, tag_cache_service: TagCacheService):
         self.session = session
-        self.tag_service = tag_service
+        self.tag_cache_service = tag_cache_service
 
     def _apply_range_filter(self, filters, column, range_str):
         """解析范围字符串并应用为SQLAlchemy过滤器"""
@@ -100,12 +100,12 @@ class SearchService:
             resolved_include_tag_ids = [
                 id
                 for name in query.include_tags
-                for id in self.tag_service.get_ids_by_name(name)
+                for id in self.tag_cache_service.get_ids_by_name(name)
             ]
             resolved_exclude_tag_ids = [
                 id
                 for name in query.exclude_tags
-                for id in self.tag_service.get_ids_by_name(name)
+                for id in self.tag_cache_service.get_ids_by_name(name)
             ]
 
             # --- 步骤 1: 构建基础过滤器列表 (除了反选关键词) ---
@@ -131,11 +131,21 @@ class SearchService:
             if query.author_name:
                 normalized_author_name = query.author_name.strip()
                 if normalized_author_name:
-                    filters.append(
-                        Thread.author.has(
-                            func.lower(Author.name) == normalized_author_name.lower()
-                        )
-                    )
+                    # 使用子查询来查找匹配的作者 ID
+                    search_pattern = f"%{normalized_author_name}%"
+                    author_subquery = select(Author.id).where(
+                        (func.lower(Author.name) == normalized_author_name.lower())
+                        | (Author.global_name.like(search_pattern))  # type: ignore
+                        | (Author.display_name.like(search_pattern))  # type: ignore
+                    )  # type: ignore
+                    author_result = await self.session.execute(author_subquery)
+                    matched_author_ids = set(author_result.scalars().all())
+
+                    if query.include_authors:
+                        # 如果同时指定了ID和名称，则取交集
+                        final_include_author_ids.intersection_update(matched_author_ids)
+                    else:
+                        final_include_author_ids = matched_author_ids
 
             # 应用作者过滤器
             if final_include_author_ids:
@@ -180,7 +190,7 @@ class SearchService:
                 if query.tag_logic == "and":
                     # TODO : 考虑精简
                     for tag_name in query.include_tags:
-                        ids_for_name = self.tag_service.get_ids_by_name(tag_name)
+                        ids_for_name = self.tag_cache_service.get_ids_by_name(tag_name)
                         if ids_for_name:
                             filters.append(Thread.tags.any(Tag.id.in_(ids_for_name)))  # type: ignore
                 else:
@@ -247,6 +257,23 @@ class SearchService:
 
             # --- 步骤 3: 组合正选关键词和其他过滤器 ---
             base_stmt = select(Thread.id).distinct()
+
+            if query.user_id_for_collection_search:
+                # 如果是收藏搜索，则必须 JOIN user_collection 表（帖子类型）
+                from shared.enum.collection_type import CollectionType
+
+                base_stmt = base_stmt.join(
+                    UserCollection,
+                    and_(
+                        Thread.thread_id == UserCollection.target_id,
+                        UserCollection.target_type == CollectionType.THREAD,
+                    ),  # type: ignore
+                )
+                # 并将用户ID作为首要过滤条件
+                filters.append(
+                    UserCollection.user_id == query.user_id_for_collection_search
+                )
+
             needs_fts_join = query.keywords  # 只在有正选关键词时才需要JOIN
             if needs_fts_join:
                 base_stmt = base_stmt.join(
@@ -275,7 +302,7 @@ class SearchService:
                         else:
                             # 普通关键词：添加*前缀匹配
                             or_keywords.append(f"{kw}*")
-                    
+
                     if or_keywords:
                         filters.append(
                             thread_fts_table.c.thread_fts.op("MATCH")(
@@ -314,6 +341,13 @@ class SearchService:
                 else query.sort_method
             )
 
+            # 如果按收藏时间排序，但不是收藏搜索，则退回综合排序
+            if (
+                effective_sort_method == "collected_at"
+                and not query.user_id_for_collection_search
+            ):
+                effective_sort_method = "comprehensive"
+
             if effective_sort_method == "comprehensive":
                 final_select_stmt, final_score_expr = self._apply_ucb1_ranking(
                     final_select_stmt,
@@ -325,6 +359,23 @@ class SearchService:
                     final_score_expr.desc()
                     if query.sort_order == "desc"
                     else final_score_expr.asc()
+                )
+            elif (
+                effective_sort_method == "collected_at"
+                and query.user_id_for_collection_search
+            ):
+                # 按收藏时间排序
+                final_select_stmt = final_select_stmt.join(
+                    UserCollection,
+                    and_(
+                        Thread.thread_id == UserCollection.target_id,
+                        UserCollection.target_type == CollectionType.THREAD,
+                        UserCollection.user_id == query.user_id_for_collection_search,
+                    ),
+                )
+                sort_col = getattr(UserCollection, "created_at")
+                order_by = (
+                    sort_col.desc() if query.sort_order == "desc" else sort_col.asc()
                 )
             else:
                 sort_col_name = (
@@ -361,6 +412,26 @@ class SearchService:
             select(Tag)
             .join(Thread, Tag.threads)  # type: ignore
             .where(Thread.author_id == author_id)  # type: ignore
+            .distinct()
+        )
+        result = await self.session.execute(statement)
+        return result.scalars().all()
+
+    async def get_tags_for_collections(self, user_id: int) -> Sequence[Tag]:
+        """获取指定用户收藏的所有帖子的唯一标签列表"""
+
+        statement = (
+            select(Tag)
+            .join(ThreadTagLink, Tag.id == ThreadTagLink.tag_id)  # type: ignore
+            .join(Thread, ThreadTagLink.thread_id == Thread.id)  # type: ignore
+            .join(
+                UserCollection,
+                and_(
+                    Thread.thread_id == UserCollection.target_id,
+                    UserCollection.target_type == CollectionType.THREAD,
+                ),  # type: ignore
+            )
+            .where(UserCollection.user_id == user_id)
             .distinct()
         )
         result = await self.session.execute(statement)

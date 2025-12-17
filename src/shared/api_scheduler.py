@@ -1,7 +1,8 @@
 import asyncio
 import logging
 from itertools import count
-from typing import Any, Coroutine, NamedTuple, Callable
+from typing import Any, Callable, Coroutine, NamedTuple
+
 from aiohttp.client_exceptions import ClientConnectorError
 
 # 设置日志记录器

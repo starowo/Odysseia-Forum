@@ -1,14 +1,13 @@
 import logging
-from typing import List, Optional, Dict
+from typing import Dict, List, Optional
+
+from sqlalchemy.dialects.sqlite import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlmodel import select, update
-from sqlalchemy.dialects.sqlite import insert
 
-from shared.models.mutex_tag_group import MutexTagGroup
-from shared.models.mutex_tag_rule import MutexTagRule
-from shared.models.bot_config import BotConfig
-from shared.enum.search_config_type import SearchConfigType, SearchConfigDefaults
+from models import BotConfig, MutexTagGroup, MutexTagRule
+from shared.enum.search_config_type import SearchConfigDefaults, SearchConfigType
 
 logger = logging.getLogger(__name__)
 
@@ -23,13 +22,13 @@ class ConfigService:
         """
         从数据库加载所有配置项来构建或刷新缓存。
         """
-        logger.info("刷新 BotConfig 缓存...")
+        # logger.info("刷新 BotConfig 缓存...")
         result = await self.session.execute(select(BotConfig))
         all_configs = result.scalars().all()
 
         # 使用 SearchConfigType 枚举作为键，方便类型提示和访问
         self._cache = {SearchConfigType(config.type): config for config in all_configs}
-        logger.info(f"BotConfig 缓存刷新完毕，共加载 {len(self._cache)} 个配置项。")
+        # logger.info(f"BotConfig 缓存刷新完毕，共加载 {len(self._cache)} 个配置项。")
 
     async def get_config_from_cache(
         self, config_type: SearchConfigType

@@ -1,6 +1,8 @@
+from typing import TYPE_CHECKING, List, Optional
+
 import discord
-from typing import List, TYPE_CHECKING, Optional
-from shared.models.bot_config import BotConfig
+
+from models import BotConfig
 from shared.enum.search_config_type import SearchConfigType
 
 if TYPE_CHECKING:

@@ -1,12 +1,14 @@
-import discord
 from typing import TYPE_CHECKING, cast
-from shared.enum.default_preferences import DefaultPreferences
-from shared.range_parser import parse_range_string, InvalidRangeFormat
-from shared.safe_defer import safe_defer
+
+import discord
 from discord.ui import Label
 
+from shared.enum.default_preferences import DefaultPreferences
+from shared.range_parser import InvalidRangeFormat, parse_range_string
+from shared.safe_defer import safe_defer
+
 if TYPE_CHECKING:
-    from ...dto.search_state import SearchStateDTO
+    from search.dto.search_state import SearchStateDTO
 
 
 class NumberRangeModal(discord.ui.Modal, title="设置数值范围 (使用数学区间表示法)"):

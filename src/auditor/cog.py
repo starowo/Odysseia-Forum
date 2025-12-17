@@ -7,8 +7,8 @@ from discord.ext import commands, tasks
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from auditor.repository import AuditorRepository
-from shared.api_scheduler import APIScheduler
 from core.sync_service import SyncService
+from shared.api_scheduler import APIScheduler
 
 logger = logging.getLogger(__name__)
 

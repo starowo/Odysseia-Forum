@@ -1,6 +1,9 @@
 from pydantic import BaseModel, Field, field_serializer
 from typing import List
-from .tag_detail import TagDetail
+
+
+
+from api.v1.schemas.meta.tag_detail import TagDetail
 
 
 class Channel(BaseModel):

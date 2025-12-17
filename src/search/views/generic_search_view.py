@@ -1,26 +1,26 @@
-import discord
 import re
+from typing import TYPE_CHECKING, Optional, Set
 
-from typing import List, TYPE_CHECKING, Set, Optional
+import discord
 
 from search.dto.search_state import SearchStateDTO
-from shared.safe_defer import safe_defer
-from shared.views.tag_select import TagSelect
-from ..qo.thread_search import ThreadSearchQuery
-from .results_view import SearchResultsView
-from .components.keyword_modal import KeywordButton, KeywordModal
-from .components.tag_logic_button import TagLogicButton
-from .components.sort_order_button import SortOrderButton
-from .components.sort_method_select import SortMethodSelect
-from .timeout_view import TimeoutView
-from .combined_search_view import CombinedSearchView
-from .components.tag_page_button import TagPageButton
-from .custom_search_settings_view import CustomSearchSettingsView
+from search.qo.thread_search import ThreadSearchQuery
+from search.strategies import (
+    AuthorSearchStrategy,
+    CollectionSearchStrategy,
+    DefaultSearchStrategy,
+    SearchStrategy,
+)
+from search.views.combined_search_view import CombinedSearchView
+from search.views.custom_search_settings_view import CustomSearchSettingsView
+from search.views.results_view import SearchResultsView
+from search.views.timeout_view import TimeoutView
+from search.views.components.keyword_modal import KeywordModal
 from shared.enum.default_preferences import DefaultPreferences
-from search.constants import SortMethod
+from shared.safe_defer import safe_defer
 
 if TYPE_CHECKING:
-    from ..cog import Search
+    from search.cog import Search
 
 
 class GenericSearchView(discord.ui.View):
@@ -31,12 +31,28 @@ class GenericSearchView(discord.ui.View):
         cog: "Search",
         interaction: discord.Interaction,
         search_state: SearchStateDTO,
+        strategy: SearchStrategy,
     ):
-        super().__init__(timeout=885)
+        super().__init__(timeout=890)
         self.cog = cog
         self.original_interaction = interaction
         self.last_interaction = interaction
         self.search_state = search_state
+        self.strategy = strategy
+        self.last_message: Optional[discord.WebhookMessage] = None
+
+        # 将策略信息保存到状态中，以便超时恢复
+        if isinstance(strategy, DefaultSearchStrategy):
+            self.search_state.strategy_type = "default"
+            self.search_state.strategy_params = {}
+        elif isinstance(strategy, AuthorSearchStrategy):
+            self.search_state.strategy_type = "author"
+            self.search_state.strategy_params = {
+                "author_id": strategy.author_id,
+            }
+        elif isinstance(strategy, CollectionSearchStrategy):
+            self.search_state.strategy_type = "collection"
+            self.search_state.strategy_params = {"user_id": strategy.user_id}
 
         # --- UI状态 ---
         self.tags_per_page = 25
@@ -50,7 +66,13 @@ class GenericSearchView(discord.ui.View):
         Args:
             send_new_ephemeral (bool): 如果为 True，则发送一个新的私密消息，而不是编辑原始消息
         """
-        # 正常更新并发送主搜索视图
+
+        # 填充可用的标签列表
+        self.search_state.all_available_tags = await self.strategy.get_available_tags(
+            self.cog, self.search_state
+        )
+
+        # 更新主搜索视图
         await self.update_view(
             self.original_interaction, send_new_ephemeral=send_new_ephemeral
         )
@@ -63,95 +85,6 @@ class GenericSearchView(discord.ui.View):
             settings_view = CustomSearchSettingsView(self)
 
             self.custom_settings_message = await settings_view.start()
-
-    def get_filter_components(self) -> List[discord.ui.Item]:
-        """准备所有筛选UI组件的列表，但不添加到视图中"""
-        components = []
-        state = self.search_state
-        all_tags = state.all_available_tags
-
-        # 第 0 行: 正选标签
-        components.append(
-            TagSelect(
-                all_tags=all_tags,
-                selected_tags=state.include_tags,
-                page=state.tag_page,
-                tags_per_page=self.tags_per_page,
-                placeholder_prefix="正选",
-                custom_id="generic_include_tags",
-                on_change_callback=self.on_include_tags_change,
-                row=0,
-            )
-        )
-
-        # 第 1 行: 反选标签
-        components.append(
-            TagSelect(
-                all_tags=all_tags,
-                selected_tags=state.exclude_tags,
-                page=state.tag_page,
-                tags_per_page=self.tags_per_page,
-                placeholder_prefix="反选",
-                custom_id="generic_exclude_tags",
-                on_change_callback=self.on_exclude_tags_change,
-                row=1,
-            )
-        )
-
-        # 第 2 行: 控制按钮
-        components.append(KeywordButton(self.show_keyword_modal, row=2))
-
-        if len(all_tags) > self.tags_per_page:
-            max_page = (len(all_tags) - 1) // self.tags_per_page
-            components.append(
-                TagPageButton(
-                    "prev", self.on_tag_page_change, row=2, disabled=state.tag_page == 0
-                )
-            )
-
-        components.append(
-            TagLogicButton(state.tag_logic, self.on_tag_logic_change, row=2)
-        )
-
-        if len(all_tags) > self.tags_per_page:
-            max_page = (len(all_tags) - 1) // self.tags_per_page
-            components.append(
-                TagPageButton(
-                    "next",
-                    self.on_tag_page_change,
-                    row=2,
-                    disabled=state.tag_page >= max_page,
-                )
-            )
-
-        components.append(
-            SortOrderButton(state.sort_order, self.on_sort_order_change, row=2)
-        )
-
-        # 第 3 行: 排序选择器
-        sort_select = SortMethodSelect(
-            state.sort_method, self.on_sort_method_change, row=3
-        )
-
-        # 动态修改自定义搜索的标签
-        if state.sort_method == "custom":
-            # 找到 "自定义搜索" 对应的选项
-            custom_option = next(
-                (opt for opt in sort_select.options if opt.value == "custom"), None
-            )
-
-            if custom_option:
-                # 获取基础排序算法的显示名称
-                base_sort_label = SortMethod.get_short_label_by_value(
-                    state.custom_base_sort
-                )
-
-                # 更新标签
-                custom_option.label = f"🛠️ 自定义 ({base_sort_label})"
-
-        components.append(sort_select)
-
-        return components
 
     async def update_view(
         self,
@@ -182,11 +115,14 @@ class GenericSearchView(discord.ui.View):
             self.last_search_results = results
 
         # 准备所有UI组件
-        filter_components = self.get_filter_components()
+        filter_components = self.strategy.get_filter_components(self)
 
         # 构建消息和最终视图
-        content = "搜索结果"
-        if self.search_state.channel_ids:
+        content = self.strategy.get_title()  # 使用策略获取标题
+
+        if self.search_state.channel_ids and not isinstance(
+            self.strategy, CollectionSearchStrategy
+        ):
             guild = interaction.guild
             if guild:
                 channels = [
@@ -225,22 +161,32 @@ class GenericSearchView(discord.ui.View):
         # 更新消息
         # 根据模式选择是编辑还是发送新消息
         if send_new_ephemeral:
-            send_coro = interaction.followup.send(
+            # 首次发送新消息时，使用 wait=True 获取消息对象作为锚点
+            msg = await interaction.followup.send(
                 content=content,
                 view=final_view,
                 embeds=final_embeds_to_send,
                 ephemeral=True,
+                wait=True,
             )
-            await self.cog.bot.api_scheduler.submit(
-                coro_factory=lambda: send_coro, priority=1
-            )
+            self.last_message = msg
         else:
-            edit_coro = interaction.edit_original_response(
-                content=content, view=final_view, embeds=final_embeds_to_send
-            )
-            await self.cog.bot.api_scheduler.submit(
-                coro_factory=lambda: edit_coro, priority=1
-            )
+            edit_coro = None
+            # 优先编辑锚点消息
+            if self.last_message:
+                edit_coro = self.last_message.edit(
+                    content=content, view=final_view, embeds=final_embeds_to_send
+                )
+            # 回退到编辑原始响应
+            else:
+                edit_coro = interaction.edit_original_response(
+                    content=content, view=final_view, embeds=final_embeds_to_send
+                )
+
+            if edit_coro:
+                await self.cog.bot.api_scheduler.submit(
+                    coro_factory=lambda: edit_coro, priority=1
+                )
 
     async def _execute_search(self, interaction: discord.Interaction) -> dict:
         """执行搜索并返回结果"""
@@ -382,7 +328,8 @@ class GenericSearchView(discord.ui.View):
     def build_query_object(self) -> ThreadSearchQuery:
         """根据当前视图状态构建查询对象。"""
         state = self.search_state
-        return ThreadSearchQuery(
+        # 创建基础查询对象
+        query = ThreadSearchQuery(
             channel_ids=state.channel_ids,
             include_authors=list(state.include_authors)
             if state.include_authors
@@ -406,6 +353,8 @@ class GenericSearchView(discord.ui.View):
             active_after=state.active_after,
             active_before=state.active_before,
         )
+
+        return self.strategy.modify_query(query)
 
     def build_summary_embed(self, results: dict) -> discord.Embed:
         """构建并返回一个包含当前筛选条件和结果摘要的Embed"""
@@ -459,7 +408,10 @@ class GenericSearchView(discord.ui.View):
             elif isinstance(error_value, str):
                 summary = error_value
             else:
-                summary = "没有找到符合条件的结果。"
+                summary = (
+                    self.strategy.get_no_results_summary(has_filters=bool(filters))
+                    or "没有找到符合条件的结果。"
+                )
             color = discord.Color.orange()
 
         description_parts.append(summary)
@@ -467,24 +419,43 @@ class GenericSearchView(discord.ui.View):
         embed = discord.Embed(description="\n".join(description_parts), color=color)
         return embed
 
+    async def refresh_view(self):
+        """提供给子视图的回调，用于在数据更新后刷新此主视图"""
+        if self.last_interaction:
+            await self.update_view(self.last_interaction, rerun_search=True)
+
     async def on_timeout(self):
-        """当视图超时时，保存状态并显示一个带有“继续”按钮的新视图"""
+        """当视图超时时，保存状态并显示一个带有"继续"按钮的新视图"""
 
         state = self.search_state.model_dump()
 
-        timeout_view = TimeoutView(self.cog, self.last_interaction, state)
+        timeout_view = TimeoutView(
+            self.cog, self.last_interaction, state, view_class=self.__class__
+        )
 
-        try:
-            if not self.last_interaction:
-                return
-
+        edit_coro = None
+        # 优先编辑锚点消息
+        if self.last_message:
+            edit_coro = self.last_message.edit(
+                content="⏰ 搜索界面已超时，点击下方按钮可恢复之前的搜索状态。",
+                view=timeout_view,
+                embeds=[],
+            )
+        # 回退到编辑原始响应
+        elif self.last_interaction:
             edit_coro = self.last_interaction.edit_original_response(
                 content="⏰ 搜索界面已超时，点击下方按钮可恢复之前的搜索状态。",
                 view=timeout_view,
                 embeds=[],
             )
-            await self.cog.bot.api_scheduler.submit(
-                coro_factory=lambda: edit_coro, priority=1
-            )
+        else:
+            # 没有任何可编辑的目标，静默返回
+            return
+
+        try:
+            if edit_coro:
+                await self.cog.bot.api_scheduler.submit(
+                    coro_factory=lambda: edit_coro, priority=1
+                )
         except (discord.errors.NotFound, discord.errors.HTTPException):
             pass

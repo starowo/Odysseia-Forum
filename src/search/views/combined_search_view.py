@@ -1,11 +1,10 @@
-import discord
-
-
 from typing import TYPE_CHECKING
 
+import discord
+
 if TYPE_CHECKING:
-    from .generic_search_view import GenericSearchView
-    from .results_view import SearchResultsView
+    from search.views.generic_search_view import GenericSearchView
+    from search.views.results_view import SearchResultsView
 
 
 class CombinedSearchView(discord.ui.View):

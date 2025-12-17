@@ -1,16 +1,16 @@
 import logging
-import discord
 from typing import TYPE_CHECKING, Dict
+
+import discord
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from shared.safe_defer import safe_defer
-
-from .config_service import ConfigService
-from .embed_builder import ConfigEmbedBuilder
-from .views.config_panel_view import ConfigPanelView
-from .views.components.edit_config_modal import EditConfigModal
-from shared.models.bot_config import BotConfig
+from config.config_service import ConfigService
+from config.embed_builder import ConfigEmbedBuilder
+from config.views.components.edit_config_modal import EditConfigModal
+from config.views.config_panel_view import ConfigPanelView
+from models import BotConfig
 from shared.enum.search_config_type import SearchConfigType
+from shared.safe_defer import safe_defer
 
 if TYPE_CHECKING:
     from bot_main import MyBot

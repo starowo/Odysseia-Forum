@@ -1,88 +1,40 @@
 import logging
-import discord
-from typing import TYPE_CHECKING
-from sqlalchemy.ext.asyncio import async_sessionmaker
-from sqlalchemy.dialects.sqlite import insert as sqlite_insert
-from shared.models.author import Author
+from typing import Dict, Any
 
-if TYPE_CHECKING:
-    from bot_main import MyBot
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from models import Author
 
 logger = logging.getLogger(__name__)
 
 
-class AuthorService:
+class AuthorRepository:
     """
-    负责获取和缓存作者信息到数据库的服务。
+    负责 Author 模型在数据库中的持久化操作。
     """
 
-    def __init__(self, bot: "MyBot", session_factory: async_sessionmaker):
-        self.bot = bot
-        self.session_factory = session_factory
+    def __init__(self, session: AsyncSession):
+        self.session = session
 
-    async def get_or_fetch_author(
-        self,
-        author_id: int,
-        guild: discord.Guild,
-        source_member: discord.Member | discord.User | None = None,
-    ):
+    async def upsert_author(self, author_data: Dict[str, Any]) -> None:
         """
-        获取或抓取作者信息并存入数据库。
-        策略：传入对象 -> 服务器缓存 -> 机器人全局缓存 -> API 调用。
+        使用 INSERT ... ON CONFLICT DO UPDATE (Upsert) 更新或插入作者信息。
+
+        Args:
+            author_data: 包含作者信息的字典，键应与 Author 模型字段匹配。
         """
-        user_obj: discord.User | discord.Member | None = None
-
-        # 优先使用直接传入的 source_member/user 对象
-        if source_member and source_member.id == author_id:
-            user_obj = source_member
-
-        # 尝试从服务器成员缓存中获取
-        if not user_obj:
-            user_obj = guild.get_member(author_id)
-
-        # 尝试从机器人全局用户缓存中获取
-        if not user_obj:
-            user_obj = self.bot.get_user(author_id)
-
-        # 最后手段：API 调用
-        if not user_obj:
-            try:
-                # 使用调度器来避免速率限制
-                user_obj = await self.bot.api_scheduler.submit(
-                    coro_factory=lambda: self.bot.fetch_user(author_id),
-                    priority=8,  # 优先级略低于帖子同步
-                )
-            except discord.NotFound:
-                logger.warning(f"无法通过 API找到 ID 为 {author_id} 的用户。")
-                return
-            except Exception as e:
-                logger.error(
-                    f"通过API获取用户 {author_id} 信息时出错: {e}", exc_info=True
-                )
-                return
-
-        if not user_obj:
-            logger.warning(f"所有方法都无法获取 ID 为 {author_id} 的用户对象。")
-            return
-
-        # 准备要插入或更新的数据
-        author_data = {
-            "id": user_obj.id,
-            "name": user_obj.name,
-            "global_name": user_obj.global_name,
-            "display_name": user_obj.display_name,
-            "avatar_url": user_obj.display_avatar.url,
-        }
-
-        # 使用 INSERT ... ON CONFLICT DO UPDATE (Upsert)
         stmt = sqlite_insert(Author).values(author_data)
         update_stmt = stmt.on_conflict_do_update(
-            index_elements=["id"], set_=author_data
+            index_elements=["id"],
+            set_=author_data,
         )
 
         try:
-            async with self.session_factory() as session:
-                await session.execute(update_stmt)
-                await session.commit()
+            await self.session.execute(update_stmt)
+            await self.session.commit()
         except Exception as e:
-            logger.error(f"更新作者 {author_id} 信息到数据库时失败: {e}", exc_info=True)
+            logger.error(
+                f"更新作者 {author_data.get('id')} 信息到数据库时失败: {e}", exc_info=True
+            )
+            raise  # 重新抛出异常

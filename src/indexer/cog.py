@@ -1,17 +1,17 @@
-import discord
-from discord import app_commands
-from discord.ext import commands
 import asyncio
 import logging
 from typing import TYPE_CHECKING, cast
 
+import discord
+from discord import app_commands
+from discord.ext import commands
 from sqlalchemy.ext.asyncio import async_sessionmaker
+
+from core.sync_service import SyncService
+from core.tag_cache_service import TagCacheService
+from indexer.views import IndexerDashboard
 from shared.safe_defer import safe_defer
 from ThreadManager.cog import ThreadManager
-from core.tag_service import TagService
-from core.sync_service import SyncService
-from .views import IndexerDashboard
-
 
 if TYPE_CHECKING:
     from bot_main import MyBot
@@ -28,7 +28,7 @@ class Indexer(commands.Cog):
         bot: "MyBot",
         session_factory: async_sessionmaker,
         config: dict,
-        tag_service: TagService,
+        tag_service: TagCacheService,
         sync_service: SyncService,
     ):
         self.bot = bot

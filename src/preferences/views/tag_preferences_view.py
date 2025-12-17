@@ -1,14 +1,15 @@
-import discord
-from typing import List, TYPE_CHECKING, Set
+from typing import TYPE_CHECKING, List, Set
 
+import discord
+
+from search.dto.user_search_preferences import UserSearchPreferencesDTO
+from search.views.components.tag_page_button import TagPageButton
 from shared.safe_defer import safe_defer
 from shared.views.tag_select import TagSelect
-from ...search.dto.user_search_preferences import UserSearchPreferencesDTO
-from ...search.views.components.tag_page_button import TagPageButton
 
 if TYPE_CHECKING:
-    from ..preferences_service import PreferencesService
-    from .preferences_view import PreferencesView
+    from preferences.preferences_service import PreferencesService
+    from preferences.views.preferences_view import PreferencesView
 
 
 class TagPreferencesView(discord.ui.View):

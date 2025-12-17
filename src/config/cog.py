@@ -1,16 +1,16 @@
 import logging
+from typing import TYPE_CHECKING, cast
+
 import discord
 from discord import app_commands
 from discord.ext import commands
-from typing import TYPE_CHECKING, cast
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
+from config.config_service import ConfigService
+from config.general_config_handler import GeneralConfigHandler
+from config.mutex_tags_handler import MutexTagsHandler
+from core.tag_cache_service import TagCacheService
 from shared.safe_defer import safe_defer
-
-from .mutex_tags_handler import MutexTagsHandler
-from .general_config_handler import GeneralConfigHandler
-from core.tag_service import TagService
-from .config_service import ConfigService
 
 if TYPE_CHECKING:
     from bot_main import MyBot
@@ -59,7 +59,7 @@ class Configuration(commands.Cog):
         bot: "MyBot",
         session_factory: async_sessionmaker,
         api_scheduler,
-        tag_service: TagService,
+        tag_service: TagCacheService,
         config_service: ConfigService,
     ):
         self.bot = bot
@@ -92,46 +92,16 @@ class Configuration(commands.Cog):
         """唤出私密的BOT通用配置面板"""
         await self.general_config_handler.start_flow(interaction)
 
-    @general_settings.error
-    async def on_general_settings_error(
-        self, interaction: discord.Interaction, error: app_commands.AppCommandError
-    ):
-        if isinstance(error, app_commands.CheckFailure):
-            await interaction.response.send_message(
-                "❌ 你没有权限使用此命令。需要服务器管理员或被指定为机器人管理员。",
-                ephemeral=True,
-            )
-        else:
-            await interaction.response.send_message(
-                f"❌ 命令执行失败: {error}", ephemeral=True
-            )
-
     @config_group.command(name="互斥标签组", description="配置互斥标签组")
-    @app_commands.checks.has_permissions(administrator=True)
+    @is_admin_or_bot_admin()
     async def configure_mutex_tags(self, interaction: discord.Interaction):
         """唤出私密的互斥标签组配置面板。"""
         await self.mutex_handler.start_configuration_flow(interaction)
 
-    @configure_mutex_tags.error
-    async def on_mutex_tags_error(
-        self, interaction: discord.Interaction, error: app_commands.AppCommandError
-    ):
-        if isinstance(error, app_commands.MissingPermissions):
-            await interaction.response.send_message(
-                "❌ 此命令需要 admin 权限", ephemeral=True
-            )
-        else:
-            logger.error("配置互斥标签命令出错", exc_info=error)
-            await interaction.response.send_message(
-                f"❌ 命令执行失败: {error}", ephemeral=True
-            )
-
-    @config_group.command(
-        name="重载配置", description="重新加载配置文件并重新导出部署网页"
-    )
-    @app_commands.checks.has_permissions(administrator=True)
+    @config_group.command(name="重载配置", description="重新加载配置文件")
+    @is_admin_or_bot_admin()
     async def reload_config(self, interaction: discord.Interaction):
-        """重新加载配置文件并重新导出部署网页"""
+        """重新加载配置文件"""
         await safe_defer(interaction, ephemeral=True)
 
         try:
@@ -146,117 +116,58 @@ class Configuration(commands.Cog):
                 return
 
             # 发送配置重载成功消息
-            await interaction.followup.send(
-                "✅ 配置文件重载成功！开始重新部署网页...", ephemeral=True
-            )
-
-            # 执行手动同步和部署
-            await manual_sync(self.bot, self.bot.config)
-
-            # 发送完成消息
-            await interaction.followup.send(
-                "✅ 配置重载并重新部署完成！", ephemeral=True
-            )
+            await interaction.followup.send("✅ 配置文件重载成功！", ephemeral=True)
 
         except Exception as e:
             logger.error("重载配置时出错", exc_info=e)
             await interaction.followup.send(f"❌ 重载配置失败: {e}", ephemeral=True)
 
-    @reload_config.error
-    async def on_reload_config_error(
-        self, interaction: discord.Interaction, error: app_commands.AppCommandError
-    ):
-        if isinstance(error, app_commands.MissingPermissions):
-            await interaction.response.send_message(
-                "❌ 此命令需要 admin 权限。", ephemeral=True
-            )
-        else:
-            logger.error("重载配置命令出错", exc_info=error)
-            await interaction.response.send_message(
-                f"❌ 命令执行失败: {error}", ephemeral=True
-            )
-
-    @config_group.command(name="缓存状态", description="查看用户昵称缓存状态")
-    @app_commands.checks.has_permissions(administrator=True)
-    async def view_cache_status(self, interaction: discord.Interaction):
-        """查看用户昵称缓存状态"""
+    @config_group.command(
+        name="刷新缓存", description="手动刷新所有核心缓存（标签、频道、配置）"
+    )
+    @is_admin_or_bot_admin()
+    async def refresh_cache(self, interaction: discord.Interaction):
+        """手动刷新所有核心缓存"""
         await safe_defer(interaction, ephemeral=True)
 
         try:
-            # 获取同步服务实例
-            sync_service = get_sync_service(self.bot, self.bot.config)
-            cache_stats = sync_service.get_cache_stats()
+            await interaction.followup.send("🔄 开始刷新缓存...", ephemeral=True)
 
-            # 构建状态消息
-            status_message = "📊 **用户昵称缓存状态**\n\n"
-            status_message += f"**缓存条目数**: {cache_stats['total_cached_users']}\n"
+            if self.tag_service:
+                await self.tag_service.build_cache()
+            if self.bot.cache_service:
+                await self.bot.cache_service.build_or_refresh_cache()
+            if self.config_service:
+                await self.config_service.build_or_refresh_cache()
 
-            if cache_stats["sample_entries"]:
-                status_message += "\n**示例条目** (显示前5个):\n"
-                for (guild_id, user_id), nickname in cache_stats[
-                    "sample_entries"
-                ].items():
-                    status_message += (
-                        f"• 服务器 {guild_id} - 用户 {user_id}: `{nickname}`\n"
-                    )
-            else:
-                status_message += "\n**缓存为空**"
-
-            await interaction.followup.send(status_message, ephemeral=True)
+            await interaction.followup.send("🎉 所有缓存刷新完毕！", ephemeral=True)
 
         except Exception as e:
-            logger.error("查看缓存状态时出错", exc_info=e)
-            await interaction.followup.send(f"❌ 获取缓存状态失败: {e}", ephemeral=True)
+            logger.error("刷新缓存时出错", exc_info=e)
+            await interaction.followup.send(f"❌ 刷新缓存失败: {e}", ephemeral=True)
 
-    @config_group.command(name="清除缓存", description="清除所有用户昵称缓存")
-    @app_commands.checks.has_permissions(administrator=True)
-    async def clear_cache(self, interaction: discord.Interaction):
-        """清除所有用户昵称缓存"""
-        await safe_defer(interaction, ephemeral=True)
-
-        try:
-            # 获取同步服务实例
-            sync_service = get_sync_service(self.bot, self.bot.config)
-            cache_stats_before = sync_service.get_cache_stats()
-
-            # 清除缓存
-            sync_service.clear_all_cache()
-
-            await interaction.followup.send(
-                f"✅ 已清除用户昵称缓存！\n"
-                f"**清除前条目数**: {cache_stats_before['total_cached_users']}\n"
-                f"**清除后条目数**: 0",
+    async def cog_app_command_error(
+        self, interaction: discord.Interaction, error: app_commands.AppCommandError
+    ):
+        """
+        Cog 级别的应用程序命令错误处理器。
+        """
+        # 检查是否是权限检查失败
+        if isinstance(error, app_commands.CheckFailure):
+            await interaction.response.send_message(
+                "❌ 你没有权限使用此命令。需要服务器管理员或被指定为机器人管理员。",
                 ephemeral=True,
             )
-
-        except Exception as e:
-            logger.error("清除缓存时出错", exc_info=e)
-            await interaction.followup.send(f"❌ 清除缓存失败: {e}", ephemeral=True)
-
-    @view_cache_status.error
-    async def on_view_cache_status_error(
-        self, interaction: discord.Interaction, error: app_commands.AppCommandError
-    ):
-        if isinstance(error, app_commands.MissingPermissions):
-            await interaction.response.send_message(
-                "❌ 此命令需要 admin 权限。", ephemeral=True
-            )
         else:
-            logger.error("查看缓存状态命令出错", exc_info=error)
-            await interaction.response.send_message(
-                f"❌ 命令执行失败: {error}", ephemeral=True
-            )
-
-    @clear_cache.error
-    async def on_clear_cache_error(
-        self, interaction: discord.Interaction, error: app_commands.AppCommandError
-    ):
-        if isinstance(error, app_commands.MissingPermissions):
-            await interaction.response.send_message(
-                "❌ 此命令需要 admin 权限。", ephemeral=True
-            )
-        else:
-            logger.error("清除缓存命令出错", exc_info=error)
-            await interaction.response.send_message(
-                f"❌ 命令执行失败: {error}", ephemeral=True
-            )
+            # 对于其他类型的错误，记录日志并发送通用错误消息
+            command_name = interaction.command.name if interaction.command else "未知"
+            logger.error(f"命令 '{command_name}' 发生错误", exc_info=error)
+            # 检查交互是否已被响应
+            if not interaction.response.is_done():
+                await interaction.response.send_message(
+                    f"❌ 命令执行时发生未知错误: {error}", ephemeral=True
+                )
+            else:
+                await interaction.followup.send(
+                    f"❌ 命令执行时发生未知错误: {error}", ephemeral=True
+                )

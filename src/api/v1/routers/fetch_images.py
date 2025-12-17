@@ -9,11 +9,13 @@ from pydantic import BaseModel, Field
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from ..dependencies.security import require_auth
-from shared.models.thread import Thread
+from api.v1.dependencies.security import require_auth
+from models import Thread
 
 DISCORD_API_BASE = "https://discord.com/api/v10"
-IMAGE_URL_REGEX = re.compile(r"https?://[^\s]+\.(?:jpg|jpeg|png|gif|webp)", re.IGNORECASE)
+IMAGE_URL_REGEX = re.compile(
+    r"https?://[^\s]+\.(?:jpg|jpeg|png|gif|webp)", re.IGNORECASE
+)
 IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".gif", ".webp")
 
 router = APIRouter(

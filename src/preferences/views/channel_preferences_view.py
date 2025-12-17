@@ -1,12 +1,13 @@
-import discord
 from typing import TYPE_CHECKING, List
+
+import discord
 
 from shared.safe_defer import safe_defer
 
 if TYPE_CHECKING:
-    from ..preferences_service import PreferencesService
-    from .preferences_view import PreferencesView
-    from ...search.dto.user_search_preferences import UserSearchPreferencesDTO
+    from preferences.preferences_service import PreferencesService
+    from preferences.views.preferences_view import PreferencesView
+    from search.dto.user_search_preferences import UserSearchPreferencesDTO
 
 
 class ChannelPreferencesView(discord.ui.View):

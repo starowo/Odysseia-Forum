@@ -1,7 +1,7 @@
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.thread import Thread
+from models import Thread
 
 
 class AuditorRepository:

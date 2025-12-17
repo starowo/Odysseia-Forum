@@ -1,9 +1,10 @@
 import os
-from sqlalchemy import event
-from sqlmodel import Integer, SQLModel, Column, MetaData, Table, Text, text
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncEngine
 
-from .fts5_tokenizer import register_jieba_tokenizer
+from sqlalchemy import event
+from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
+from sqlmodel import Column, Integer, MetaData, SQLModel, Table, Text, text
+
+from shared.fts5_tokenizer import register_jieba_tokenizer
 
 # 确保表被导入，以便 SQLModel.metadata.create_all 能够工作
 

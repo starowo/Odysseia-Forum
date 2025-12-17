@@ -1,8 +1,10 @@
-import discord
 from typing import Callable, Coroutine, Dict, Optional, cast
+
+import discord
+from discord.ui import Label
+
 from shared.safe_defer import safe_defer
 from shared.time_parser import parse_time_string
-from discord.ui import Label
 
 
 class TimeRangeModal(discord.ui.Modal, title="设置时间范围"):

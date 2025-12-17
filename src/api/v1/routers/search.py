@@ -1,22 +1,27 @@
+from typing import Any, Dict
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import async_sessionmaker
-from src.search.cog import Search
-from src.search.qo.thread_search import ThreadSearchQuery
-from src.search.search_service import SearchService
+
+from api.v1.dependencies.security import get_current_user, require_auth
+from api.v1.schemas.banner import BannerItem
+from api.v1.schemas.search import SearchRequest, SearchResponse, ThreadDetail
+from api.v1.schemas.search.author import AuthorDetail
+from banner.banner_service import BannerService
+from collection.cog import CollectionCog
 from config.config_service import ConfigService
-from src.shared.enum.search_config_type import SearchConfigType, SearchConfigDefaults
-from src.shared.keyword_parser import KeywordParser
-from ..dependencies.security import require_auth, get_current_user
-from ..schemas.search import SearchRequest, SearchResponse, ThreadDetail
-from ..schemas.search.author import AuthorDetail
-from ..schemas.banner import BannerItem
-from src.core.cache_service import CacheService
-from src.banner.banner_service import BannerService
+from core.cache_service import CacheService
+from search.cog import Search
+from search.qo.thread_search import ThreadSearchQuery
+from search.search_service import SearchService
+from shared.enum.collection_type import CollectionType
+from shared.enum.search_config_type import SearchConfigDefaults, SearchConfigType
+from shared.keyword_parser import KeywordParser
 from ThreadManager.services.follow_service import FollowService
-from typing import Dict, Any
 
 # 全局变量，将在应用启动时由 bot_main.py 注入
 search_cog_instance: Search | None = None
+collection_cog_instance: CollectionCog | None = None
 async_session_factory: async_sessionmaker | None = None
 config_service_instance: ConfigService | None = None
 cache_service_instance: CacheService | None = None
@@ -27,7 +32,9 @@ router = APIRouter(
 
 
 @router.post("/", response_model=SearchResponse, summary="执行帖子搜索")
-async def execute_search(request: SearchRequest, current_user: Dict[str, Any] = Depends(get_current_user)):
+async def execute_search(
+    request: SearchRequest, current_user: Dict[str, Any] = Depends(get_current_user)
+):
     """
     根据指定的条件搜索帖子，并返回包含作者信息的分页结果。
 
@@ -36,6 +43,7 @@ async def execute_search(request: SearchRequest, current_user: Dict[str, Any] = 
     """
     if (
         not search_cog_instance
+        or not collection_cog_instance
         or not async_session_factory
         or not config_service_instance
     ):
@@ -49,16 +57,16 @@ async def execute_search(request: SearchRequest, current_user: Dict[str, Any] = 
     parsed_include_keywords = []
     parsed_exclude_keywords = []
     remaining_keywords = request.keywords or ""
-    
+
     if request.keywords:
         # 清理并解析关键词
         sanitized_keywords = KeywordParser.sanitize(request.keywords)
-        author_name, parsed_include_keywords, parsed_exclude_keywords, remaining_keywords = KeywordParser.parse(sanitized_keywords)
-    
-    # 如果request直接提供了author_name,使用它(优先级更高)
-    if request.author_name:
-        author_name = request.author_name
-    
+        (
+            author_name,
+            parsed_include_keywords,
+            parsed_exclude_keywords,
+            remaining_keywords,
+        ) = KeywordParser.parse(sanitized_keywords)
     # 合并解析出的排除词和原有的排除词
     final_exclude_keywords = request.exclude_keywords or ""
     if parsed_exclude_keywords:
@@ -66,7 +74,7 @@ async def execute_search(request: SearchRequest, current_user: Dict[str, Any] = 
             final_exclude_keywords += " " + " ".join(parsed_exclude_keywords)
         else:
             final_exclude_keywords = " ".join(parsed_exclude_keywords)
-    
+
     # 构建最终的关键词字符串（精确匹配的用引号包围）
     final_keywords_parts = []
     if parsed_include_keywords:
@@ -75,13 +83,18 @@ async def execute_search(request: SearchRequest, current_user: Dict[str, Any] = 
             final_keywords_parts.append(f'"{kw}"')
     if remaining_keywords:
         final_keywords_parts.append(remaining_keywords)
-    
+
     final_keywords = " ".join(final_keywords_parts) if final_keywords_parts else None
 
     # 将字符串channel_ids转换为整数
     channel_ids_int = None
     if request.channel_ids:
         channel_ids_int = [int(cid) for cid in request.channel_ids]
+
+    # 处理收藏搜索
+    user_id_for_collection_search = None
+    if request.search_by_collection and current_user and "id" in current_user:
+        user_id_for_collection_search = int(current_user["id"])
 
     query_object = ThreadSearchQuery(
         channel_ids=channel_ids_int,
@@ -103,6 +116,7 @@ async def execute_search(request: SearchRequest, current_user: Dict[str, Any] = 
         sort_method=request.sort_method,
         sort_order=request.sort_order,
         custom_base_sort=request.custom_base_sort,
+        user_id_for_collection_search=user_id_for_collection_search,
     )
 
     try:
@@ -157,6 +171,34 @@ async def execute_search(request: SearchRequest, current_user: Dict[str, Any] = 
         except Exception as e:
             print(f"获取关注状态失败: {e}")
 
+            # 当排序方法为按创建时间排序时，不记录展示次数。其它外的排序方法均记录展示次数。
+            # 当排序方法为按创建时间或收藏时间排序时，不记录展示次数
+            count_view = not (
+                query_object.sort_method in ["created_at", "collected_at"]
+                or (
+                    query_object.sort_method == "custom"
+                    and query_object.custom_base_sort in ["created_at", "collected_at"]
+                )
+            )
+
+            if threads and count_view:
+                thread_ids_to_update = [t.id for t in threads if t.id is not None]
+                await search_cog_instance.impression_cache_service.increment(
+                    thread_ids_to_update
+                )
+
+        # 检查收藏状态
+        collected_thread_ids = set()
+        user_id = (
+            int(current_user["id"]) if current_user and "id" in current_user else None
+        )
+        if user_id and threads:
+            thread_ids = [t.thread_id for t in threads]
+            async with collection_cog_instance.get_collection_service() as service:
+                collected_thread_ids = await service.get_collected_target_ids(
+                    user_id, CollectionType.THREAD, thread_ids
+                )
+
         results = []
         for thread in threads:
             # 获取该帖子的关注状态
@@ -180,6 +222,7 @@ async def execute_search(request: SearchRequest, current_user: Dict[str, Any] = 
                 tags=[tag.name for tag in thread.tags],
                 is_following=status_info.get("is_following", False),
                 has_update=status_info.get("has_update", False),
+                collected_flag=thread.thread_id in collected_thread_ids,
             )
             results.append(thread_detail)
 
@@ -217,11 +260,17 @@ async def execute_search(request: SearchRequest, current_user: Dict[str, Any] = 
         # 读取未读更新数量
         unread_count = 0
         try:
-            user_id = int(current_user["id"]) if current_user and "id" in current_user else None
+            user_id = (
+                int(current_user["id"])
+                if current_user and "id" in current_user
+                else None
+            )
             if user_id is not None:
                 async with async_session_factory() as session:
                     follow_service = FollowService(session)
-                    unread_count = await follow_service.get_unread_count(user_id=user_id)
+                    unread_count = await follow_service.get_unread_count(
+                        user_id=user_id
+                    )
         except Exception:
             unread_count = 0
 
