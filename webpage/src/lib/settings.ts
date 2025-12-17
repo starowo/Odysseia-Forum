@@ -27,6 +27,7 @@ export interface UserSettings {
     mentions: boolean;
   };
   showFloatingBanner: boolean;
+  openMode: 'app' | 'web';
 }
 
 const SETTINGS_KEY = 'odysseia_user_settings';
@@ -46,6 +47,7 @@ const defaultSettings: UserSettings = {
     mentions: true,
   },
   showFloatingBanner: true,
+  openMode: 'app',
 };
 
 // 获取用户设置

@@ -1,28 +1,24 @@
 import { Grid, List } from 'lucide-react';
+import { useSettings } from '@/hooks/useSettings';
 
 interface StatsBarProps {
   totalCount: number;
   perPage: number;
-  openMode: 'app' | 'web';
-  layoutMode: 'grid' | 'list';
   currentPage?: number;
   totalPages?: number;
   onPerPageChange: (value: number) => void;
-  onOpenModeChange: (value: 'app' | 'web') => void;
-  onLayoutModeChange: (value: 'grid' | 'list') => void;
 }
 
 export function StatsBar({
   totalCount,
   perPage,
-  openMode,
-  layoutMode,
   currentPage,
   totalPages,
   onPerPageChange,
-  onOpenModeChange,
-  onLayoutModeChange,
 }: StatsBarProps) {
+  const { settings, updateSettings } = useSettings();
+  const { openMode, layoutMode } = settings;
+
   return (
     <div className="mb-4 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
       {/* 结果统计 */}
@@ -42,24 +38,22 @@ export function StatsBar({
         {/* 布局切换 */}
         <div className="flex items-center gap-1 rounded-md bg-[var(--od-bg-secondary)] p-1">
           <button
-            onClick={() => onLayoutModeChange('grid')}
-            className={`flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-colors ${
-              layoutMode === 'grid'
-                ? 'bg-[var(--od-accent)] text-white'
-                : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
-            }`}
+            onClick={() => updateSettings({ layoutMode: 'grid' })}
+            className={`flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-colors ${layoutMode === 'grid'
+              ? 'bg-[var(--od-accent)] text-white'
+              : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
+              }`}
             title="网格布局"
           >
             <Grid className="h-3.5 w-3.5" />
             <span>网格</span>
           </button>
           <button
-            onClick={() => onLayoutModeChange('list')}
-            className={`flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-colors ${
-              layoutMode === 'list'
-                ? 'bg-[var(--od-accent)] text-white'
-                : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
-            }`}
+            onClick={() => updateSettings({ layoutMode: 'list' })}
+            className={`flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium transition-colors ${layoutMode === 'list'
+              ? 'bg-[var(--od-accent)] text-white'
+              : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
+              }`}
             title="列表布局"
           >
             <List className="h-3.5 w-3.5" />
@@ -95,7 +89,7 @@ export function StatsBar({
           <select
             id="openMode"
             value={openMode}
-            onChange={(e) => onOpenModeChange(e.target.value as 'app' | 'web')}
+            onChange={(e) => updateSettings({ openMode: e.target.value as 'app' | 'web' })}
             className="rounded-md bg-[var(--od-bg-tertiary)] px-2 py-1 text-sm text-[var(--od-text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--od-accent)]"
           >
             <option value="app">App</option>

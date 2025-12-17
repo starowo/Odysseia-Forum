@@ -13,10 +13,10 @@ export function MascotBar() {
     if (!isVisible) return null;
 
     return (
-        <div className="fixed bottom-6 z-40 flex flex-col-reverse items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500 left-1/2 -translate-x-1/2 lg:left-64 lg:translate-x-0 lg:flex-row lg:items-end">
+        <div className="fixed bottom-0 lg:bottom-4 z-40 flex flex-col-reverse items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500 left-1/2 -translate-x-1/2 lg:left-64 lg:translate-x-0 lg:flex-row lg:items-end pointer-events-none">
             {/* Mascot Image */}
             <div
-                className="relative z-10 -mb-2 h-24 w-24 cursor-pointer transition-transform hover:scale-110 active:scale-95"
+                className="relative z-10 -mb-2 h-24 w-24 cursor-pointer transition-transform hover:scale-110 active:scale-95 pointer-events-auto"
                 onClick={handleMascotClick}
             >
                 <img
@@ -27,7 +27,7 @@ export function MascotBar() {
             </div>
 
             {/* Dialogue Box */}
-            <div className="relative mb-4 max-w-[280px] lg:max-w-md">
+            <div className="relative mb-4 max-w-[280px] lg:max-w-md pointer-events-auto">
                 <div className="relative rounded-2xl border border-[var(--od-border)] bg-[var(--od-bg-secondary)] px-4 py-3 shadow-xl lg:px-6">
                     <p className="text-sm font-medium text-[var(--od-text-primary)]">
                         {message}

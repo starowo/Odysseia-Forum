@@ -1,4 +1,5 @@
 import { LazyImage } from '@/components/common/LazyImage';
+import { Image as ImageIcon } from 'lucide-react';
 
 interface MultiImageGridProps {
     images: string[];
@@ -11,7 +12,7 @@ export function MultiImageGrid({ images, alt, className = '' }: MultiImageGridPr
 
     if (count === 0) {
         return (
-            <div className={`h-full w-full bg-gradient-to-br from-[#18191c] to-[#1e1f22] ${className}`} />
+            <div className={`h-full w-full bg-gradient-to-br from-[var(--od-bg-secondary)] to-[var(--od-bg-tertiary)] ${className}`} />
         );
     }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useSettings } from '@/hooks/useSettings';
 
 interface LazyImageProps {
@@ -35,6 +35,15 @@ export function LazyImage({ src, alt, className = '', placeholder }: LazyImagePr
     return () => observer.disconnect();
   }, []);
 
+  const imageRef = useRef<HTMLImageElement>(null);
+
+  // 监听图片是否已经在缓存中，如果是，则直接标记为已加载，避免闪烁
+  useLayoutEffect(() => {
+    if (imageRef.current?.complete) {
+      setIsLoaded(true);
+    }
+  }, [isInView]);
+
   return (
     <div ref={imgRef} className={`relative ${className}`}>
       {isImageDisabled ? (
@@ -63,6 +72,7 @@ export function LazyImage({ src, alt, className = '', placeholder }: LazyImagePr
           {/* 实际图片 */}
           {isInView && (
             <img
+              ref={imageRef}
               src={src}
               alt={alt}
               className={`h-full w-full object-cover transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'

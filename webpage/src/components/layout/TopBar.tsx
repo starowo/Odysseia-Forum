@@ -2,6 +2,7 @@ import { Menu, ChevronUp, X, Search } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { SearchSuggestions } from '@/components/SearchSuggestions';
 import { SearchTokenInput } from '@/components/common/SearchTokenInput';
+import { AnimatedIcon } from '@/components/ui/animation/AnimatedIcon';
 import type { Channel } from '@/types/thread.types';
 
 interface TopBarProps {
@@ -60,6 +61,7 @@ export function TopBar({
 }: TopBarProps) {
   const debounceTimerRef = useRef<number | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [isSearchHovered, setIsSearchHovered] = useState(false);
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [isTagExpanded, setIsTagExpanded] = useState(false);
   const maxTagsToShow = 10;
@@ -97,7 +99,7 @@ export function TopBar({
           className="rounded p-2 text-[var(--od-text-secondary)] transition-all duration-200 hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)] lg:hidden"
           aria-label="打开菜单"
         >
-          <Menu className="h-5 w-5" />
+          <AnimatedIcon icon={Menu} className="h-5 w-5" animation="rotate" trigger="click" />
         </button>
 
         {/* 搜索框（带 Token 支持） */}
@@ -137,11 +139,12 @@ export function TopBar({
         {/* 搜索按钮 */}
         <button
           onClick={onSearch}
-          className="rounded-md bg-[var(--od-accent)] p-2 text-white transition-all duration-200 hover:scale-105 hover:bg-[var(--od-accent-hover)] md:px-4 md:py-1.5"
+          onMouseEnter={() => setIsSearchHovered(true)}
+          onMouseLeave={() => setIsSearchHovered(false)}
+          className="flex items-center justify-center leading-none rounded-md bg-[var(--od-accent)] p-2 text-white transition-all duration-200 hover:scale-105 hover:bg-[var(--od-accent-hover)]"
           aria-label="搜索"
         >
-          <Search className="h-5 w-5 md:hidden" />
-          <span className="hidden text-sm font-medium md:inline">搜索</span>
+          <AnimatedIcon icon={Search} className="h-5 w-5" animation="pulse" isHovered={isSearchHovered} />
         </button>
       </div>
 
@@ -152,8 +155,11 @@ export function TopBar({
           onClick={() => setIsAdvancedOpen((prev) => !prev)}
           className="inline-flex items-center gap-1.5 px-2 py-1 text-xs text-[var(--od-text-tertiary)] transition-colors duration-200 hover:text-[var(--od-text-primary)]"
         >
-          <ChevronUp
+          <AnimatedIcon
+            icon={ChevronUp}
             className={`h-3.5 w-3.5 transition-transform ${isAdvancedOpen ? '' : 'rotate-180'}`}
+            animation="bounce"
+            trigger="hover"
           />
           <span>高级搜索</span>
         </button>

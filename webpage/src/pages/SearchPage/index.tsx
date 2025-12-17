@@ -1,10 +1,9 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight, Search, Eye } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
-import { ScrollToTop } from '@/components/common/ScrollToTop';
 import { ResizableSidebar } from '@/components/ResizableSidebar';
 import { TopBar } from '@/components/layout/TopBar';
 import { BannerCarousel } from '@/components/layout/BannerCarousel';
@@ -169,7 +168,7 @@ export function SearchPage() {
   }, [query]);
 
   // 使用真实API获取搜索结果
-  const { data: searchData, isLoading, isError, isFetching, refetch } = useQuery({
+  const { data: searchData, isLoading, isError, isFetching, refetch, isPlaceholderData } = useQuery({
     queryKey: ['search', query, selectedChannel, includedTags, excludedTags, tagLogic, sortMethod, page, perPage, timeFrom, timeTo],
     queryFn: () =>
       searchApi.search({
@@ -188,6 +187,7 @@ export function SearchPage() {
       }),
     enabled: true, // 确保即使 queryKey 中有 null/undefined 也执行查询
     staleTime: 30 * 1000, // 30秒
+    placeholderData: keepPreviousData, // 保持上一次的数据，避免切换筛选时闪烁
   });
 
   // 同步 Banner 数据到 Store，供 FloatingBanner 使用
@@ -242,29 +242,34 @@ export function SearchPage() {
 
   // 获取可用标签：优先使用API返回的标签（单频道搜索时），
   // 如果API未返回（如全站搜索），则从当前搜索结果中提取标签
+  // 同时确保已选中的标签（包括反选的）始终显示
   const availableTags = useMemo(() => {
-    if (searchData?.available_tags && searchData.available_tags.length > 0) {
-      return searchData.available_tags;
-    }
-
-    // 从结果中提取唯一tags
     const tags = new Set<string>();
-    if (searchData?.results) {
+
+    // 1. 添加 API 返回的可用标签
+    if (searchData?.available_tags && searchData.available_tags.length > 0) {
+      searchData.available_tags.forEach(tag => tags.add(tag));
+    } else if (searchData?.results) {
+      // 2. 如果没有 available_tags，从结果中提取
       searchData.results.forEach(thread => {
         if (thread.tags) {
           thread.tags.forEach(tag => tags.add(tag));
         }
       });
     }
+
+    // 3. 确保已选状态的标签始终存在（防止反选后因结果中不包含而消失）
+    tagStates.forEach((_, tag) => tags.add(tag));
+
     return Array.from(tags).sort();
-  }, [searchData]);
+  }, [searchData, tagStates]);
 
   const totalPages = Math.ceil(totalResults / perPage);
 
   // 合并多页搜索结果，实现无缝滚动
   useEffect(() => {
-    if (!searchData) {
-      if (page === 1) {
+    if (!searchData || isPlaceholderData) {
+      if (page === 1 && !isPlaceholderData) {
         setMergedThreads([]);
       }
       return;
@@ -437,8 +442,6 @@ export function SearchPage() {
 
   return (
     <div className="flex min-h-screen bg-[var(--od-bg)]">
-      {/* 回到顶部按钮 */}
-      <ScrollToTop />
       {/* 侧边栏（支持移动端开关 + PC 折叠） */}
       <ResizableSidebar
         isMobileOpen={isMobileOpen}
@@ -522,13 +525,9 @@ export function SearchPage() {
             <StatsBar
               totalCount={totalResults}
               perPage={perPage}
-              openMode={openMode}
-              layoutMode={settings.layoutMode}
               currentPage={page}
               totalPages={totalPages}
               onPerPageChange={setPerPage}
-              onOpenModeChange={setOpenMode}
-              onLayoutModeChange={(mode) => updateSettings({ layoutMode: mode })}
             />
           </div>
 

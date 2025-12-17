@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, ThumbsUp, RefreshCw } from 'lucide-react';
+import { MessageCircle, ThumbsUp, RefreshCw, Image as ImageIcon } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -12,6 +12,7 @@ import { MultiImageGrid } from './MultiImageGrid';
 import { ThreadActions } from './ThreadActions';
 import { AuthorAvatar } from './AuthorAvatar';
 import { ThreadStatusBadges } from './ThreadStatusBadges';
+import { MotionWrapper } from '@/components/ui/animation/MotionWrapper';
 
 interface ThreadCardProps {
   thread: Thread;
@@ -30,12 +31,11 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
     locale: zhCN,
   });
 
-  const authorName =
-    thread.author?.display_name ??
-    thread.author?.global_name ??
-    thread.author?.name ??
-    '未知用户';
+  const authorName = thread.author?.name || 'Unknown User';
+  const avatarUrl = thread.author?.avatar_url;
+  const hasThumbnail = thread.thumbnail_urls && thread.thumbnail_urls.length > 0;
 
+  // 使用搜索页面的 Store 获取高亮词
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // --- Parallax Effect ---
@@ -128,9 +128,12 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
   };
 
   return (
-    <article
-      className="group relative flex aspect-[3/5] w-full flex-col overflow-hidden rounded-xl bg-[var(--od-card)] shadow-md transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-xl cursor-pointer md:aspect-[3/4]"
+    <MotionWrapper
+      as="article"
+      className="group relative flex aspect-[3/5] w-full flex-col overflow-hidden rounded-xl bg-[var(--od-card)] shadow-md cursor-pointer md:aspect-[3/4]"
       onClick={() => onPreview?.(thread)}
+      scale={1.02}
+      y={-4}
     >
       {/* Background Image Layer (Parallax Target) */}
       <div
@@ -150,12 +153,16 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
             className="h-full w-full object-cover"
           />
         ) : (
-          <div className="h-full w-full bg-gradient-to-br from-[#18191c] to-[#1e1f22]" />
+          <div className="flex h-full w-full items-center justify-center bg-[var(--od-bg-secondary)]">
+            <ImageIcon className="h-12 w-12 text-[var(--od-bg-tertiary)] opacity-50" />
+          </div>
         )}
       </div>
 
-      {/* Gradient Overlay */}
-      <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/30 via-transparent to-black/90 pointer-events-none" />
+      {/* Gradient Overlay - Only show for threads with images to ensure text readability */}
+      {hasThumbnail && (
+        <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />
+      )}
 
       {/* Top Right Actions */}
       <div className="absolute right-2 top-2 z-20 flex flex-col items-end gap-2 opacity-100 transition-opacity duration-200 md:opacity-0 md:group-hover:opacity-100">
@@ -171,14 +178,11 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
         </button>
 
         {/* Thread Actions */}
-        <div className="rounded-xl bg-black/40 p-1 backdrop-blur-md transition-colors hover:bg-black/60">
-          <ThreadActions
-            threadId={thread.thread_id}
-            guildId={thread.guild_id}
-            size="sm"
-            variant="white"
-          />
-        </div>
+        <ThreadActions
+          threadId={thread.thread_id}
+          guildId={thread.guild_id}
+          variant="glass"
+        />
       </div>
 
       {/* Status Badges */}
@@ -189,7 +193,7 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
       />
 
       {/* Bottom Content Area */}
-      <div className="absolute bottom-0 left-0 right-0 z-20 flex flex-col p-3 text-white">
+      <div className={`absolute bottom-0 left-0 right-0 z-20 flex flex-col p-3 ${hasThumbnail ? 'text-white' : 'text-[var(--od-text-primary)]'}`}>
 
         {/* Tags */}
         {thread.tags && thread.tags.length > 0 && (
@@ -201,13 +205,20 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
                   e.stopPropagation();
                   onTagClick?.(tag);
                 }}
-                className="rounded-md bg-white/20 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/30 border border-white/10"
+                className={`rounded-md px-2 py-0.5 text-[10px] font-medium backdrop-blur-sm transition-colors border ${hasThumbnail
+                  ? 'bg-white/20 text-white hover:bg-white/30 border-white/10'
+                  : 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-secondary)] border-[var(--od-border)]'
+                  }`}
               >
                 {tag}
               </button>
             ))}
+            {/* Show +N for explicit tags */}
             {thread.tags.length > 3 && (
-              <span className="rounded-md bg-white/20 px-2 py-0.5 text-[10px] text-white backdrop-blur-sm border border-white/10">
+              <span className={`rounded-md px-2 py-0.5 text-[10px] backdrop-blur-sm border ${hasThumbnail
+                ? 'bg-white/20 text-white border-white/10'
+                : 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-secondary)] border-[var(--od-border)]'
+                }`}>
                 +{thread.tags.length - 3}
               </span>
             )}
@@ -215,13 +226,12 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
         )}
 
         {/* Title */}
-        <h3 className="mb-2 line-clamp-2 text-sm font-bold leading-snug text-white drop-shadow-md md:text-base">
-
-          <HighlightText text={thread.title} highlight={searchQuery} className="text-white" />
+        <h3 className={`mb-2 line-clamp-2 text-sm font-bold leading-snug drop-shadow-md md:text-base ${hasThumbnail ? 'text-white' : 'text-[var(--od-text-primary)]'}`}>
+          <HighlightText text={thread.title} highlight={searchQuery} className={hasThumbnail ? 'text-white' : 'text-[var(--od-text-primary)]'} />
         </h3>
 
         {/* Footer: Author & Stats */}
-        <div className="flex items-center justify-between border-t border-white/10 pt-2 text-xs text-white/80">
+        <div className={`flex items-center justify-between border-t pt-2 text-xs ${hasThumbnail ? 'border-white/10 text-white/80' : 'border-[var(--od-border)] text-[var(--od-text-secondary)]'}`}>
 
           {/* Author Info */}
           <div className="flex items-center gap-2 overflow-hidden">
@@ -234,7 +244,7 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
                   onAuthorClick(authorName);
                 }
               }}
-              className="truncate font-medium hover:text-white hover:underline max-w-[100px]"
+              className={`truncate font-medium hover:underline max-w-[100px] ${hasThumbnail ? 'hover:text-white' : 'hover:text-[var(--od-text-primary)]'}`}
             >
               {authorName}
             </button>
@@ -253,6 +263,6 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
           </div>
         </div>
       </div>
-    </article>
+    </MotionWrapper>
   );
 }
