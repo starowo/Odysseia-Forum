@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
-import { ChevronLeft, ChevronRight, Search, Eye } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { ResizableSidebar } from '@/components/ResizableSidebar';
@@ -25,6 +25,17 @@ import { apiClient } from '@/lib/api/client';
 
 import { useMascotStore } from '@/features/mascot/store/mascotStore';
 import { MascotDialog } from '@/features/mascot/components/MascotDialog';
+
+
+// 默认Banner
+const defaultBanners = [
+  {
+    id: 'default-1',
+    image: bannerImage,
+    title: '欢迎来到 Odysseia 类脑搜索引擎',
+    description: '探索精彩内容，发现无限可能',
+  },
+];
 
 export function SearchPage() {
   const {
@@ -53,7 +64,11 @@ export function SearchPage() {
     setPreviewThread,
   } = useSearchStore();
 
-  const { reactToSearch } = useMascotStore();
+  // No subscription - just get the action reference or use direct access in effect
+  // const reactToSearch = useMascotStore(state => state.reactToSearch); // This still subscribes if not memoized correctly by zustand
+
+  // Best practice for non-reactive action usage:
+  const reactToSearch = useMascotStore.getState().reactToSearch;
 
   const location = useLocation();
 
@@ -61,7 +76,9 @@ export function SearchPage() {
 
   // Zustand 中的 query 变化时，同步到本地输入框
   useEffect(() => {
-    setSearchInput(query);
+    if (query !== searchInput) {
+      setSearchInput(query);
+    }
   }, [query]);
 
   // 从 URL ?q= 参数同步搜索内容（用于标签页等跳转）
@@ -108,15 +125,7 @@ export function SearchPage() {
     }
   }, []);
 
-  // 默认Banner
-  const defaultBanners = [
-    {
-      id: 'default-1',
-      image: bannerImage,
-      title: '欢迎来到 Odysseia 类脑搜索引擎',
-      description: '探索精彩内容，发现无限可能',
-    },
-  ];
+
 
   // 获取选中的标签
   const includedTags = useMemo(() => {
@@ -226,7 +235,7 @@ export function SearchPage() {
     // Only react if there is an active query
     if (!query) return;
 
-    if (isLoading || isFetching) {
+    if (isLoading) {
       reactToSearch('start', query);
     } else if (searchData) {
       if (searchData.total > 0) {
@@ -235,7 +244,7 @@ export function SearchPage() {
         reactToSearch('empty', query);
       }
     }
-  }, [searchData, isLoading, isFetching, reactToSearch, query]);
+  }, [searchData, isLoading, query, reactToSearch]);
 
   // 从API响应中提取数据（与后端 SearchResponse.results 对齐）
   const totalResults = searchData?.total || 0;
@@ -295,17 +304,19 @@ export function SearchPage() {
   // 处理搜索
   const handleSearch = useCallback(() => {
     const trimmedQuery = searchInput.trim();
+    // Prevent redundant search triggers (e.g., from TopBar auto-search when syncing state)
+    if (trimmedQuery === query) return;
+
     setQuery(trimmedQuery);
     // 保存到搜索历史
     if (trimmedQuery) {
       addSearchHistory(trimmedQuery);
       reactToSearch('start', trimmedQuery);
     }
-  }, [searchInput, setQuery]);
+  }, [searchInput, setQuery, query, reactToSearch]);
 
   // 从历史记录选择搜索
   const handleSelectHistory = (historyQuery: string) => {
-    setSearchInput(historyQuery);
     setQuery(historyQuery);
     searchInputRef.current?.focus();
   };
@@ -385,9 +396,8 @@ export function SearchPage() {
   // 处理标签点击 - 从卡片点击时添加到搜索框
   const handleTagClick = (tag: string) => {
     const newQuery = addToken(searchInput, 'tag', tag);
-    setSearchInput(newQuery);
     setQuery(newQuery);
-    toast.success(`已添加标签：${tag} `, {
+    toast.success(`已添加标签：${tag}`, {
       duration: 2000,
     });
   };
@@ -442,6 +452,8 @@ export function SearchPage() {
 
   return (
     <div className="flex min-h-screen bg-[var(--od-bg)]">
+
+
       {/* 侧边栏（支持移动端开关 + PC 折叠） */}
       <ResizableSidebar
         isMobileOpen={isMobileOpen}
@@ -549,7 +561,8 @@ export function SearchPage() {
               className={
                 settings.layoutMode === 'list'
                   ? 'space-y-4 animate-in fade-in duration-300'
-                  : `grid grid-cols-2 gap-4 sm:grid-cols-3 ${settings.sidebarCollapsed ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} animate-in fade-in duration-300`
+                  : `grid grid-cols-2 gap-4 sm:grid-cols-3 ${settings.sidebarCollapsed ? 'lg:grid-cols-5' : 'lg:grid-cols-4'
+                  } animate-in fade-in duration-300`
               }
             >
               {Array.from({ length: perPage }).map((_, i) => (
@@ -580,7 +593,8 @@ export function SearchPage() {
               className={
                 settings.layoutMode === 'list'
                   ? 'space-y-4 animate-in fade-in duration-300'
-                  : `grid grid-cols-2 gap-4 sm:grid-cols-3 ${settings.sidebarCollapsed ? 'lg:grid-cols-5' : 'lg:grid-cols-4'} animate-in fade-in duration-300`
+                  : `grid grid-cols-2 gap-4 sm:grid-cols-3 ${settings.sidebarCollapsed ? 'lg:grid-cols-5' : 'lg:grid-cols-4'
+                  } animate-in fade-in duration-300`
               }
             >
               {mergedThreads.map((thread) =>
@@ -592,7 +606,6 @@ export function SearchPage() {
                     searchQuery={query}
                     onAuthorClick={(authorName) => {
                       const newQuery = addToken(searchInput, 'author', authorName);
-                      setSearchInput(newQuery);
                       setQuery(newQuery);
                       toast.success(`已添加作者：${authorName} `, {
                         duration: 2000,
@@ -608,7 +621,6 @@ export function SearchPage() {
                     searchQuery={query}
                     onAuthorClick={(authorName) => {
                       const newQuery = addToken(searchInput, 'author', authorName);
-                      setSearchInput(newQuery);
                       setQuery(newQuery);
                       toast.success(`已添加作者：${authorName} `, {
                         duration: 2000,

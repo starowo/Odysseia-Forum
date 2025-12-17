@@ -44,9 +44,18 @@ NewWebpage/
 │   │   │       └── GlobalThreadPreview.tsx # 全局预览容器
 │   │   │
 │   │   ├── search/                 # 搜索功能
+│   │   │   ├── api/               # 搜索相关 API
+│   │   │   └── store/             # 搜索状态管理 (Zustand)
+│   │   │
 │   │   ├── banner/                 # 顶部 Banner 功能
 │   │   ├── follows/                # 关注功能
 │   │   ├── mascot/                 # 吉祥物/看板娘功能
+│   │   │   ├── assets.ts          # 资源配置
+│   │   │   ├── components/        # 吉祥物 UI 组件
+│   │   │   │   └── MascotDialog.tsx
+│   │   │   ├── config/            # 触发器与台词配置
+│   │   │   └── store/             # 吉祥物状态管理
+│   │   │
 │   │   └── notifications/          # 通知功能
 │   │
 │   ├── components/                  # 通用/共享组件

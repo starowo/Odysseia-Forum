@@ -158,6 +158,68 @@
 
 ---
 
+## 收藏与书单 (`/collection`, `/booklist`)
+
+### 收藏系统 (`/collection`)
+
+支持收藏帖子和书单。
+
+#### 批量添加收藏
+- **端点**: `POST /collection/batch/add`
+- **请求体**:
+  ```json
+  {
+    "target_ids": [123, 456],
+    "target_type": 1
+  }
+  ```
+  - `target_type`: 1=帖子 (THREAD), 2=书单 (BOOKLIST)
+
+#### 批量移除收藏
+- **端点**: `POST /collection/batch/remove`
+- **请求体**: 同上
+
+### 书单系统 (`/booklist`)
+
+#### 创建书单
+- **端点**: `POST /booklist/save`
+- **请求体**:
+  ```json
+  {
+    "title": "我的推荐",
+    "description": "简介",
+    "is_public": true,
+    "display_type": 1
+  }
+  ```
+  - `display_type`: 1=按加入时间倒序, 2=自定义排序
+
+#### 搜索公开书单
+- **端点**: `GET /booklist/list/page`
+- **参数**: 
+  - `keywords`: 标题/简介模糊搜索
+  - `owner_id`: 按作者筛选
+  - `sort_method`: 1-帖子数, 2-浏览数, 3-收藏数, 4-创建时间, 5-更新时间
+
+#### 获取我的书单
+- **端点**: `GET /booklist/my/list/page`
+- **参数**:
+  - `create_by_current_user`: true=我创建的
+  - `collect_by_current_user`: true=我收藏的
+
+#### 书单详情与管理
+- `GET /booklist/detail/{id}`: 获取详情
+- `PUT /booklist/update/{id}`: 更新元数据
+- `DELETE /booklist/delete/{id}`: 删除书单
+
+#### 书单内容管理
+- `GET /booklist/item/list/page/{booklist_id}`: 获取书单内的帖子列表
+- `POST /booklist/item/add/{booklist_id}`: 批量添加帖子
+- `DELETE /booklist/item/delete/{booklist_id}`: 批量移除帖子
+- `PATCH /booklist/item/update/{booklist_id}/{thread_id}`: 更新推荐语/排序
+
+---
+
 ## 图片刷新 (`/fetch-images`)
 
 从 Discord 刷新帖子缩略图。

@@ -64,7 +64,7 @@ interface SearchState {
 
 export const useSearchStore = create<SearchState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       // 初始状态
       query: '',
       selectedChannel: null,
@@ -85,21 +85,25 @@ export const useSearchStore = create<SearchState>()(
 
       // Actions
       setQuery: (query) => {
+        if (get().query === query) return;
         console.log('>>> Zustand: setQuery called, resetting page to 1', { query });
         set({ query, page: 1 });
       },
 
       setChannel: (channelId) => {
+        if (get().selectedChannel === channelId) return;
         console.log('>>> Zustand: setChannel called, resetting page to 1', { channelId });
         set({ selectedChannel: channelId, page: 1 });
       },
 
       setSortMethod: (method) => {
+        if (get().sortMethod === method) return;
         console.log('>>> Zustand: setSortMethod called, resetting page to 1', { method });
         set({ sortMethod: method, page: 1 });
       },
 
       setTagLogic: (logic) => {
+        if (get().tagLogic === logic) return;
         console.log('>>> Zustand: setTagLogic called, resetting page to 1', { logic });
         set({ tagLogic: logic, page: 1 });
       },
@@ -150,22 +154,29 @@ export const useSearchStore = create<SearchState>()(
       },
 
       setPerPage: (perPage) => {
-        console.log('>>> Zustand: setPerPage called, resetting page to 1', { perPage });
         // 做一层防御式校验，避免出现 0 或极端大值
         const safePerPage = Math.min(100, Math.max(1, perPage || 1));
+        if (get().perPage === safePerPage) return;
+        console.log('>>> Zustand: setPerPage called, resetting page to 1', { perPage });
         set({ perPage: safePerPage, page: 1 });
       },
 
       setMainBannerVisible: (visible) => {
+        if (get().isMainBannerVisible === visible) return;
         set({ isMainBannerVisible: visible });
       },
 
       setActiveBanner: (banner) => {
+        const current = get().activeBanner;
+        // Simple deep equality check using JSON stringify to avoid ref issues
+        if (JSON.stringify(current) === JSON.stringify(banner)) return;
         set({ activeBanner: banner });
       },
 
-      setBannerList: (banners) => {
-        set({ bannerList: banners });
+      setBannerList: (list) => {
+        const current = get().bannerList;
+        if (JSON.stringify(current) === JSON.stringify(list)) return;
+        set({ bannerList: list });
       },
 
       setPreviewThread: (thread, options) => {

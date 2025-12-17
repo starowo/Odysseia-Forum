@@ -381,4 +381,41 @@
   - `latest_update_at` / `latest_update_link`：可用于“跳转到最新更新”按钮。
   - `display_count`：主要用于排序算法（UCB1），不建议直接展示，但可用于 debug / 实验性 UI。
 
-当后续前端实现“关注贴在搜索结果中显示红点/已关注状态”时，应协调后端在 `ThreadDetail` 中增加相应字段，并同步更新本文件，保证这里始终是前后端对齐的 **唯一权威说明**。
+
+## 8. 收藏与书单 (Collections & Booklists)
+
+新增的收藏系统与书单系统，提供了更灵活的内容组织方式。
+
+### 8.1 收藏类型 `CollectionType`
+
+在 `/collection/batch/add` 等接口中使用 `target_type` 字段区分：
+
+- `1`: **THREAD** (帖子)
+- `2`: **BOOKLIST** (书单)
+
+### 8.2 书单详情 `BooklistDetail`
+
+书单列表与详情接口返回的核心模型 `src/api/v1/schemas/booklist/booklist_detail.py`：
+
+- `id: int`: 书单 ID
+- `title: str`: 标题
+- `description: Optional[str]`: 简介
+- `cover_image_url: Optional[str]`: 封面
+- `owner_id: str`: 创建者用户 ID (字符串)
+- `is_public: bool`: 是否公开
+- `display_type: int`: 排序方式 (1=加入时间倒序, 2=自定义排序)
+- `item_count: int`: 包含帖子数
+- `collection_count: int`: 被收藏数
+- `view_count: int`: 浏览器
+- `collected_flag: bool`: **(动态)** 当前用户是否已收藏该书单
+
+### 8.3 书单项 `BooklistItemDetail`
+
+书单内容接口 `/booklist/item/list/page/{id}` 返回的列表项 `src/api/v1/schemas/booklist/booklist_item_detail.py`：
+
+- `booklist_item_id: int`: 关联记录 ID
+- `thread_id: str`: 帖子 ID
+- `title, author, thumbnail_urls...`: 帖子的基础快照信息
+- `comment: Optional[str]`: **推荐语/书单主备注**
+- `display_order: int`: 排序权重
+- `collected_flag: bool`: **(动态)** 当前用户是否收藏了该帖子

@@ -2,7 +2,8 @@
 // 匹配 /src/assets/images/mascot/ 下的所有图片文件
 const mascotImagesGlob = import.meta.glob('@/assets/images/mascot/*.{png,jpg,jpeg,webp,gif}', {
     eager: true,
-    as: 'url'
+    query: '?url',
+    import: 'default'
 });
 
 // 构建映射表: filename (no ext) -> image url
@@ -10,7 +11,7 @@ export const MASCOT_IMAGES: Record<string, string> = Object.entries(mascotImages
     // 从路径中提取文件名: /src/assets/images/mascot/hi.png -> hi
     const fileName = path.split('/').pop()?.split('.')[0];
     if (fileName) {
-        acc[fileName] = module;
+        acc[fileName] = module as string;
     }
     return acc;
 }, {} as Record<string, string>);
