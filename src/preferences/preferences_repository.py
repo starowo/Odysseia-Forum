@@ -2,6 +2,7 @@ import logging
 from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select
 
 from core.tag_cache_service import TagCacheService
 from models import UserSearchPreferences
@@ -18,24 +19,36 @@ class PreferencesRepository:
         self.tag_service = tag_service
 
     async def get_user_preferences(
-        self, user_id: int
+        self, user_id: int, guild_id: int = 0
     ) -> Optional[UserSearchPreferencesDTO]:
-        """获取用户的搜索偏好设置"""
-        prefs_orm = await self.session.get(UserSearchPreferences, user_id)
+        """获取用户在指定服务器的搜索偏好设置"""
+        stmt = select(UserSearchPreferences).where(
+            UserSearchPreferences.user_id == user_id,
+            UserSearchPreferences.guild_id == guild_id,
+        )
+        result = await self.session.execute(stmt)
+        prefs_orm = result.scalars().first()
         if not prefs_orm:
             return None
         return UserSearchPreferencesDTO.model_validate(prefs_orm)
 
     async def save_user_preferences(
-        self, user_id: int, prefs_data: dict
+        self, user_id: int, prefs_data: dict, guild_id: int = 0
     ) -> UserSearchPreferencesDTO:
-        """创建或更新用户的搜索偏好设置"""
-        prefs = await self.session.get(UserSearchPreferences, user_id)
+        """创建或更新用户在指定服务器的搜索偏好设置"""
+        stmt = select(UserSearchPreferences).where(
+            UserSearchPreferences.user_id == user_id,
+            UserSearchPreferences.guild_id == guild_id,
+        )
+        result = await self.session.execute(stmt)
+        prefs = result.scalars().first()
         if prefs:
             for key, value in prefs_data.items():
                 setattr(prefs, key, value)
         else:
-            prefs = UserSearchPreferences(user_id=user_id, **prefs_data)
+            prefs = UserSearchPreferences(
+                user_id=user_id, guild_id=guild_id, **prefs_data
+            )
         self.session.add(prefs)
         await self.session.commit()
         await self.session.refresh(prefs)

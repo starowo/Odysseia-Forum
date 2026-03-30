@@ -281,6 +281,15 @@ export function TopBar({
                   <span className="text-sm font-medium text-[var(--od-text-secondary)]">
                     标签筛选 ({tagStates.size}/{availableTags.length})
                   </span>
+                  {availableTags.length > maxTagsToShow && (
+                    <button
+                      type="button"
+                      onClick={() => setIsTagExpanded(!isTagExpanded)}
+                      className="text-xs text-[var(--od-link)] hover:underline"
+                    >
+                      {isTagExpanded ? '收起' : `展开全部 (${availableTags.length})`}
+                    </button>
+                  )}
                   {tagStates.size > 0 && (
                     <button
                       type="button"
@@ -310,15 +319,7 @@ export function TopBar({
                     </span>
                   </label>
 
-                  {availableTags.length > maxTagsToShow && (
-                    <button
-                      type="button"
-                      onClick={() => setIsTagExpanded(!isTagExpanded)}
-                      className="text-xs text-[var(--od-link)] hover:underline"
-                    >
-                      {isTagExpanded ? '收起' : `展开全部 (${availableTags.length})`}
-                    </button>
-                  )}
+
                 </div>
               </div>
               <div className="flex flex-wrap gap-2">

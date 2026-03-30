@@ -58,11 +58,11 @@ class BatchCollectView(BaseManagementView):
                 thread_service = ThreadService(session)
                 await thread_service.update_collection_counts(result.added_ids, 1)
 
-            await interaction.response.send_message(
-                f"操作完成！成功收藏 {result.added_count} 个帖子，{result.duplicate_count} 个已存在。",
-                ephemeral=True,
-                delete_after=10,
-            )
+        await interaction.response.send_message(
+            f"操作完成！成功收藏 {result.added_count} 个帖子，{result.duplicate_count} 个已存在。",
+            ephemeral=True,
+            delete_after=10,
+        )
 
         # Refresh the view
         await self.update_data()
@@ -97,11 +97,11 @@ class BatchCollectView(BaseManagementView):
                 thread_service = ThreadService(session)
                 await thread_service.update_collection_counts(result.added_ids, 1)
 
-            await interaction.response.send_message(
-                f"操作完成！成功收藏 {result.added_count} 个帖子，{result.duplicate_count} 个已存在。",
-                ephemeral=True,
-                delete_after=10,
-            )
+        await interaction.response.send_message(
+            f"操作完成！成功收藏 {result.added_count} 个帖子，{result.duplicate_count} 个已存在。",
+            ephemeral=True,
+            delete_after=10,
+        )
 
         # Clear selection and refresh
         self.selected_threads.clear()

@@ -63,16 +63,16 @@ def upgrade() -> None:
     )
 
     # --- 修改现有表 ---
-    # op.add_column(
-    #     "mutex_tag_group",
-    #     sa.Column("override_tag_name", sqlmodel.AutoString(), nullable=True),
-    # )
-    # op.create_index(
-    #     op.f("ix_mutex_tag_group_override_tag_name"),
-    #     "mutex_tag_group",
-    #     ["override_tag_name"],
-    #     unique=False,
-    # )
+    op.add_column(
+        "mutex_tag_group",
+        sa.Column("override_tag_name", sqlmodel.AutoString(), nullable=True),
+    )
+    op.create_index(
+        op.f("ix_mutex_tag_group_override_tag_name"),
+        "mutex_tag_group",
+        ["override_tag_name"],
+        unique=False,
+    )
 
     op.add_column(
         "thread",

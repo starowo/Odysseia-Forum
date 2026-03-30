@@ -8,6 +8,7 @@ from shared.enum.default_preferences import DefaultPreferences
 class ThreadSearchQuery:
     """封装所有搜索条件的查询对象"""
 
+    guild_id: Optional[int] = None
     channel_ids: Optional[List[int]] = None
     include_tags: List[str] = field(default_factory=list)
     exclude_tags: List[str] = field(default_factory=list)

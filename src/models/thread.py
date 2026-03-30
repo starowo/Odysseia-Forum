@@ -13,6 +13,11 @@ class Thread(SQLModel, table=True):
     """帖子模型。"""
 
     id: Optional[int] = Field(default=None, primary_key=True)
+    guild_id: int = Field(
+        default=0,
+        sa_column=Column(BigInteger, index=True, nullable=False),
+        description="帖子所属的 Discord 服务器 ID",
+    )
     channel_id: int = Field(index=True)
     thread_id: int = Field(index=True, unique=True)
     title: str

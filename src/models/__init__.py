@@ -14,6 +14,7 @@ from models.thread import Thread
 from models.thread_follow import ThreadFollow
 from models.user_collection import UserCollection
 from models.user_search_preferences import UserSearchPreferences
+from models.user_update_preference import UserUpdatePreference
 
 __all__ = [
     "ThreadTagLink",
@@ -21,6 +22,7 @@ __all__ = [
     "Thread",
     "TagVote",
     "UserSearchPreferences",
+    "UserUpdatePreference",
     "MutexTagGroup",
     "MutexTagRule",
     "BotConfig",

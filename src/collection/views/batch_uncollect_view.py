@@ -54,10 +54,10 @@ class BatchUncollectView(BaseManagementView):
                 thread_service = ThreadService(session)
                 await thread_service.update_collection_counts(result.removed_ids, -1)
 
-            await interaction.response.edit_message(
-                content=f"操作完成！成功取消收藏 {result.removed_count} 个帖子。",
-                view=None,
-            )
+        await interaction.response.edit_message(
+            content=f"操作完成！成功取消收藏 {result.removed_count} 个帖子。",
+            view=None,
+        )
 
         # Refresh the main view
         await self.update_data()
@@ -108,11 +108,11 @@ class BatchUncollectView(BaseManagementView):
                 thread_service = ThreadService(session)
                 await thread_service.update_collection_counts(result.removed_ids, -1)
 
-            await interaction.response.send_message(
-                f"操作完成！成功取消收藏 {result.removed_count} 个帖子。",
-                ephemeral=True,
-                delete_after=10,
-            )
+        await interaction.response.send_message(
+            f"操作完成！成功取消收藏 {result.removed_count} 个帖子。",
+            ephemeral=True,
+            delete_after=10,
+        )
 
         # 清空选择并刷新
         self.selected_threads.clear()

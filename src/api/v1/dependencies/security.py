@@ -47,6 +47,7 @@ async def get_current_user(request: Request) -> Optional[Dict[str, Any]]:
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="JWT 认证服务未初始化",
         )
+
     # 1) 优先从 Authorization Bearer 中读取
     token = None
     auth_header = request.headers.get("Authorization", "")

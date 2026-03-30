@@ -262,6 +262,7 @@ class SyncService:
 
         return {
             "thread_id": thread.id,
+            "guild_id": thread.guild.id if thread.guild else 0,
             "channel_id": thread.parent_id,
             "title": thread.name,
             "author_id": final_author_id,

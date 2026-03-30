@@ -4,14 +4,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
-from .v1.routers import (
+from api.v1.routers import (
     auth,
     banner,
     booklists,
     collections,
     fetch_images,
     follows,
-    meta,
     preferences,
     search,
 )
@@ -78,7 +77,6 @@ app.include_router(search.router, prefix="/v1")
 app.include_router(follows.router, prefix="/v1")
 app.include_router(fetch_images.router, prefix="/v1")
 app.include_router(banner.router, prefix="/v1")
-app.include_router(meta.router, prefix="/v1")
 app.include_router(collections.router, prefix="/v1")
 app.include_router(booklists.router, prefix="/v1")
 

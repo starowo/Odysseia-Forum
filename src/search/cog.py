@@ -215,12 +215,14 @@ class Search(commands.Cog):
             )
 
     async def _create_initial_state_from_prefs(
-        self, user_id: int, overrides: dict
+        self, user_id: int, overrides: dict, guild_id: int = 0
     ) -> SearchStateDTO:
         """
         从用户偏好创建一个 SearchStateDTO，并应用指定的覆盖值。
         """
-        user_prefs = await self.preferences_service.get_user_preferences(user_id)
+        user_prefs = await self.preferences_service.get_user_preferences(
+            user_id, guild_id
+        )
 
         # 从用户偏好加载基础数据
         if user_prefs:
@@ -257,8 +259,9 @@ class Search(commands.Cog):
         """
         try:
             await safe_defer(interaction, ephemeral=True)
-            # 直接从缓存中获取所有可搜索的频道
-            channels = self.cache_service.get_indexed_channels()
+            guild_id = interaction.guild_id
+            # 只获取当前服务器的可搜索频道
+            channels = self.cache_service.get_indexed_channels(guild_id)
 
             if not channels:
                 await interaction.followup.send(
@@ -267,10 +270,12 @@ class Search(commands.Cog):
                 )
                 return
 
-            all_channel_ids = list(self.cache_service.indexed_channel_ids)
+            all_channel_ids = self.cache_service.get_indexed_channel_ids_list(guild_id)
 
             initial_state = await self._create_initial_state_from_prefs(
-                interaction.user.id, overrides={"all_available_tags": [], "page": 1}
+                interaction.user.id,
+                overrides={"all_available_tags": [], "page": 1},
+                guild_id=guild_id or 0,
             )
 
             view = ChannelSelectionView(
@@ -310,15 +315,15 @@ class Search(commands.Cog):
         """快速作者搜索的内部逻辑"""
         try:
             await safe_defer(interaction, ephemeral=True)
-            # 获取所有已索引的频道ID
-            all_channel_ids = self.cache_service.get_indexed_channel_ids_list()
+            guild_id = interaction.guild_id
+            # 只获取当前服务器已索引的频道ID
+            all_channel_ids = self.cache_service.get_indexed_channel_ids_list(guild_id)
             if not all_channel_ids:
                 await interaction.followup.send(
                     "❌ 未找到任何可供搜索的已索引论坛频道。", ephemeral=True
                 )
                 return
 
-            # 定义需要强制覆盖用户偏好的字段
             overrides = {
                 "channel_ids": all_channel_ids,
                 "include_authors": {author.id},
@@ -328,7 +333,7 @@ class Search(commands.Cog):
                 "page": 1,
             }
             search_state = await self._create_initial_state_from_prefs(
-                interaction.user.id, overrides
+                interaction.user.id, overrides, guild_id=guild_id or 0
             )
 
             # 创建作者搜索策略
@@ -370,13 +375,12 @@ class Search(commands.Cog):
         try:
             await safe_defer(interaction, ephemeral=True)
 
-            # 创建收藏搜索策略
             strategy = CollectionSearchStrategy(user_id=interaction.user.id)
 
-            # 从用户偏好创建初始状态
-            # 收藏搜索不预设频道和作者，但会加载用户的其他偏好
             initial_state = await self._create_initial_state_from_prefs(
-                interaction.user.id, overrides={"page": 1}
+                interaction.user.id,
+                overrides={"page": 1},
+                guild_id=interaction.guild_id or 0,
             )
 
             # 创建 GenericSearchView 实例，并注入策略

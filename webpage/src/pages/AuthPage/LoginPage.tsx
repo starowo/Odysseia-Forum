@@ -1,7 +1,8 @@
+import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { DiscordIcon } from '@/components/icons/DiscordIcon';
-import { useRefreshAuth } from '@/features/auth/hooks/useAuth';
+import { useAuth, useRefreshAuth } from '@/features/auth/hooks/useAuth';
 import { apiClient } from '@/lib/api/client';
 import { toast } from 'sonner';
 import forumIcon from '@/assets/images/icon/A90C044F8DDF1959B2E9078CB629C239.png';
@@ -9,7 +10,15 @@ import backgroundImage from '@/assets/images/background/winter.png';
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const refreshAuth = useRefreshAuth();
+
+  // 如果已经登录，自动跳转到首页
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleLogin = async () => {
     // 在 Mock 模式下，这将由 msw 拦截
@@ -29,10 +38,10 @@ export function LoginPage() {
     }
 
     // 真实环境：跳转到后端 OAuth 登录接口
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:10810/v1';
-    // 移除末尾可能的斜杠
-    const baseUrl = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
-    window.location.href = `${baseUrl}/auth/login`;
+    const loginPath = import.meta.env.DEV ? '/auth/login-dev' : '/auth/login';
+    const finalUrl = `https://odysseia.jnai2d9kgnbs6xzx5c.com/v1${loginPath}`;
+      
+    window.location.href = finalUrl;
   };
 
   return (

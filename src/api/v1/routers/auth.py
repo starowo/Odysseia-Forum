@@ -7,7 +7,7 @@ from urllib.parse import urlencode
 
 import httpx
 from fastapi import APIRouter, HTTPException, Request, Response, status
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
 from api.v1.utils.jwt_utils import sign_jwt, verify_jwt
 
@@ -60,6 +60,7 @@ async def login():
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="认证服务未初始化"
         )
+
     params = {
         "client_id": _AUTH_CONFIG["client_id"],
         "redirect_uri": _AUTH_CONFIG["redirect_uri"],
@@ -78,6 +79,7 @@ async def callback(code: Optional[str] = None):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="认证服务未初始化"
         )
+
     if not code:
         error_url = f"{_AUTH_CONFIG['frontend_url']}?error=缺少授权代码"
         return RedirectResponse(url=error_url, status_code=302)
@@ -181,6 +183,188 @@ async def callback(code: Optional[str] = None):
             return RedirectResponse(url=error_url, status_code=302)
 
 
+def _get_dev_redirect_uri() -> str:
+    """将配置中的 redirect_uri 从 /callback 替换为 /callback-dev"""
+    base = _AUTH_CONFIG["redirect_uri"]
+    if base.endswith("/callback"):
+        return base + "-dev"
+    return base.rstrip("/") + "-dev"
+
+
+@router.get("/login-dev", summary="Discord OAuth2 登录入口 (开发用)")
+async def login_dev():
+    """重定向到 Discord OAuth2 授权页面，回调指向 callback-dev"""
+    if not _AUTH_CONFIG:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="认证服务未初始化"
+        )
+
+    params = {
+        "client_id": _AUTH_CONFIG["client_id"],
+        "redirect_uri": _get_dev_redirect_uri(),
+        "response_type": "code",
+        "scope": "identify",
+    }
+
+    auth_url = f"https://discord.com/api/oauth2/authorize?{urlencode(params)}"
+    return RedirectResponse(url=auth_url, status_code=302)
+
+
+@router.get("/callback-dev", summary="Discord OAuth2 回调 (开发用)")
+async def callback_dev(code: Optional[str] = None):
+    """处理 Discord OAuth2 回调，直接返回 token HTML 页面而非重定向"""
+    if not _AUTH_CONFIG:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="认证服务未初始化"
+        )
+
+    if not code:
+        return JSONResponse(
+            content={"error": "缺少授权代码"}, status_code=status.HTTP_400_BAD_REQUEST
+        )
+
+    async with httpx.AsyncClient() as client:
+        token_data = {
+            "client_id": _AUTH_CONFIG["client_id"],
+            "client_secret": _AUTH_CONFIG["client_secret"],
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": _get_dev_redirect_uri(),
+        }
+
+        try:
+            token_response = await client.post(
+                "https://discord.com/api/oauth2/token",
+                data=token_data,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
+            token_result = token_response.json()
+
+            if token_response.status_code != 200:
+                logger.error(
+                    f"Discord token请求失败 - 状态码: {token_response.status_code}"
+                )
+                logger.error(f"响应内容: {token_result}")
+                error_msg = token_result.get(
+                    "error_description", token_result.get("error", "获取访问令牌失败")
+                )
+                return JSONResponse(
+                    content={"error": error_msg},
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                )
+
+            if "access_token" not in token_result:
+                logger.error(f"Token响应中缺少access_token: {token_result}")
+                return JSONResponse(
+                    content={"error": "获取访问令牌失败"},
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                )
+
+            access_token = token_result["access_token"]
+            headers = {"Authorization": f"Bearer {access_token}"}
+
+            user_response = await client.get(
+                "https://discord.com/api/users/@me", headers=headers
+            )
+            user = user_response.json()
+
+            bot_token = _AUTH_CONFIG.get("bot_token")
+            member_response = await client.get(
+                f"https://discord.com/api/guilds/{_AUTH_CONFIG['guild_id']}/members/{user['id']}",
+                headers={"Authorization": f"Bot {bot_token}"},
+            )
+
+            if member_response.status_code != 200:
+                return JSONResponse(
+                    content={"error": "你不在社区内"},
+                    status_code=status.HTTP_403_FORBIDDEN,
+                )
+
+            member = member_response.json()
+
+            role_ids = _AUTH_CONFIG["role_ids"].split(",")
+            has_role = any(role_id in member.get("roles", []) for role_id in role_ids)
+
+            if not has_role:
+                return JSONResponse(
+                    content={"error": "缺少指定身份组"},
+                    status_code=status.HTTP_403_FORBIDDEN,
+                )
+
+            token = await sign_jwt(
+                {"id": user["id"], "username": user["username"]},
+                _AUTH_CONFIG["jwt_secret"],
+                7 * 24 * 60 * 60,
+            )
+
+            frontend_url = _AUTH_CONFIG.get("frontend_url", "")
+            html = f"""<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dev Auth Token</title>
+<style>
+*{{margin:0;padding:0;box-sizing:border-box}}
+body{{font-family:system-ui,-apple-system,sans-serif;background:#1a1a2e;color:#e0e0e0;
+display:flex;justify-content:center;align-items:center;min-height:100vh}}
+.card{{background:#16213e;border-radius:12px;padding:32px;width:min(480px,90vw);
+box-shadow:0 8px 32px rgba(0,0,0,.4)}}
+h2{{margin-bottom:8px;color:#a8b2d1}}
+.user{{color:#64ffda;margin-bottom:24px;font-size:14px}}
+label{{display:block;font-size:13px;color:#8892b0;margin-bottom:6px}}
+.token-box{{background:#0a0f1e;border:1px solid #233554;border-radius:8px;padding:10px 12px;
+font-family:monospace;font-size:12px;word-break:break-all;color:#64ffda;
+margin-bottom:20px;max-height:80px;overflow-y:auto;cursor:pointer;position:relative}}
+.token-box:hover::after{{content:'点击复制';position:absolute;top:4px;right:8px;
+font-size:11px;color:#8892b0}}
+.copied{{color:#ffd700!important}}
+input[type=text]{{width:100%;padding:10px 12px;border-radius:8px;border:1px solid #233554;
+background:#0a0f1e;color:#e0e0e0;font-size:14px;outline:none;transition:border .2s}}
+input[type=text]:focus{{border-color:#64ffda}}
+.btn{{display:block;width:100%;margin-top:16px;padding:12px;border:none;border-radius:8px;
+background:#64ffda;color:#0a0f1e;font-size:15px;font-weight:600;cursor:pointer;
+transition:opacity .2s}}
+.btn:hover{{opacity:.85}}
+.hint{{font-size:12px;color:#5a6785;margin-top:8px}}
+</style>
+</head>
+<body>
+<div class="card">
+<h2>认证成功</h2>
+<p class="user">{user["username"]} ({user["id"]})</p>
+<label>JWT Token</label>
+<div class="token-box" id="tokenBox" onclick="copyToken()">{token}</div>
+<label for="urlInput">前端地址</label>
+<input type="text" id="urlInput" value="{frontend_url}" placeholder="https://example.com">
+<button class="btn" onclick="go()">携带 Token 跳转</button>
+<p class="hint">跳转格式: URL#token=JWT</p>
+</div>
+<script>
+function copyToken(){{
+  navigator.clipboard.writeText("{token}");
+  var b=document.getElementById("tokenBox");
+  b.classList.add("copied");
+  setTimeout(function(){{b.classList.remove("copied")}},1500);
+}}
+function go(){{
+  var url=document.getElementById("urlInput").value.trim();
+  if(!url)return alert("请输入前端地址");
+  window.location.href=url+"#token={token}";
+}}
+</script>
+</body>
+</html>"""
+            return HTMLResponse(content=html)
+
+        except Exception as e:
+            logger.error(f"OAuth2 回调处理失败 (dev): {e}")
+            return JSONResponse(
+                content={"error": "认证过程出错"},
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
 @router.get("/logout", summary="退出登录")
 async def logout(response: Response):
     """退出登录并清除 session cookie"""
@@ -188,6 +372,7 @@ async def logout(response: Response):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="认证服务未初始化"
         )
+
     # 清除 cookie 并重定向到前端
     redirect_response = RedirectResponse(
         url=_AUTH_CONFIG["frontend_url"], status_code=302
@@ -204,6 +389,7 @@ async def check_auth(request: Request):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="认证服务未初始化"
         )
+
     # 从 Authorization header 或 Cookie 中获取 token
     token = None
     auth_header = request.headers.get("Authorization", "")

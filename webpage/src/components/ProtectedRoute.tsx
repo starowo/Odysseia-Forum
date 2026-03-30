@@ -6,14 +6,18 @@ import { useAuth, useRefreshAuth } from '@/features/auth/hooks/useAuth';
 export function ProtectedRoute() {
   const { isAuthenticated, isLoading } = useAuth();
   const refreshAuth = useRefreshAuth();
-  const [isProcessingToken, setIsProcessingToken] = useState(false);
+  // 初始状态即检测是否有 Token 需要处理，防止首屏渲染直接触发重定向
+  const [isProcessingToken, setIsProcessingToken] = useState(() => 
+    window.location.hash.includes('token=')
+  );
 
   useEffect(() => {
     const hash = window.location.hash;
     if (hash && hash.includes('token=')) {
       setIsProcessingToken(true);
-      const params = new URLSearchParams(hash.substring(1)); // remove #
-      const token = params.get('token');
+      // 使用正则匹配更准确
+      const match = hash.match(/[#&]token=([^&]+)/);
+      const token = match ? match[1] : null;
 
       if (token) {
         localStorage.setItem('auth_token', token);
@@ -24,7 +28,7 @@ export function ProtectedRoute() {
       }
 
       // 给一点时间让状态更新
-      setTimeout(() => setIsProcessingToken(false), 500);
+      setTimeout(() => setIsProcessingToken(false), 800);
     }
   }, [refreshAuth]);
 

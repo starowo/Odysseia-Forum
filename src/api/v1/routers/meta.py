@@ -21,12 +21,15 @@ async def get_indexed_channels_with_tags(
     channel_ids: Optional[List[int]] = Query(
         default=None, description="要查询的特定频道ID列表。"
     ),
+    guild_id: Optional[int] = Query(
+        default=None, description="按服务器ID过滤频道。"
+    ),
 ):
     if not cache_service_instance:
         raise HTTPException(status_code=503, detail="Cache 服务尚未初始化")
 
     all_channels: list[discord.ForumChannel] = (
-        cache_service_instance.get_indexed_channels()
+        cache_service_instance.get_indexed_channels(guild_id)
     )
     target_channels = [
         ch for ch in all_channels if not channel_ids or ch.id in channel_ids

@@ -51,10 +51,10 @@ NewWebpage/
 │   │   ├── follows/                # 关注功能
 │   │   ├── mascot/                 # 吉祥物/看板娘功能
 │   │   │   ├── assets.ts          # 资源配置
-│   │   │   ├── components/        # 吉祥物 UI 组件
+│   │   │   ├── components/        # 类脑娘 UI 组件
 │   │   │   │   └── MascotDialog.tsx
 │   │   │   ├── config/            # 触发器与台词配置
-│   │   │   └── store/             # 吉祥物状态管理
+│   │   │   └── store/             # 类脑娘状态管理
 │   │   │
 │   │   └── notifications/          # 通知功能
 │   │

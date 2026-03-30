@@ -14,6 +14,10 @@ class SearchResponse(PaginatedResponse[ThreadDetail]):
         default_factory=list,
         description="当搜索单个频道时返回该频道的可用标签列表，全频道搜索时返回空列表",
     )
+    virtual_tags: List[str] = Field(
+        default_factory=list,
+        description="当前频道配置的虚拟映射标签名列表（始终置顶于 available_tags 中）",
+    )
     banner_carousel: List[BannerItem] = Field(
         default_factory=list,
         description="Banner轮播列表，包含当前频道+全频道的banner（最多8个）",

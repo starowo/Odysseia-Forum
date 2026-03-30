@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from api.v1.dependencies.security import require_auth
 from api.v1.schemas.preferences import (
@@ -21,12 +23,12 @@ router = APIRouter(
     response_model=UserPreferencesResponse,
     summary="获取指定用户的搜索偏好",
 )
-async def get_user_preferences(user_id: int):
+async def get_user_preferences(
+    user_id: int,
+    guild_id: Optional[int] = Query(default=0, description="服务器ID，默认为0"),
+):
     """
-    根据 Discord 用户 ID，获取该用户的完整搜索偏好设置。
-
-    - user_id: Discord 用户 ID
-    - return: 用户的完整搜索偏好设置
+    根据 Discord 用户 ID 和服务器 ID，获取该用户的完整搜索偏好设置。
     """
     if not preferences_cog_instance:
         raise HTTPException(
@@ -35,12 +37,12 @@ async def get_user_preferences(user_id: int):
         )
 
     service: PreferencesService = preferences_cog_instance.preferences_service
-    prefs_dto = await service.get_user_preferences(user_id)
+    prefs_dto = await service.get_user_preferences(user_id, guild_id or 0)
 
     if not prefs_dto:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"未找到用户ID {user_id} 的偏好设置",
+            detail=f"未找到用户ID {user_id} 在服务器 {guild_id} 的偏好设置",
         )
 
     return prefs_dto
@@ -51,13 +53,13 @@ async def get_user_preferences(user_id: int):
     response_model=UserPreferencesResponse,
     summary="创建或更新用户搜索偏好",
 )
-async def update_user_preferences(user_id: int, request: UserPreferencesUpdateRequest):
+async def update_user_preferences(
+    user_id: int,
+    request: UserPreferencesUpdateRequest,
+    guild_id: Optional[int] = Query(default=0, description="服务器ID，默认为0"),
+):
     """
-    根据 Discord 用户 ID，创建或更新该用户的搜索偏好设置。
-
-    - user_id: Discord 用户 ID
-    - request: 要更新的偏好设置数据
-    - return: 更新后的完整搜索偏好设置
+    根据 Discord 用户 ID 和服务器 ID，创建或更新该用户的搜索偏好设置。
     """
     if not preferences_cog_instance:
         raise HTTPException(
@@ -73,5 +75,7 @@ async def update_user_preferences(user_id: int, request: UserPreferencesUpdateRe
             status_code=status.HTTP_400_BAD_REQUEST, detail="请求体不能为空"
         )
 
-    updated_prefs = await service.save_user_preferences(user_id, update_data)
+    updated_prefs = await service.save_user_preferences(
+        user_id, update_data, guild_id or 0
+    )
     return updated_prefs

@@ -21,6 +21,7 @@ dependencies = [
     "uvicorn[standard]",
     "uvloop; platform_system != 'Windows'",
     "httpx",
+    "greenlet>=3.2.4",
 ]
 
 [project.optional-dependencies]

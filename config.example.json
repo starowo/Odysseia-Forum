@@ -69,6 +69,44 @@
     "_comment_cookie_domain": "Cookie 域名，留空则使用默认（可选）"
   },
 
+  "channel_mappings": {
+    "_comment": "频道映射配置：将其它服务器/频道映射为某个频道的虚拟标签。搜索时选择虚拟标签可搜索到映射源频道的帖子。",
+    "_example": {
+      "目标频道ID": [
+        {
+          "tag_name": "显示为标签的名称",
+          "source_channel_ids": ["来源频道ID1", "来源频道ID2"]
+        }
+      ]
+    }
+  },
+
+  "update_detector": {
+    "enabled": true,
+    "_comment_enabled": "是否启用更新检测功能",
+
+    "gemini_api_key": "your_gemini_api_key_here",
+    "_comment_gemini_api_key": "Google Gemini API Key，用于AI判断消息是否为发布更新",
+
+    "gemini_base_url": "",
+    "_comment_gemini_base_url": "Gemini API 地址，留空使用官方默认地址。可填写代理地址，例如 https://your-proxy.com/v1beta",
+
+    "gemini_model": "gemini-2.0-flash",
+    "_comment_gemini_model": "Gemini 模型名称，可自行修改为代理支持的模型名",
+
+    "prompt_message": "检测到您可能发布了作品的新版本，是否将其同步到索引页？",
+    "_comment_prompt_message": "发送给用户的提醒消息内容，可自定义",
+
+    "auto_delete_seconds": 600,
+    "_comment_auto_delete_seconds": "提醒消息自动删除时间（秒），默认600秒（10分钟）",
+
+    "min_text_length": 100,
+    "_comment_min_text_length": "触发检测的最小文字长度（纯文字消息），默认100字符",
+
+    "min_text_length_with_attachment": 30,
+    "_comment_min_text_length_with_attachment": "带附件时触发检测的最小文字长度，默认30字符"
+  },
+
   "banner": {
     "enabled": true,
     "_comment_enabled": "是否启用Banner申请系统",

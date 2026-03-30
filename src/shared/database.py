@@ -11,7 +11,15 @@ from shared.fts5_tokenizer import register_jieba_tokenizer
 DB_PATH = "data/database.db"
 DATABASE_URL = f"sqlite+aiosqlite:///{DB_PATH}"
 
-async_engine = create_async_engine(DATABASE_URL, echo=False)
+async_engine = create_async_engine(
+    DATABASE_URL,
+    echo=False,
+    pool_size=10,
+    max_overflow=20,
+    pool_timeout=60,
+    pool_pre_ping=True,
+    pool_recycle=1800,
+)
 
 metadata_obj = MetaData()
 thread_fts_table = Table(
@@ -110,6 +118,14 @@ async def init_db():
                 END;
                 """
             )
+        )
+
+        # 重建 FTS 索引（使用当前分词器重新索引全部内容）并合并碎片段
+        await conn.execute(
+            text("INSERT INTO thread_fts(thread_fts) VALUES('rebuild')")
+        )
+        await conn.execute(
+            text("INSERT INTO thread_fts(thread_fts) VALUES('optimize')")
         )
 
 

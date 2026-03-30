@@ -99,9 +99,9 @@ class ChannelPreferencesView(discord.ui.View):
 
         selected_channel_ids = [int(value) for value in self.channel_select.values]
 
-        # 调用 handler 保存
+        guild_id = interaction.guild_id or 0
         await self.handler.save_preferred_channels(
-            interaction.user.id, selected_channel_ids
+            interaction.user.id, selected_channel_ids, guild_id
         )
 
         # 删除此临时设置消息

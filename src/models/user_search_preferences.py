@@ -1,12 +1,22 @@
 from typing import List, Optional
 
-from sqlmodel import JSON, Column, Field, SQLModel
+from sqlmodel import JSON, BigInteger, Column, Field, SQLModel, UniqueConstraint
 
 
 class UserSearchPreferences(SQLModel, table=True):
     """用户搜索偏好模型"""
 
-    user_id: int = Field(primary_key=True)
+    __table_args__ = (
+        UniqueConstraint("user_id", "guild_id", name="uk_user_guild_preferences"),
+    )
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(sa_column=Column(BigInteger, index=True, nullable=False))
+    guild_id: int = Field(
+        default=0,
+        sa_column=Column(BigInteger, index=True, nullable=False),
+        description="用户偏好所属的服务器 ID",
+    )
 
     # 频道选择
     preferred_channels: Optional[List[int]] = Field(

@@ -42,8 +42,9 @@ class ResultsPerPageModal(discord.ui.Modal, title="设置每页结果数量"):
                 )
                 return
 
+            guild_id = interaction.guild_id or 0
             await self.service.save_user_preferences(
-                interaction.user.id, {"results_per_page": num}
+                interaction.user.id, {"results_per_page": num}, guild_id
             )
             await self.parent_view.refresh(interaction)
         except ValueError:

@@ -32,6 +32,7 @@ from config.cog import Configuration
 from banner.cog import BannerManagement
 from config.config_service import ConfigService
 from collection.cog import CollectionCog
+from update_detector.cog import UpdateDetector
 from shared.api_scheduler import APIScheduler
 from api.v1.routers import (
     preferences as preferences_api,
@@ -205,6 +206,12 @@ class MyBot(commands.Bot):
                 bot=self,
                 session_factory=AsyncSessionFactory,
             ),
+            UpdateDetector(
+                bot=self,
+                session_factory=AsyncSessionFactory,
+                config=self.config,
+                cache_service=self.cache_service,
+            ),
         ]
         await asyncio.gather(
             *(self.add_cog(cog) for cog in cogs_to_load), return_exceptions=True
@@ -275,6 +282,29 @@ async def main():
         meta_api.cache_service_instance = bot.cache_service
         search_api.cache_service_instance = bot.cache_service
         search_api.config_service_instance = bot.config_service
+
+        # 注入频道映射配置
+        raw_mappings = bot.config.get("channel_mappings", {})
+        parsed_mappings = {}
+        for key, val in raw_mappings.items():
+            if key.startswith("_"):
+                continue
+            try:
+                ch_id = int(key)
+                if isinstance(val, list):
+                    parsed_mappings[ch_id] = [
+                        {
+                            "tag_name": m["tag_name"],
+                            "source_channel_ids": [
+                                int(c) for c in m.get("source_channel_ids", [])
+                            ],
+                        }
+                        for m in val
+                        if isinstance(m, dict) and "tag_name" in m
+                    ]
+            except (ValueError, TypeError):
+                continue
+        search_api.channel_mappings_config = parsed_mappings
 
         auth_section = (
             bot.config.get("auth", {}) if isinstance(bot.config, dict) else {}

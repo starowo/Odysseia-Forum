@@ -34,10 +34,11 @@ class PreferencesView(discord.ui.View):
 
     async def fetch_preferences(self) -> "UserSearchPreferencesDTO":
         """获取最新的用户偏好设置"""
+        guild_id = self.original_interaction.guild_id or 0
         async with self.service.session_factory() as session:
             repo = PreferencesRepository(session, self.service.tag_service)
             prefs_dto = await repo.get_user_preferences(
-                self.original_interaction.user.id
+                self.original_interaction.user.id, guild_id
             )
             if not prefs_dto:
                 # 创建一个临时的空DTO对象
@@ -393,13 +394,15 @@ class PreferencesView(discord.ui.View):
 
         elif custom_id == "prefs_preview":
             await safe_defer(interaction)
-            await self.service.toggle_preview_mode(interaction.user.id)
+            guild_id = interaction.guild_id or 0
+            await self.service.toggle_preview_mode(interaction.user.id, guild_id)
             await self.refresh(interaction)
             return
 
         elif custom_id == "prefs_clear":
             await safe_defer(interaction)
-            await self.service.clear_user_preferences(interaction.user.id)
+            guild_id = interaction.guild_id or 0
+            await self.service.clear_user_preferences(interaction.user.id, guild_id)
             await self.refresh(interaction)
             return
 
@@ -412,11 +415,13 @@ class PreferencesView(discord.ui.View):
     ):
         await safe_defer(modal_interaction, ephemeral=True)
         try:
+            guild_id = modal_interaction.guild_id or 0
             await self.service.save_user_keywords(
                 user_id=modal_interaction.user.id,
                 include_str=submitted_include,
                 exclude_str=submitted_exclude,
                 exemption_markers_str=submitted_markers,
+                guild_id=guild_id,
             )
             # 刷新本视图
             await self.refresh(modal_interaction)
@@ -435,7 +440,10 @@ class PreferencesView(discord.ui.View):
             if sort_method != "custom":
                 update_data["custom_base_sort"] = "comprehensive"
 
-            await self.service.save_user_preferences(interaction.user.id, update_data)
+            guild_id = interaction.guild_id or 0
+            await self.service.save_user_preferences(
+                interaction.user.id, update_data, guild_id
+            )
             await self.refresh(interaction)  # 刷新视图以显示或隐藏新行
         except Exception as e:
             logger.error(f"保存排序方式失败: {e}", exc_info=True)
@@ -449,8 +457,9 @@ class PreferencesView(discord.ui.View):
         await safe_defer(interaction)
         try:
             # 注意这里 service 的方法是通用的，可以直接用
+            guild_id = interaction.guild_id or 0
             await self.service.save_user_preferences(
-                interaction.user.id, {"custom_base_sort": sort_method}
+                interaction.user.id, {"custom_base_sort": sort_method}, guild_id
             )
             await self.refresh(interaction)  # 刷新视图以更新embed中的文本
         except Exception as e:
@@ -463,7 +472,10 @@ class PreferencesView(discord.ui.View):
         """回调：接收原始字符串并调用服务进行保存。"""
         await safe_defer(interaction)
         try:
-            await self.service.save_time_preferences(interaction.user.id, values)
+            guild_id = interaction.guild_id or 0
+            await self.service.save_time_preferences(
+                interaction.user.id, values, guild_id
+            )
             await self.refresh(interaction)
         except Exception as e:
             logger.error(f"保存时间偏好失败: {e}", exc_info=True)

@@ -10,6 +10,7 @@ class JiebaRSTokenizer(fts5.FTS5Tokenizer):
     def tokenize(self, text, flags=None):
         """
         分词函数，会被SQLite FTS5引擎在索引和查询时调用。
+        所有词元统一转为小写，确保大小写不敏感匹配。
 
         Args:
             text (str): 需要分词的文本。
@@ -18,9 +19,8 @@ class JiebaRSTokenizer(fts5.FTS5Tokenizer):
         Yields:
             tuple[str, int, int]: 包含词元、起始字节和结束字节的元组。
         """
-        # 调用 rjieba.tokenize 进行分词，它返回一个 (word, start, end) 的元组
         for word, start, end in rjieba.tokenize(text):
-            yield word, start, end
+            yield word.lower(), start, end
 
 
 def register_jieba_tokenizer(conn):
