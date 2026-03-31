@@ -1,0 +1,23 @@
+{
+  "keywords": "",
+  "channel_ids": null,
+  "include_tags": [],
+  "exclude_tags": [],
+  "tag_logic": "and",
+  "author_name": null,
+  "search_by_collection": false,
+  "created_after": null,
+  "created_before": null,
+  "active_after": null,
+  "active_before": null,
+  "reaction_count_range": ">=0",
+  "reply_count_range": ">=0",
+  "sort_method": "comprehensive",
+  "custom_base_sort": "comprehensive",
+  "sort_order": "desc",
+  "limit": 24,
+  "offset": 0,
+  "exclude_thread_ids": [],
+  "guild_id": null,
+  "exclude_authors": null
+}

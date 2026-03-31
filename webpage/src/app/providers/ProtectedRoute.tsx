@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
 import { useAuth, useRefreshAuth } from '@/features/auth/hooks/useAuth';
+import { OmicronLoader } from '@/shared/ui/loaders/OmicronLoader';
 
 export function ProtectedRoute() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -37,7 +37,7 @@ export function ProtectedRoute() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--od-bg)]">
         <div className="text-center">
-          <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin text-[var(--od-accent)]" />
+          <OmicronLoader className="mx-auto mb-4 h-12 w-12" />
           <p className="text-sm text-[var(--od-text-secondary)]">验证登录状态...</p>
         </div>
       </div>

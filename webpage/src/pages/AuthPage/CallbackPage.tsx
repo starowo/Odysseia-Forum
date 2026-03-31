@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+
 import { toast } from 'sonner';
 import { useRefreshAuth } from '@/features/auth/hooks/useAuth';
+import { OmicronLoader } from '@/shared/ui/loaders/OmicronLoader';
 
 export function CallbackPage() {
   const navigate = useNavigate();
@@ -49,7 +50,7 @@ export function CallbackPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[var(--od-bg)]">
       <div className="text-center">
-        <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin text-[var(--od-accent)]" />
+        <OmicronLoader className="mx-auto mb-4 h-12 w-12" />
         <p className="text-lg text-[var(--od-text-primary)]">正在登录...</p>
         <p className="mt-2 text-sm text-[var(--od-text-secondary)]">请稍候</p>
       </div>

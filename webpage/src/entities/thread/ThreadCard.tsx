@@ -8,7 +8,7 @@ import { fetchImagesApi } from '@/features/threads/api/fetchImagesApi';
 import { ThreadActions } from '@/features/threads/components/ThreadActions';
 import { AuthorAvatar } from '@/entities/user/AuthorAvatar';
 import { ThreadStatusBadges } from '@/entities/thread/ThreadStatusBadges';
-import { MotionWrapper } from '@/shared/ui/animation/MotionWrapper';
+
 
 interface ThreadCardProps {
   thread: Thread;
@@ -117,13 +117,9 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
   };
 
   return (
-    <MotionWrapper
-      as="article"
-      layoutId={`thread-card-${thread.id}`}
+    <article
       className="group relative flex aspect-[3/5] w-full flex-col overflow-hidden rounded-xl bg-[var(--od-card)] shadow-md cursor-pointer md:aspect-[3/4]"
       onClick={() => onPreview?.(thread)}
-      scale={1.02}
-      y={-4}
     >
       {/* Background Image Layer (Parallax Target) */}
       <div
@@ -247,6 +243,6 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
           </div>
         </div>
       </div>
-    </MotionWrapper>
+    </article>
   );
 }

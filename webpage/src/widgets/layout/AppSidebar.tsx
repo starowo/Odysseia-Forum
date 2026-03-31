@@ -1,5 +1,6 @@
 import { Bookmark, Settings, Info, LogOut, Search as SearchIcon, Tag as TagIcon, TestTube } from 'lucide-react';
 import ServerIcon from '@/assets/images/icon/A90C044F8DDF1959B2E9078CB629C239.png';
+import { WordLogoStatic } from '@/shared/ui/loaders/WordLogoStatic';
 
 import { Link, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -46,14 +47,17 @@ export function AppSidebar() {
   return (
     <div className="flex h-full flex-col">
       {/* 顶部 Header */}
-      {/* 顶部 Header */}
-      <div className="flex items-center gap-2 px-3 py-3">
-        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-full shadow-md">
+      {/* 顶部 Header：类脑名字 + 静态 Logo 排版 */}
+      <div className="flex items-center gap-3 px-3 py-4">
+        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-full shadow-md">
           <img src={ServerIcon} alt="Server Icon" className="h-full w-full object-cover" />
         </div>
-        <h1 className="text-base font-bold tracking-tight text-[var(--od-text-primary)]">
-          类脑ΟΔΥΣΣΕΙΑ
-        </h1>
+        <div className="flex flex-col gap-1 justify-center min-w-0">
+          <span className="text-[12px] font-bold tracking-widest text-[var(--od-text-primary)] leading-none truncate">
+            类脑
+          </span>
+          <WordLogoStatic className="h-[11px] text-[var(--od-text-primary)] flex-shrink-0" />
+        </div>
       </div>
 
       {/* 滚动区域 */}

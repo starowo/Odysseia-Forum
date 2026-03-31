@@ -439,8 +439,16 @@ export function SearchPage() {
                 const startIndex = virtualRow.index * cols;
                 const rowItems = mergedThreads.slice(startIndex, startIndex + cols);
 
-                // 动态拼接 grid 布局 className 以避免被 tailwind purge
-                const gridClass = `grid gap-od-card-gap pb-od-card-gap grid-cols-${cols}`;
+                // 静态声明 grid 类名以确保 Tailwind 能正确扫描不被 Purge
+                const gridClassMap: Record<number, string> = {
+                  1: 'grid gap-od-card-gap pb-od-card-gap grid-cols-1',
+                  2: 'grid gap-od-card-gap pb-od-card-gap grid-cols-2',
+                  3: 'grid gap-od-card-gap pb-od-card-gap grid-cols-3',
+                  4: 'grid gap-od-card-gap pb-od-card-gap grid-cols-4',
+                  5: 'grid gap-od-card-gap pb-od-card-gap grid-cols-5',
+                  6: 'grid gap-od-card-gap pb-od-card-gap grid-cols-6',
+                };
+                const gridClass = gridClassMap[cols] || gridClassMap[5];
 
                 return (
                   <div

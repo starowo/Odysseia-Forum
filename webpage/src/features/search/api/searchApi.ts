@@ -15,28 +15,22 @@ function buildSearchRequest(params: any): components["schemas"]["SearchRequest"]
   const sortConfig = sortMap[params.sort_method || 'last_active_desc'] || sortMap.relevance;
 
   return {
-    keywords: params.query || '',
+    keywords: params.query || null,
     channel_ids: params.channel_ids || null,
     include_tags: params.include_tags || [],
     exclude_tags: params.exclude_tags || [],
     tag_logic: params.tag_logic === 'or' ? 'or' : 'and',
     author_name: params.author_name || null,
-    search_by_collection: false,
     created_after: params.created_after || null,
     created_before: params.created_before || null,
     active_after: null,
     active_before: null,
-    reaction_count_range: '>=0',
-    reply_count_range: '>=0',
     sort_method: sortConfig.method,
     custom_base_sort: 'comprehensive',
     sort_order: sortConfig.order,
     limit: params.limit || 24,
     offset: params.offset || 0,
-    exclude_thread_ids: [],
-    guild_id: null,
-    exclude_authors: null
-  };
+  } as any;
 }
 
 export const searchApi = {

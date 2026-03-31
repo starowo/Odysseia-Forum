@@ -552,3 +552,33 @@ select:focus-visible {
   outline: 2px solid var(--od-accent);
   outline-offset: 2px;
 }
+
+/* =========================================================
+ * SVG 核心自旋加载器 (Omicron Loader)
+ * ========================================================= */
+
+.omicron-loader-path {
+  stroke-dasharray: 113 38; 
+  stroke-dashoffset: 132;
+  animation: omicron-stroke 3s cubic-bezier(0.785, 0.135, 0.15, 0.86) infinite; 
+}
+
+@keyframes omicron-stroke {
+  25% { stroke-dashoffset: 94; }
+  50% { stroke-dashoffset: 56; }
+  75% { stroke-dashoffset: 19; }
+  100% { stroke-dashoffset: -19; }
+}
+
+.omicron-loader-dot {
+  offset-path: path("M 16 40 A 24 24 0 1 0 16 39.99 Z"); 
+  offset-rotate: 0deg; 
+  animation: omicron-dot 3s cubic-bezier(0.785, 0.135, 0.15, 0.86) infinite; 
+}
+
+@keyframes omicron-dot {
+  25% { offset-distance: 25%; }
+  50% { offset-distance: 50%; }
+  75% { offset-distance: 75%; }
+  100% { offset-distance: 100%; }
+}

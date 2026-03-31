@@ -3,6 +3,7 @@ import { Github } from 'lucide-react';
 
 import forumIcon from '@/assets/images/icon/A90C044F8DDF1959B2E9078CB629C239.png';
 import backgroundImage from '@/assets/images/background/winter.png';
+import { WordLogoStatic } from '@/shared/ui/loaders/WordLogoStatic';
 
 export function AboutPage() {
   const hasSpawnedRef = useRef(false);
@@ -50,9 +51,10 @@ export function AboutPage() {
             </div>
 
             {/* 标题 */}
-            <h2 className="mb-6 text-center text-3xl font-bold text-[var(--od-text-primary)]">
-              类脑ΟΔΥΣΣΕΙΑ
-            </h2>
+            <div className="flex flex-col items-center justify-center mb-6 gap-2">
+              <span className="text-2xl font-bold tracking-[0.2em] text-[var(--od-text-primary)]">类脑</span>
+              <WordLogoStatic className="h-[1.125rem] text-[var(--od-text-primary)]" />
+            </div>
 
             {/* 核心理念 */}
             <div className="mb-8">

@@ -199,9 +199,12 @@ export function SearchSuggestions({
                                 const isSelected = selectedIndex === globalIndex;
                                 return (
                                     <li key={globalIndex}>
-                                        <button
+                                        <div
+                                            role="button"
+                                            tabIndex={0}
                                             onClick={() => handleSelect(item.value)}
-                                            className={`group flex w-full items-center justify-between gap-od-sm rounded-md px-2.5 py-1.5 text-left transition-colors ${
+                                            onKeyDown={(e) => { if(e.key === 'Enter') handleSelect(item.value); }}
+                                            className={`group flex w-full items-center justify-between gap-od-sm rounded-md px-2.5 py-1.5 text-left transition-colors cursor-pointer ${
                                                 isSelected ? 'bg-[var(--od-accent)]/20 text-[var(--od-text-primary)]' : 'hover:bg-[var(--od-bg-tertiary)] text-[var(--od-text-secondary)]'
                                             }`}
                                         >
@@ -221,7 +224,7 @@ export function SearchSuggestions({
                                                     <X className="w-3.5 h-3.5 text-[var(--od-text-tertiary)]" />
                                                 </button>
                                             )}
-                                        </button>
+                                        </div>
                                     </li>
                                 );
                             })}

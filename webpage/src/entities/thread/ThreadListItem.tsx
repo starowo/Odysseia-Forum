@@ -11,7 +11,7 @@ import { fontSizeMap } from '@/shared/lib/settings';
 import { ThreadActions } from '@/features/threads/components/ThreadActions';
 import { AuthorAvatar } from '@/entities/user/AuthorAvatar';
 import { ThreadStatusBadges } from '@/entities/thread/ThreadStatusBadges';
-import { Transition } from '@/shared/ui/animation/Transition';
+
 
 interface ThreadListItemProps {
   thread: Thread;
@@ -41,11 +41,10 @@ export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick,
     thread.first_message_excerpt.trim() !== '...';
 
   return (
-    <Transition type="slide" className="w-full">
-      <article
-        className="group relative flex min-h-[8rem] w-full max-w-full gap-0 overflow-hidden rounded-xl bg-[var(--od-card)] shadow-md transition-all duration-300 hover:bg-[var(--od-card-hover)] hover:shadow-xl cursor-pointer md:h-48"
-        onClick={() => onPreview?.(thread)}
-      >
+    <article
+      className="group relative flex min-h-[8rem] w-full max-w-full gap-0 overflow-hidden rounded-xl bg-[var(--od-card)] shadow-md transition-all duration-300 hover:bg-[var(--od-card-hover)] hover:shadow-xl cursor-pointer md:h-48"
+      onClick={() => onPreview?.(thread)}
+    >
         {/* 左侧内容区 - 占据更多空间 */}
         <div className="flex flex-1 flex-col justify-between p-3 min-w-0 md:p-5">
           {/* 标题 */}
@@ -162,7 +161,6 @@ export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick,
             <div className="h-full w-full bg-[var(--od-bg-secondary)]" />
           )}
         </div>
-      </article>
-    </Transition>
+    </article>
   );
 }

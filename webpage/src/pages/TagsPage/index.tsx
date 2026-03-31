@@ -17,22 +17,28 @@ export function TagsPage() {
   const navigate = useNavigate();
   const { settings } = useSettings();
 
-  // 获取所有频道及其标签
-  const { data: channels, isLoading } = useQuery({
-    queryKey: ['meta', 'channels'],
-    queryFn: searchApi.getChannels,
+  // 使用 search 作为底座获取所有可用的真实标签和映射标签
+  const { data: initialSearchData, isLoading: isSearchLoading } = useQuery({
+    queryKey: ['tags-overview', 'initial-search'],
+    queryFn: () => searchApi.search({ limit: 1 }),
     staleTime: 5 * 60 * 1000,
   });
 
-  // 聚合所有标签
+  // 聚合所有标签 (优先使用 search 接口直接返回的全局可用标签)
   const availableTags = useMemo(() => {
-    if (!channels) return [];
+    if (!initialSearchData) return [];
+    
+    // 如果后端 SearchResponse 提供了 available_tags 和 virtual_tags，我们合并它们作为全量标签
     const tags = new Set<string>();
-    channels.forEach((ch) => {
-      ch.tags?.forEach((t) => tags.add(t.name));
-    });
-    return Array.from(tags);
-  }, [channels]);
+    if (initialSearchData.available_tags) {
+      initialSearchData.available_tags.forEach((t: string) => tags.add(t));
+    }
+    if (initialSearchData.virtual_tags) {
+      initialSearchData.virtual_tags.forEach((t: string) => tags.add(t));
+    }
+    
+    return Array.from(tags).filter(Boolean);
+  }, [initialSearchData]);
 
   // 获取每个标签的帖子数量
   const { data: tagCounts } = useQuery({
@@ -178,7 +184,7 @@ export function TagsPage() {
             </div>
 
             {/* 标签网格 */}
-            {isLoading ? (
+            {isSearchLoading ? (
               <div className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${settings.sidebarCollapsed ? 'lg:grid-cols-4 xl:grid-cols-5' : 'lg:grid-cols-3 xl:grid-cols-4'}`}>
                 {Array.from({ length: 12 }).map((_, i) => (
                   <div
