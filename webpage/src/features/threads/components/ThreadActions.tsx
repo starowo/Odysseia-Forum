@@ -1,7 +1,7 @@
-import { Tooltip } from '@/components/common/Tooltip';
-import { DiscordIcon } from '@/components/icons/DiscordIcon';
-import { useSettings } from '@/hooks/useSettings';
-import { AnimatedIcon } from '@/components/ui/animation/AnimatedIcon';
+import { Tooltip } from '@/shared/ui/Tooltip';
+import { DiscordIcon } from '@/shared/ui/icons/DiscordIcon';
+import { useSettings } from '@/shared/hooks/useSettings';
+import { AnimatedIcon } from '@/shared/ui/animation/AnimatedIcon';
 import { useState } from 'react';
 
 interface ThreadActionsProps {

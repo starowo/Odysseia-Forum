@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '@/lib/api/client';
-import type { Thread } from '@/types/thread.types';
+import { apiClient } from '@/shared/api/client';
+import type { Thread } from '@/entities/thread/types';
 
 interface DevMockState {
   threads: Thread[];

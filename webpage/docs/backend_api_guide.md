@@ -49,48 +49,67 @@
 
 ### 全局搜索
 - **端点**: `POST /search/`
-- **描述**: 根据关键词、标签和频道筛选搜索帖子
-- **请求体**:
+- **描述**: 根据关键词、标签和频道筛选搜索帖子。支持跨服务器搜索和虚拟标签逻辑。
+- **请求体 (`SearchRequest`)**:
   ```json
   {
-    "keywords": "string (可选)",
+    "guild_id": "int (可选, Snowflake)",
     "channel_ids": ["string (可选)"],
     "include_tags": ["string (可选)"],
     "exclude_tags": ["string (可选)"],
     "tag_logic": "and (可选, 默认'and')",
+    "keywords": "string (可选, 支持高级语法)",
+    "exclude_keywords": "string (可选)",
     "author_name": "string (可选)",
+    "include_authors": ["int (可选)"],
+    "exclude_authors": ["int (可选)"],
     "created_after": "YYYY-MM-DD (可选)",
     "created_before": "YYYY-MM-DD (可选)",
     "sort_method": "comprehensive (可选)",
     "sort_order": "desc (可选)",
     "limit": 24,
-    "offset": 0,
-    "exclude_thread_ids": ["int (可选)"]
+    "exclude_thread_ids": ["int (可选)"],
+    "search_by_collection": false
   }
   ```
-- **响应**: `SearchResponse` 对象,包含帖子列表、总数、可用标签和轮播图
 
-**重要说明**:
-- `channel_ids`: 为避免 JavaScript 精度损失,应传递**字符串数组**(后端会转换为整数)
-- `author_name`: 支持模糊匹配作者的全局用户名或昵称
-- `exclude_thread_ids`: 已加载的帖子 ID 列表,用于无缝滚动加载
+**核心逻辑变动**:
+1.  **多服务器支持 (`guild_id`)**: 若不传则搜索所有已索引服务器；若传则锁定特定服务器。
+2.  **频道映射与虚拟标签 (`virtual_tags`)**:
+    - 如果请求中只包含**一个** `channel_id`，且该频道在后台配置了映射（Mappings），响应中将包含 `virtual_tags`。
+    - **显示逻辑**: 搜索结果中的帖子若来自被映射的源频道，会携带 `virtual_tags` 标记。
+    - **筛选逻辑**: 在 `include_tags` 中传入虚拟标签名，后端会自动将其转化为对多个源频道的并集搜索。
+3.  **精确匹配**: `include_tags` 和 `exclude_tags` 会优先检查是否匹配虚拟标签。
+
+- **响应 (`SearchResponse`)**:
+  ```json
+  {
+    "total": 123,
+    "results": [
+      {
+        "thread_id": "string",
+        "guild_id": "string",
+        "channel_id": "string",
+        "title": "string",
+        "tags": ["真实标签"],
+        "virtual_tags": ["虚拟映射标签"],
+        "collected_flag": false,
+        "thumbnail_urls": ["url"]
+      }
+    ],
+    "available_tags": ["虚拟标签1", "真实标签A", "..."],
+    "virtual_tags": ["虚拟标签1", "..."],
+    "unread_count": 0
+  }
+  ```
 
 ### 获取频道和标签
 - **端点**: `GET /meta/channels`
-- **描述**: 获取所有已索引的频道及其可用标签
-- **响应**:
-  ```json
-  [
-    {
-      "id": "string",
-      "name": "string",
-      "tags": [
-        { "id": "string", "name": "string" }
-      ]
-    }
-  ]
-  ```
-- **注意**: **没有**独立的 `/tags` 端点,标签与频道绑定
+- **描述**: 获取所有已索引的频道及其可用标签。
+- **查询参数**:
+  - `guild_id`: 按服务器 ID 过滤频道列表。
+  - `channel_ids`: 获取特定频道的元数据。
+- **响应**: `List[Channel]` 对象。
 
 ---
 

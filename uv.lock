@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.13' and platform_python_implementation != 'PyPy'",
@@ -795,6 +795,7 @@ dependencies = [
     { name = "alembic" },
     { name = "discord-py", extra = ["speed"] },
     { name = "fastapi" },
+    { name = "greenlet" },
     { name = "httpx" },
     { name = "rjieba" },
     { name = "sqlitefts" },
@@ -818,6 +819,7 @@ requires-dist = [
     { name = "alembic" },
     { name = "discord-py", extras = ["speed"], specifier = ">=2.3.0" },
     { name = "fastapi" },
+    { name = "greenlet", specifier = ">=3.2.4" },
     { name = "httpx" },
     { name = "pytest", marker = "extra == 'dev'" },
     { name = "pytest-asyncio", marker = "extra == 'dev'" },

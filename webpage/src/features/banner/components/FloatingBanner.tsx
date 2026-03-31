@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { X, Minimize2, Maximize2, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useSettings } from '@/hooks/useSettings';
-import { LazyImage } from '@/components/common/LazyImage';
+import { useSettings } from '@/shared/hooks/useSettings';
+import { LazyImage } from '@/shared/ui/LazyImage';
 import { useSearchStore } from '@/features/search/store/searchStore';
+import { usePreviewStore } from '@/features/search/store/previewStore';
 
 export function FloatingBanner() {
     const { settings } = useSettings();
-    const { isMainBannerVisible, activeBanner, bannerList, setActiveBanner, setPreviewThreadId } = useSearchStore();
+    const { isMainBannerVisible, activeBanner, bannerList, setActiveBanner } = useSearchStore();
+    const { setPreviewThreadId } = usePreviewStore();
     const [isMinimized, setIsMinimized] = useState(false);
     const [isVisible, setIsVisible] = useState(true);
     const [isHovered, setIsHovered] = useState(false);

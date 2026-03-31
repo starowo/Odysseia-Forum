@@ -39,6 +39,8 @@
 
 定义见 `src/api/v1/schemas/search/search_request.py`：
 
+- `guild_id: Optional[int]`
+  - 要搜索的服务器 ID，为空则不按服务器过滤。
 - `channel_ids: Optional[List[int]]`
   - 要搜索的频道 ID 列表，为空则搜索所有已索引频道。
 - `include_tags: List[str]`
@@ -102,6 +104,8 @@
 
 - `thread_id: str`
   - 帖子的 Discord ID（以字符串形式返回）。
+- `guild_id: str`
+  - 帖子所属服务器的 Discord ID（字符串）。
 - `channel_id: str`
   - 所在频道的 Discord ID（字符串）。
 - `title: str`
@@ -123,15 +127,21 @@
 - `thumbnail_url: Optional[str]`
   - 缩略图 URL（如首张图片或配置的封面）。
 - `tags: List[str]`
-  - 帖子关联标签名称列表。
+  - 帖子关联的真实 Discord 标签名称列表。
+- `virtual_tags: List[str]`
+  - 帖子关联的**虚拟映射标签**名称列表。当帖子来自被映射的源频道时呈现。
+- `collected_flag: bool`
+  - 当前用户是否已关注/收藏该帖子。
 
 #### 2.2.2 扩展字段
 
 除了 `results: List[ThreadDetail]` 外，`SearchResponse` 还包含：
 
 - `available_tags: List[str]`
-  - 当搜索 **单个频道** 时，返回该频道的可用标签名列表。
-  - 全频道搜索时为空列表。
+  - 搜索结果关联的可用标签名列表。
+  - **排序逻辑**: 虚拟标签（来自 Mappings）置顶，随后是各频道的真实标签（去重）。
+- `virtual_tags: List[str]`
+  - 当前选定频道下定义的所有可用虚拟映射标签。
 - `banner_carousel: List[BannerItem]`
   - 当前频道以及全局可展示的 Banner 列表，最多 8 个。
   - `BannerItem` 字段：
@@ -141,6 +151,14 @@
     - `channel_id: str`
 - `unread_count: int`
   - 当前用户关注列表中的未读更新数量（由 `FollowService.get_unread_count` 统计）。
+
+### 2.3 核心机制：频道映射 (Channel Mappings)
+
+当后端 `config.json` 中配置了 `channel_mappings` 时，API 会产生以下行为：
+
+1. **虚拟标签生成**: 如果搜索请求中指定了某个作为“目标”的 `channel_id`，后端会读取映射配置，将对应的源频道汇总到该目标频道名下，并生成 `virtual_tags`。
+2. **请求转换**: 前端在 `include_tags` 中传入虚拟标签名时，后端会自动将请求扩展为包含所有对应 `source_channel_ids` 的大范围搜索。
+3. **标签透传**: 搜索结果中的 `ThreadDetail.virtual_tags` 会标注该贴属于哪个虚拟分类，方便前端展示（例如在帖子卡片上高亮显示映射标签）。
 
 ## 3. 元数据接口 `/v1/meta/channels`
 

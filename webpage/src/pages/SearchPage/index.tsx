@@ -2,26 +2,25 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { Search } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
-import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
-import { ResizableSidebar } from '@/components/ResizableSidebar';
-import { TopBar } from '@/components/layout/TopBar';
-import { BannerCarousel } from '@/components/layout/BannerCarousel';
-import { StatsBar } from '@/components/layout/StatsBar';
+import { useKeyboardShortcuts } from '@/shared/hooks/useKeyboardShortcuts';
+import { ResizableSidebar } from '@/widgets/sidebar/ResizableSidebar';
+import { TopBar } from '@/widgets/layout/TopBar';
+import { BannerCarousel } from '@/widgets/layout/BannerCarousel';
+import { StatsBar } from '@/widgets/layout/StatsBar';
+import { useSearchURLParams } from '@/features/search/hooks/useSearchParams';
+import { usePreviewStore } from '@/features/search/store/previewStore';
 import { useSearchStore } from '@/features/search/store/searchStore';
-import { ThreadCard } from '@/features/threads/components/ThreadCard';
-import { ThreadListItem } from '@/features/threads/components/ThreadListItem';
-import { ThreadCardSkeleton } from '@/features/threads/components/ThreadCardSkeleton';
+import { ThreadCard } from '@/entities/thread/ThreadCard';
+import { ThreadListItem } from '@/entities/thread/ThreadListItem';
+import { ThreadCardSkeleton } from '@/entities/thread/ThreadCardSkeleton';
 import { searchApi } from '@/features/search/api/searchApi';
-import { useSettings } from '@/hooks/useSettings';
-import { AppSidebar } from '@/components/layout/AppSidebar';
-import { addSearchHistory } from '@/lib/searchHistory';
-import { addToken, parseSearchQuery } from '@/lib/searchTokenizer';
-import type { Thread, Channel } from '@/types/thread.types';
+import { useSettings } from '@/shared/hooks/useSettings';
+import { AppSidebar } from '@/widgets/layout/AppSidebar';
+import { addSearchHistory } from '@/shared/lib/searchHistory';
+import { addToken, parseSearchQuery } from '@/shared/lib/searchTokenizer';
+import type { Thread, Channel } from '@/entities/thread/types';
 import bannerImage from '@/assets/images/banners/adfd891a-f9f7-4f9d-8d7c-975fb32a7f0d.png';
-import { apiClient } from '@/lib/api/client';
-
-
+import { apiClient } from '@/shared/api/client';
 
 import { useMascotStore } from '@/features/mascot/store/mascotStore';
 import { MascotDialog } from '@/features/mascot/components/MascotDialog';
@@ -38,72 +37,67 @@ const defaultBanners = [
 ];
 
 export function SearchPage() {
-  const {
-    query,
-    selectedChannel,
-    sortMethod,
-    tagLogic,
-    tagMode,
+  // ─── V2 数据源：URL 参数是搜索条件的单一来源 ───
+  const { params, setParams, clearParams, hasActiveFilters } = useSearchURLParams();
+  const { query, channel: selectedChannel, sortMethod, includeTags: urlIncludeTags, excludeTags: urlExcludeTags, tagLogic, timeFrom, timeTo } = params;
 
-    tagStates,
-    page,
-    perPage,
-    setQuery,
-    setSortMethod,
-    setTagLogic,
-    setTagMode,
+  // ─── 预览：独立 Store ───
+  const { setPreviewThread } = usePreviewStore();
 
-    toggleTag,
-    clearAllTags,
-    setPage,
-    setPerPage,
-    clearFilters,
-    setMainBannerVisible,
-    setActiveBanner,
-    setBannerList,
-    setPreviewThread,
-  } = useSearchStore();
+  // ─── Banner UI 状态：仍暂存在 searchStore（后续可继续精简） ───
+  const { setMainBannerVisible, setActiveBanner, setBannerList } = useSearchStore();
 
-  // No subscription - just get the action reference or use direct access in effect
-  // const reactToSearch = useMascotStore(state => state.reactToSearch); // This still subscribes if not memoized correctly by zustand
-
-  // Best practice for non-reactive action usage:
   const reactToSearch = useMascotStore.getState().reactToSearch;
 
-  const location = useLocation();
-
+  // ─── 本地 UI 状态（不需要 URL 化） ───
   const [searchInput, setSearchInput] = useState(query);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [mergedThreads, setMergedThreads] = useState<Thread[]>([]);
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(24);
+  // 标签面板的选择模式（included / excluded）仅影响 UI 交互，不需要 URL 化
+  const [tagMode, setTagMode] = useState<'included' | 'excluded'>('included');
+  // 本地维护的 tagStates Map（用于面板 UI 交互），实际筛选条件写入 URL
+  const [tagStates, setTagStates] = useState<Map<string, 'included' | 'excluded'>>(new Map());
 
-  // Zustand 中的 query 变化时，同步到本地输入框
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const { settings, updateSettings } = useSettings();
+
+  // 当 URL 中的 query 变化时，同步到本地输入框
   useEffect(() => {
     if (query !== searchInput) {
       setSearchInput(query);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
 
-  // 从 URL ?q= 参数同步搜索内容（用于标签页等跳转）
+  // 当 URL 中的 tags/exclude 变化时，同步到本地 tagStates
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const urlQuery = params.get('q');
-    if (urlQuery) {
-      const decoded = decodeURIComponent(urlQuery);
-      setSearchInput(decoded);
-      setQuery(decoded);
+    const newStates = new Map<string, 'included' | 'excluded'>();
+    urlIncludeTags.forEach(tag => newStates.set(tag, 'included'));
+    urlExcludeTags.forEach(tag => newStates.set(tag, 'excluded'));
+    setTagStates(newStates);
+  }, [urlIncludeTags, urlExcludeTags]);
+
+  // URL 搜索条件变化时，重置分页到第 1 页
+  useEffect(() => {
+    setPage(1);
+    setMergedThreads([]);
+  }, [query, selectedChannel, sortMethod, tagLogic, urlIncludeTags.join(','), urlExcludeTags.join(','), timeFrom, timeTo]);
+
+  // 首次访问引导
+  useEffect(() => {
+    try {
+      const seen = localStorage.getItem('od_onboarding_seen');
+      if (!seen) setShowOnboarding(true);
+    } catch (error) {
+      console.error('Failed to read onboarding flag:', error);
     }
-  }, [location.search, setQuery]);
+  }, []);
 
-  const [showOnboarding, setShowOnboarding] = useState(false);
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [timeFrom, setTimeFrom] = useState('');
-  const [timeTo, setTimeTo] = useState('');
-  const [openMode, setOpenMode] = useState<'app' | 'web'>('app');
-  // const [previewThread, setPreviewThread] = useState<Thread | null>(null); // Moved to store
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const [mergedThreads, setMergedThreads] = useState<Thread[]>([]);
-  const { settings, updateSettings } = useSettings();
-  const loadMoreRef = useRef<HTMLDivElement>(null);
-
-  // 获取频道列表用于搜索建议
+  // 获取频道列表
   const { data: channels } = useQuery({
     queryKey: ['meta', 'channels'],
     queryFn: async () => {
@@ -113,38 +107,7 @@ export function SearchPage() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // 首次访问引导：仅在本设备第一次访问时展示
-  useEffect(() => {
-    try {
-      const seen = localStorage.getItem('od_onboarding_seen');
-      if (!seen) {
-        setShowOnboarding(true);
-      }
-    } catch (error) {
-      console.error('Failed to read onboarding flag:', error);
-    }
-  }, []);
-
-
-
-  // 获取选中的标签
-  const includedTags = useMemo(() => {
-    const tags: string[] = [];
-    tagStates.forEach((state, tag) => {
-      if (state === 'included') tags.push(tag);
-    });
-    return tags;
-  }, [tagStates]);
-
-  const excludedTags = useMemo(() => {
-    const tags: string[] = [];
-    tagStates.forEach((state, tag) => {
-      if (state === 'excluded') tags.push(tag);
-    });
-    return tags;
-  }, [tagStates]);
-
-  // 基于查询字符串解析出 token（标签 / 作者）与纯文本关键字
+  // ─── token 解析（从搜索词中提取 $tag:xxx$ / $author:xxx$） ───
   const { keywordQuery, tokenIncludeTags, authorNameFromToken } = useMemo(() => {
     if (!query) {
       return {
@@ -176,17 +139,16 @@ export function SearchPage() {
     };
   }, [query]);
 
-  // 使用真实API获取搜索结果
+  // ─── 搜索请求：以 URL 参数为唯一 queryKey ───
   const { data: searchData, isLoading, isError, isFetching, refetch, isPlaceholderData } = useQuery({
-    queryKey: ['search', query, selectedChannel, includedTags, excludedTags, tagLogic, sortMethod, page, perPage, timeFrom, timeTo],
+    queryKey: ['search', query, selectedChannel, urlIncludeTags, urlExcludeTags, tagLogic, sortMethod, page, perPage, timeFrom, timeTo],
     queryFn: () =>
       searchApi.search({
         query: keywordQuery || undefined,
-        channel_ids: selectedChannel ? [selectedChannel] : undefined,
-        include_tags: Array.from(new Set([...includedTags, ...tokenIncludeTags])),
-        exclude_tags: excludedTags,
+        channel_ids: selectedChannel ? [selectedChannel as any] : undefined,
+        include_tags: Array.from(new Set([...urlIncludeTags, ...tokenIncludeTags])),
+        exclude_tags: urlExcludeTags,
         tag_logic: tagLogic,
-        // 与 SearchParams.sort_method 对齐：relevance / last_active_desc / created_desc / reply_desc / reaction_desc
         sort_method: sortMethod,
         limit: perPage,
         offset: (page - 1) * perPage,
@@ -194,9 +156,9 @@ export function SearchPage() {
         created_before: timeTo || undefined,
         author_name: authorNameFromToken,
       }),
-    enabled: true, // 确保即使 queryKey 中有 null/undefined 也执行查询
-    staleTime: 30 * 1000, // 30秒
-    placeholderData: keepPreviousData, // 保持上一次的数据，避免切换筛选时闪烁
+    enabled: true,
+    staleTime: 30 * 1000,
+    placeholderData: keepPreviousData,
   });
 
   // 同步 Banner 数据到 Store，供 FloatingBanner 使用
@@ -206,7 +168,7 @@ export function SearchPage() {
         id: b.thread_id,
         image: b.cover_image_url,
         title: b.title,
-        description: (b as any).description || '点击查看详情', // Type assertion until types are updated
+        description: (b as any).description || '点击查看详情',
       }));
       setActiveBanner(apiBanners[0]);
       setBannerList(apiBanners);
@@ -216,7 +178,7 @@ export function SearchPage() {
     }
   }, [searchData, setActiveBanner, setBannerList]);
 
-  // Banner 轮播 - 只在主页显示（无搜索时）
+  // Banner 轮播
   const displayBanners = useMemo(() => {
     const apiBanners = searchData?.banner_carousel?.map(b => ({
       id: b.thread_id,
@@ -224,17 +186,12 @@ export function SearchPage() {
       title: b.title,
       description: (b as any).description || '点击查看详情',
     })) || [];
-
-    // 过滤掉可能重复的（虽然 id 不同，但为了保险）
-    // 这里主要是确保 defaultBanners 在第一个
     return [...defaultBanners, ...apiBanners];
   }, [searchData]);
 
-  // React to search results
+  // 看板娘反应
   useEffect(() => {
-    // Only react if there is an active query
     if (!query) return;
-
     if (isLoading) {
       reactToSearch('start', query);
     } else if (searchData) {
@@ -246,98 +203,71 @@ export function SearchPage() {
     }
   }, [searchData, isLoading, query, reactToSearch]);
 
-  // 从API响应中提取数据（与后端 SearchResponse.results 对齐）
   const totalResults = searchData?.total || 0;
 
-  // 获取可用标签：优先使用API返回的标签（单频道搜索时），
-  // 如果API未返回（如全站搜索），则从当前搜索结果中提取标签
-  // 同时确保已选中的标签（包括反选的）始终显示
+  // 可用标签
   const availableTags = useMemo(() => {
     const tags = new Set<string>();
-
-    // 1. 添加 API 返回的可用标签
     if (searchData?.available_tags && searchData.available_tags.length > 0) {
       searchData.available_tags.forEach(tag => tags.add(tag));
     } else if (searchData?.results) {
-      // 2. 如果没有 available_tags，从结果中提取
       searchData.results.forEach(thread => {
-        if (thread.tags) {
-          thread.tags.forEach(tag => tags.add(tag));
-        }
+        if (thread.tags) thread.tags.forEach(tag => tags.add(tag));
       });
     }
-
-    // 3. 确保已选状态的标签始终存在（防止反选后因结果中不包含而消失）
     tagStates.forEach((_, tag) => tags.add(tag));
-
     return Array.from(tags).sort();
   }, [searchData, tagStates]);
 
   const totalPages = Math.ceil(totalResults / perPage);
 
-  // 合并多页搜索结果，实现无缝滚动
+  // 合并多页搜索结果
   useEffect(() => {
     if (!searchData || isPlaceholderData) {
-      if (page === 1 && !isPlaceholderData) {
-        setMergedThreads([]);
-      }
+      if (page === 1 && !isPlaceholderData) setMergedThreads([]);
       return;
     }
-
     const currentThreads = searchData.results || [];
-
     if (page === 1) {
       setMergedThreads(currentThreads);
       return;
     }
-
     setMergedThreads((prev) => {
-      if (!prev || prev.length === 0) {
-        return currentThreads;
-      }
+      if (!prev || prev.length === 0) return currentThreads;
       const existingIds = new Set(prev.map((t) => t.thread_id));
       const newThreads = currentThreads.filter((t) => !existingIds.has(t.thread_id));
       return [...prev, ...newThreads];
     });
   }, [searchData, page]);
 
-  // 处理搜索
+  // ─── 搜索操作：写 URL 而不是 Store ───
   const handleSearch = useCallback(() => {
     const trimmedQuery = searchInput.trim();
-    // Prevent redundant search triggers (e.g., from TopBar auto-search when syncing state)
     if (trimmedQuery === query) return;
-
-    setQuery(trimmedQuery);
-    // 保存到搜索历史
+    setParams({ query: trimmedQuery });
     if (trimmedQuery) {
       addSearchHistory(trimmedQuery);
       reactToSearch('start', trimmedQuery);
     }
-  }, [searchInput, setQuery, query, reactToSearch]);
+  }, [searchInput, query, setParams, reactToSearch]);
 
-  // 从历史记录选择搜索
   const handleSelectHistory = (historyQuery: string) => {
-    setQuery(historyQuery);
+    setSearchInput(historyQuery);
+    setParams({ query: historyQuery });
     searchInputRef.current?.focus();
   };
 
-  // 处理快捷搜索
   const handleQuickSearch = (template: string) => {
-    // 如果搜索框为空，直接填充模板
     if (!searchInput.trim()) {
       setSearchInput(template);
     } else {
-      // 如果搜索框有内容，在末尾添加空格和模板
       setSearchInput(searchInput + ' ' + template);
     }
-    // 聚焦搜索框
     searchInputRef.current?.focus();
-    toast.success('已添加搜索模板', {
-      duration: 2000,
-    });
+    toast.success('已添加搜索模板', { duration: 2000 });
   };
 
-  // 使用 IntersectionObserver 实现无缝滚动加载
+  // 无缝滚动加载
   useEffect(() => {
     const currentRef = loadMoreRef.current;
     if (!currentRef) return;
@@ -347,7 +277,6 @@ export function SearchPage() {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        // 只在元素可见且不在加载状态时触发
         if (entries[0].isIntersecting && !isFetching && page < totalPages) {
           setPage(page + 1);
         }
@@ -356,10 +285,8 @@ export function SearchPage() {
     );
 
     observer.observe(currentRef);
-    return () => {
-      observer.disconnect();
-    };
-  }, [isLoading, isError, isFetching, page, totalPages, mergedThreads.length, setPage]);
+    return () => observer.disconnect();
+  }, [isLoading, isError, isFetching, page, totalPages, mergedThreads.length]);
 
   // 键盘快捷键
   useKeyboardShortcuts([
@@ -378,7 +305,7 @@ export function SearchPage() {
       callback: () => {
         if (searchInput || query) {
           setSearchInput('');
-          setQuery('');
+          clearParams();
           toast.success('已清空搜索');
         }
       },
@@ -393,21 +320,40 @@ export function SearchPage() {
     },
   ]);
 
-  // 处理标签点击 - 从卡片点击时添加到搜索框
+  // 标签点击 - 从卡片点击时添加到搜索框
   const handleTagClick = (tag: string) => {
     const newQuery = addToken(searchInput, 'tag', tag);
-    setQuery(newQuery);
-    toast.success(`已添加标签：${tag}`, {
-      duration: 2000,
-    });
+    setParams({ query: newQuery });
+    toast.success(`已添加标签：${tag}`, { duration: 2000 });
   };
 
-  // 处理高级面板中的标签点击 - 用于筛选
+  // 高级面板中的标签筛选
   const handleFilterTagClick = (tag: string) => {
-    toggleTag(tag);
+    const newTagStates = new Map(tagStates);
+    const current = newTagStates.get(tag);
+
+    if (current === tagMode) {
+      newTagStates.delete(tag);
+    } else {
+      newTagStates.set(tag, tagMode);
+    }
+
+    setTagStates(newTagStates);
+
+    // 同步到 URL
+    const newInclude: string[] = [];
+    const newExclude: string[] = [];
+    newTagStates.forEach((state, t) => {
+      if (state === 'included') newInclude.push(t);
+      else if (state === 'excluded') newExclude.push(t);
+    });
+    setParams({ includeTags: newInclude, excludeTags: newExclude });
   };
 
-
+  const handleClearAllTags = () => {
+    setTagStates(new Map());
+    setParams({ includeTags: [], excludeTags: [] });
+  };
 
   const handleCloseOnboarding = () => {
     try {
@@ -418,11 +364,7 @@ export function SearchPage() {
     setShowOnboarding(false);
   };
 
-  // 频道名称（暂时简化）
   const currentChannelName = selectedChannel || '全频道搜索';
-
-  // 是否有活动的筛选条件
-  const hasActiveFilters = query || selectedChannel || tagStates.size > 0 || timeFrom || timeTo;
 
   // 监听主 Banner 可见性
   const bannerRef = useRef<HTMLDivElement>(null);
@@ -431,45 +373,44 @@ export function SearchPage() {
       ([entry]) => {
         setMainBannerVisible(entry.isIntersecting);
       },
-      { threshold: 0 } // 0 means trigger as soon as even 1px is visible (true) or 0px visible (false)
+      { threshold: 0 }
     );
+    if (bannerRef.current) observer.observe(bannerRef.current);
+    return () => observer.disconnect();
+  }, [setMainBannerVisible, query]);
 
-    if (bannerRef.current) {
-      observer.observe(bannerRef.current);
-    }
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [setMainBannerVisible, query]); // Add query to dependency to re-attach if banner re-appears
-
-  // 当有搜索词时，主 Banner 不渲染，强制设置 isMainBannerVisible 为 true (隐藏浮动 Banner)
+  // 当有搜索词时，主 Banner 不渲染，强制设置 isMainBannerVisible 为 true
   useEffect(() => {
-    if (query) {
-      setMainBannerVisible(true);
-    }
+    if (query) setMainBannerVisible(true);
   }, [query, setMainBannerVisible]);
+
+  // perPage 变化处理
+  const handlePerPageChange = useCallback((newPerPage: number) => {
+    const safePerPage = Math.min(100, Math.max(1, newPerPage || 1));
+    setPerPage(safePerPage);
+    setPage(1);
+    setMergedThreads([]);
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-[var(--od-bg)]">
 
-
-      {/* 侧边栏（支持移动端开关 + PC 折叠） */}
+      {/* 侧边栏 */}
       <ResizableSidebar
         isMobileOpen={isMobileOpen}
         setIsMobileOpen={setIsMobileOpen}
         isCollapsed={settings.sidebarCollapsed}
-        setIsCollapsed={(collapsed) => updateSettings({ sidebarCollapsed: collapsed })}
+        setIsCollapsed={(collapsed: boolean) => updateSettings({ sidebarCollapsed: collapsed })}
       >
         <AppSidebar />
       </ResizableSidebar>
 
-      {/* 主内容区：根据侧边栏折叠状态调整左侧留白（PC 端） */}
+      {/* 主内容区 */}
       <main
         className={`flex-1 bg-[var(--od-bg)] pb-20 transition-all duration-300 ${settings.sidebarCollapsed ? 'lg:ml-0' : 'lg:ml-[210px]'
           }`}
       >
-        {/* 顶部搜索栏 - 集成高级搜索面板 */}
+        {/* 顶部搜索栏 */}
         <TopBar
           searchValue={searchInput}
           onSearchChange={setSearchInput}
@@ -485,14 +426,14 @@ export function SearchPage() {
           availableTags={availableTags}
           tagStates={tagStates}
           channels={channels || []}
-          onTimeFromChange={setTimeFrom}
-          onTimeToChange={setTimeTo}
-          onSortMethodChange={(value) => setSortMethod(value as any)}
-          onTagLogicChange={setTagLogic}
+          onTimeFromChange={(v) => setParams({ timeFrom: v })}
+          onTimeToChange={(v) => setParams({ timeTo: v })}
+          onSortMethodChange={(value) => setParams({ sortMethod: value as any })}
+          onTagLogicChange={(v) => setParams({ tagLogic: v })}
           tagMode={tagMode}
           onTagModeChange={setTagMode}
           onTagClick={handleFilterTagClick}
-          onClearAllTags={clearAllTags}
+          onClearAllTags={handleClearAllTags}
         />
 
         {/* 频道标题栏 */}
@@ -508,20 +449,11 @@ export function SearchPage() {
             <BannerCarousel
               banners={displayBanners}
               onBannerClick={(banner) => {
-                // 如果是默认 banner，不执行操作
                 if (banner.id.startsWith('default-')) return;
-
-                // 查找对应的 thread 对象
                 const thread = searchData?.results?.find(t => t.thread_id === banner.id);
                 if (thread) {
                   setPreviewThread(thread);
                 } else {
-                  // 如果在当前也找不到（比如 banner 数据是独立的），尝试构造一个临时对象或请求详情
-                  // 这里暂时简单处理：如果能从 banner 信息还原部分 thread 信息也可以
-                  // 但通常 banner 数据里应该包含足够的信息，或者我们需要 fetchThread
-                  // 由于 mock 数据里 banner 是从 results 提取的，所以通常能找到
-                  // 如果找不到，说明 banner 数据结构可能需要包含更多 thread 信息
-                  // 暂时仅支持预览已加载的 thread
                   toast.error('无法预览该帖子');
                 }
               }}
@@ -529,17 +461,15 @@ export function SearchPage() {
           </div>
         )}
 
-
         {/* 搜索结果 */}
         <div className="p-4">
-          {/* 统计信息栏 - 显示页数信息 */}
           <div className="animate-in fade-in duration-300">
             <StatsBar
               totalCount={totalResults}
               perPage={perPage}
               currentPage={page}
               totalPages={totalPages}
-              onPerPageChange={setPerPage}
+              onPerPageChange={handlePerPageChange}
             />
           </div>
 
@@ -547,7 +477,11 @@ export function SearchPage() {
           {hasActiveFilters && (
             <div className="mb-4 animate-in fade-in slide-in-from-top-2 duration-300">
               <button
-                onClick={clearFilters}
+                onClick={() => {
+                  setSearchInput('');
+                  setTagStates(new Map());
+                  clearParams();
+                }}
                 className="text-sm text-[#00a8fc] transition-all duration-200 hover:scale-105 hover:text-[#00c7fc] hover:underline"
               >
                 清空所有筛选条件
@@ -606,10 +540,8 @@ export function SearchPage() {
                     searchQuery={query}
                     onAuthorClick={(authorName) => {
                       const newQuery = addToken(searchInput, 'author', authorName);
-                      setQuery(newQuery);
-                      toast.success(`已添加作者：${authorName} `, {
-                        duration: 2000,
-                      });
+                      setParams({ query: newQuery });
+                      toast.success(`已添加作者：${authorName} `, { duration: 2000 });
                     }}
                     onPreview={setPreviewThread}
                   />
@@ -621,10 +553,8 @@ export function SearchPage() {
                     searchQuery={query}
                     onAuthorClick={(authorName) => {
                       const newQuery = addToken(searchInput, 'author', authorName);
-                      setQuery(newQuery);
-                      toast.success(`已添加作者：${authorName} `, {
-                        duration: 2000,
-                      });
+                      setParams({ query: newQuery });
+                      toast.success(`已添加作者：${authorName} `, { duration: 2000 });
                     }}
                     onPreview={setPreviewThread}
                   />
@@ -664,7 +594,6 @@ export function SearchPage() {
           )}
         </div>
       </main>
-
 
       {/* 首次访问引导浮层 */}
       <MascotDialog

@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { DiscordIcon } from '@/components/icons/DiscordIcon';
+import { DiscordIcon } from '@/shared/ui/icons/DiscordIcon';
 import { useAuth, useRefreshAuth } from '@/features/auth/hooks/useAuth';
-import { apiClient } from '@/lib/api/client';
+import { apiClient } from '@/shared/api/client';
 import { toast } from 'sonner';
 import forumIcon from '@/assets/images/icon/A90C044F8DDF1959B2E9078CB629C239.png';
 import backgroundImage from '@/assets/images/background/winter.png';

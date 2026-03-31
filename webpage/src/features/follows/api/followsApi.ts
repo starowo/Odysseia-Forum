@@ -1,5 +1,5 @@
-import { apiClient } from '@/lib/api/client';
-import type { Thread } from '@/types/thread.types';
+import { apiClient } from '@/shared/api/client';
+import type { Thread } from '@/entities/thread/types';
 
 // 后端 /v1/follows/ 原始返回结构
 export interface FollowsThreadsResponse {

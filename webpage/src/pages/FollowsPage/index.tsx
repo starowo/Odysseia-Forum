@@ -1,20 +1,21 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Bookmark } from 'lucide-react';
-import { MainLayout } from '@/components/layout/MainLayout';
-import { StatsBar } from '@/components/layout/StatsBar';
-import { ThreadCard } from '@/features/threads/components/ThreadCard';
-import { ThreadListItem } from '@/features/threads/components/ThreadListItem';
-import { ThreadCardSkeleton } from '@/features/threads/components/ThreadCardSkeleton';
+import { MainLayout } from '@/widgets/layout/MainLayout';
+import { StatsBar } from '@/widgets/layout/StatsBar';
+import { ThreadCard } from '@/entities/thread/ThreadCard';
+import { ThreadListItem } from '@/entities/thread/ThreadListItem';
+import { ThreadCardSkeleton } from '@/entities/thread/ThreadCardSkeleton';
 import { followsApi } from '@/features/follows/api/followsApi';
-import { useSettings } from '@/hooks/useSettings';
-import { ThreadPreviewOverlay } from '@/features/threads/components/ThreadPreviewOverlay';
-import { useSearchStore } from '@/features/search/store/searchStore';
-import { apiClient } from '@/lib/api/client';
-import type { Thread, Channel } from '@/types/thread.types';
+import { useSettings } from '@/shared/hooks/useSettings';
+import { ThreadPreviewOverlay } from '@/widgets/thread-preview/ThreadPreviewOverlay';
+import { apiClient } from '@/shared/api/client';
+import type { Thread, Channel } from '@/entities/thread/types';
 
 export function FollowsPage() {
-  const { selectedChannel } = useSearchStore();
+  // 关注页独立管理频道筛选，不再与搜索页共享
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [selectedChannel, _setSelectedChannel] = useState<string | null>(null);
 
   // 获取频道列表以显示频道名称
   const { data: channels } = useQuery({
@@ -48,7 +49,7 @@ export function FollowsPage() {
     const channel = channels.find(ch => ch.id === selectedChannel);
     return channel?.name;
   }, [selectedChannel, channels]);
-  const { settings, updateSettings } = useSettings();
+  const { settings } = useSettings();
   const [previewThread, setPreviewThread] = useState<Thread | null>(null);
 
   const handleClosePreview = () => {
@@ -91,11 +92,7 @@ export function FollowsPage() {
             <StatsBar
               totalCount={follows.length}
               perPage={24}
-              openMode="app"
-              layoutMode={settings.layoutMode}
               onPerPageChange={() => { }} // 关注页面不需要分页
-              onOpenModeChange={() => { }} // 关注页面不需要openMode
-              onLayoutModeChange={(mode) => updateSettings({ layoutMode: mode })}
             />
           </div>
         )}
@@ -113,7 +110,7 @@ export function FollowsPage() {
               <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${settings.sidebarCollapsed ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} animate-in fade-in duration-500`}>
                 {follows.map((thread, index) => (
                   <div
-                    key={thread.id}
+                    key={thread.thread_id}
                     className="animate-in fade-in slide-in-from-bottom-4"
                     style={{
                       animationDelay: `${index * 50}ms`,
@@ -128,7 +125,7 @@ export function FollowsPage() {
               <div className="flex flex-col gap-4 animate-in fade-in duration-500">
                 {follows.map((thread, index) => (
                   <div
-                    key={thread.id}
+                    key={thread.thread_id}
                     className="animate-in fade-in slide-in-from-bottom-2"
                     style={{
                       animationDelay: `${index * 30}ms`,

@@ -7,8 +7,8 @@ import { TagsPage } from '@/pages/TagsPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { AboutPage } from '@/pages/AboutPage';
 import { TestPage } from '@/pages/TestPage';
-import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { RootLayout } from '@/components/layout/RootLayout';
+import { ProtectedRoute } from '@/app/providers/ProtectedRoute';
+import { RootLayout } from '@/widgets/layout/RootLayout';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 
 const isDevToolsEnabled = import.meta.env.DEV || import.meta.env.VITE_API_MOCKING === 'true';

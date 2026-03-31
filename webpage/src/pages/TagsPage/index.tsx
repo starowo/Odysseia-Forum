@@ -2,10 +2,10 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, Tag as TagIcon, TrendingUp, Hash } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { MainLayout } from '@/components/layout/MainLayout';
+import { MainLayout } from '@/widgets/layout/MainLayout';
 import { searchApi } from '@/features/search/api/searchApi';
-import { addToken } from '@/lib/searchTokenizer';
-import { useSettings } from '@/hooks/useSettings';
+import { addToken } from '@/shared/lib/searchTokenizer';
+import { useSettings } from '@/shared/hooks/useSettings';
 
 interface TagWithCount {
   name: string;

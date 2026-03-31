@@ -3,11 +3,11 @@ import { QueryClient, QueryClientProvider, QueryCache } from '@tanstack/react-qu
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { RouterProvider } from 'react-router-dom';
 import { Toaster } from 'sonner';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { ThemeProvider } from '../components/layout/ThemeProvider';
+import { ErrorBoundary } from '@/app/providers/ErrorBoundary';
+import { ThemeProvider } from '@/app/themes/ThemeProvider';
 import { router } from './router';
 import { FloatingBanner } from '@/features/banner/components/FloatingBanner';
-import { GlobalThreadPreview } from '@/features/threads/components/GlobalThreadPreview';
+import { GlobalThreadPreview } from '@/widgets/thread-preview/GlobalThreadPreview';
 import { useMascotStore } from '@/features/mascot/store/mascotStore';
 
 const queryClient = new QueryClient({

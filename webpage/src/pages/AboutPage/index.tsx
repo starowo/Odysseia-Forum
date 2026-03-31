@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { Github } from 'lucide-react';
-import { MainLayout } from '@/components/layout/MainLayout';
+import { MainLayout } from '@/widgets/layout/MainLayout';
 import forumIcon from '@/assets/images/icon/A90C044F8DDF1959B2E9078CB629C239.png';
 import backgroundImage from '@/assets/images/background/winter.png';
 

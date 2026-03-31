@@ -3,9 +3,9 @@ import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { followsApi } from '@/features/follows/api/followsApi';
-import type { Thread } from '@/types/thread.types';
+import type { Thread } from '@/entities/thread/types';
 import { resolveStaticNotifications } from '@/features/notifications/notificationsConfig';
-import { useSearchStore } from '@/features/search/store/searchStore';
+import { usePreviewStore } from '@/features/search/store/previewStore';
 
 type NotificationKind = 'follow_update' | 'site_announcement' | 'greeting';
 
@@ -27,7 +27,7 @@ interface NotificationCenterProps {
 export function NotificationCenter({ open, onClose, onUnreadChange }: NotificationCenterProps) {
   const navigate = useNavigate();
 
-  const { setPreviewThread } = useSearchStore();
+  const { setPreviewThread } = usePreviewStore();
 
   // 本地持久化：已关闭的静态通知（站点公告 / 问候语）
   const [dismissedStaticIds, setDismissedStaticIds] = useState<string[]>(() => {
@@ -110,11 +110,16 @@ export function NotificationCenter({ open, onClose, onUnreadChange }: Notificati
       thread_id: `notification-${item.id}`,
       channel_id: '',
       title: item.title,
-      first_message_excerpt: item.message,
+      author: null,
       created_at: new Date(item.created_at ?? Date.now()).toISOString(),
+      last_active_at: new Date(item.created_at ?? Date.now()).toISOString(),
       reaction_count: 0,
       reply_count: 0,
+      display_count: 0,
+      first_message_excerpt: item.message,
       tags: [],
+      thumbnail_urls: [],
+      collected_flag: false,
     };
 
     setPreviewThread(pseudoThread, {

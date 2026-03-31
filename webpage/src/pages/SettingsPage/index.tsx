@@ -16,11 +16,11 @@ import {
   Maximize2,
   Megaphone,
 } from 'lucide-react';
-import { MainLayout } from '@/components/layout/MainLayout';
-import { useSettings } from '@/hooks/useSettings';
-import { resetUserSettings } from '@/lib/settings';
+import { MainLayout } from '@/widgets/layout/MainLayout';
+import { useSettings } from '@/shared/hooks/useSettings';
+import { resetUserSettings } from '@/shared/lib/settings';
 import { toast } from 'sonner';
-import { themes } from '@/styles/themes';
+import { themes } from '@/shared/styles/themes';
 
 export function SettingsPage() {
   const { settings, updateSettings } = useSettings();

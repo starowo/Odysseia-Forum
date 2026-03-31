@@ -1,4 +1,4 @@
-import { apiClient } from '@/lib/api/client';
+import { apiClient } from '@/shared/api/client';
 
 export interface BannerApplicationRequest {
     thread_id: string;
