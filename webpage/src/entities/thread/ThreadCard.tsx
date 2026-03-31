@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { MessageCircle, ThumbsUp, RefreshCw, Image as ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -19,76 +19,13 @@ interface ThreadCardProps {
 }
 
 export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onPreview }: ThreadCardProps) {
-  const imageLayerRef = useRef<HTMLDivElement>(null);
-
   const authorName = thread.author?.name || 'Unknown User';
   const hasThumbnail = thread.thumbnail_urls && thread.thumbnail_urls.length > 0;
 
   // 使用搜索页面的 Store 获取高亮词
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // --- Parallax Effect ---
-  useEffect(() => {
-    const card = imageLayerRef.current?.parentElement;
-    if (!card || !imageLayerRef.current) return;
 
-    const MAX_MOVE = 15; // Max pixels to move
-
-    const onCardMouseMove = (e: MouseEvent) => {
-      const rect = card.getBoundingClientRect();
-      const cardCenterX = rect.left + rect.width / 2;
-      const cardCenterY = rect.top + rect.height / 2;
-
-      // Calculate relative to card center
-      const mouseX = (e.clientX - cardCenterX) / (rect.width / 2);
-      const mouseY = (e.clientY - cardCenterY) / (rect.height / 2);
-
-      const moveX = mouseX * -MAX_MOVE;
-      const moveY = mouseY * -MAX_MOVE;
-
-      if (imageLayerRef.current) {
-        imageLayerRef.current.style.transform = `translate(${moveX}px, ${moveY}px) scale(1.1)`;
-      }
-    };
-
-    const onCardMouseLeave = () => {
-      if (imageLayerRef.current) {
-        imageLayerRef.current.style.transform = `translate(0px, 0px) scale(1.0)`;
-      }
-    }
-
-    const handleDeviceOrientation = (e: DeviceOrientationEvent) => {
-      const tiltX = (e.gamma || 0) / 45; // Left/Right
-      const tiltY = (e.beta || 0) / 45;  // Front/Back
-
-      const clampedX = Math.max(-1, Math.min(1, tiltX));
-      const clampedY = Math.max(-1, Math.min(1, tiltY));
-
-      const moveX = clampedX * -MAX_MOVE;
-      const moveY = clampedY * -MAX_MOVE;
-
-      if (imageLayerRef.current) {
-        imageLayerRef.current.style.transform = `translate(${moveX}px, ${moveY}px) scale(1.1)`;
-      }
-    };
-
-    // Desktop
-    card.addEventListener('mousemove', onCardMouseMove);
-    card.addEventListener('mouseleave', onCardMouseLeave);
-
-    // Mobile (Gyroscope)
-    if (window.DeviceOrientationEvent && 'ontouchstart' in window) {
-      window.addEventListener('deviceorientation', handleDeviceOrientation);
-    }
-
-    return () => {
-      card.removeEventListener('mousemove', onCardMouseMove);
-      card.removeEventListener('mouseleave', onCardMouseLeave);
-      if (window.DeviceOrientationEvent) {
-        window.removeEventListener('deviceorientation', handleDeviceOrientation);
-      }
-    };
-  }, []);
 
   const handleRefreshImage = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -121,10 +58,9 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
       className="group relative flex aspect-[3/5] w-full flex-col overflow-hidden rounded-xl bg-[var(--od-card)] shadow-md cursor-pointer md:aspect-[3/4]"
       onClick={() => onPreview?.(thread)}
     >
-      {/* Background Image Layer (Parallax Target) */}
+      {/* Background Image Layer */}
       <div
-        ref={imageLayerRef}
-        className="absolute inset-[-10%] z-0 h-[120%] w-[120%] bg-[var(--od-bg-tertiary)] transition-transform duration-100 ease-out will-change-transform"
+        className="absolute inset-0 z-0 bg-[var(--od-bg-tertiary)]"
       >
         {thread.thumbnail_urls && thread.thumbnail_urls.length > 0 ? (
           <img

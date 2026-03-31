@@ -56,13 +56,13 @@ export function MascotDialog({
                     <img
                         src={imageSrc}
                         alt={`Mascot ${emotion}`}
-                        className="h-64 w-auto object-contain drop-shadow-2xl md:h-80 transition-transform duration-300 hover:scale-105 animate-in slide-in-from-bottom-8 fade-in duration-700"
+                        className="h-48 w-auto object-contain drop-shadow-2xl md:h-80 transition-transform duration-300 hover:scale-105 animate-in slide-in-from-bottom-8 fade-in duration-700"
                     />
                 </div>
 
                 {/* Dialogue Box (Right/Bottom) */}
                 <div className="relative flex-1 w-full min-w-0">
-                    <div className="relative overflow-hidden rounded-2xl border-2 border-[var(--od-accent)] bg-[var(--od-card)] p-6 shadow-2xl backdrop-blur-md animate-in slide-in-from-right-8 fade-in duration-500 delay-100">
+                    <div className="relative overflow-hidden rounded-2xl border-2 border-[var(--od-accent)] bg-[var(--od-card)] p-4 md:p-6 shadow-2xl backdrop-blur-md animate-in slide-in-from-right-8 fade-in duration-500 delay-100">
                         {/* Decorative Corner */}
                         <div className="absolute -right-2 -top-2 h-8 w-8 rotate-45 bg-[var(--od-accent)]/20" />
 
@@ -85,7 +85,7 @@ export function MascotDialog({
                         </div>
 
                         {/* Content */}
-                        <div className="text-[var(--od-text-primary)] leading-relaxed text-sm md:text-base">
+                        <div className="text-[var(--od-text-primary)] leading-relaxed text-xs md:text-base">
                             {children}
                         </div>
 

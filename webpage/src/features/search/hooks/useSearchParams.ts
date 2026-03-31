@@ -1,25 +1,16 @@
 /**
- * useSearchParams — 搜索参数的 URL 协议层
+ * [`useSearchParams`](webpage/src/features/search/hooks/useSearchParams.ts:1) — 搜索参数的 URL 协议层
  *
- * 所有搜索条件以 URL searchParams 为单一数据来源 (Single Source of Truth)。
- * 本 Hook 负责：
- *   1. 从 URL 解析出类型安全的搜索参数
- *   2. 提供更新函数，将新参数序列化回 URL
- *   3. 每次参数变化时自动重置 page 到 1（通过返回值让页面自行管理）
- *
- * URL 参数协议：
- *   q           → 关键词
- *   channel     → 频道 ID
- *   sort        → 排序方式
- *   tags        → 包含标签 (逗号分隔)
- *   exclude     → 排除标签 (逗号分隔)
- *   tag_logic   → 标签逻辑 (and | or)
- *   time_from   → 时间下限
- *   time_to     → 时间上限
+ * 所有搜索条件以 URL searchParams 为单一数据来源。
+ * 当前协议以 [`q`](webpage/src/features/search/hooks/useSearchParams.ts:11) 为核心，
+ * token 搜索语法负责承载 tag / author 等高级条件，
+ * 频道筛选独立使用 [`channel`](webpage/src/features/search/hooks/useSearchParams.ts:25) URL 参数，
+ * 面板型筛选继续承载排序与时间范围。
  */
 
-import { useSearchParams as useRouterSearchParams } from 'react-router-dom';
+import { migrateLegacySyntax, tokenizeSearchPayload } from '@/shared/lib/searchTokenizer';
 import { useCallback, useMemo } from 'react';
+import { useSearchParams as useRouterSearchParams } from 'react-router-dom';
 
 export type SortMethod =
   | 'relevance'
@@ -30,19 +21,19 @@ export type SortMethod =
 
 export type TagLogic = 'and' | 'or';
 
-/** 从 URL 解析后的搜索参数结构 */
 export interface SearchParams {
   query: string;
   channel: string | null;
   sortMethod: SortMethod;
   includeTags: string[];
   excludeTags: string[];
+  includeAuthors: string[];
+  excludeAuthors: string[];
   tagLogic: TagLogic;
   timeFrom: string;
   timeTo: string;
 }
 
-/** 合法的排序值集合，用于校验 */
 const VALID_SORT_METHODS: Set<string> = new Set([
   'relevance',
   'last_active_desc',
@@ -51,10 +42,17 @@ const VALID_SORT_METHODS: Set<string> = new Set([
   'reaction_desc',
 ]);
 
-/**
- * 从 URL searchParams 解析搜索参数。
- * 对于缺失或非法的值，回退到默认值。
- */
+function normalizeQuery(rawQuery: string) {
+  return migrateLegacySyntax(rawQuery || '').replace(/\s+/g, ' ').trim();
+}
+
+function stripChannelTokens(query: string) {
+  return normalizeQuery(query)
+    .replace(/(^|\s)-?\$channel:[^$]+\$/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export function parseParams(sp: URLSearchParams): SearchParams {
   const rawSort = sp.get('sort') || 'last_active_desc';
   const sortMethod: SortMethod = VALID_SORT_METHODS.has(rawSort)
@@ -64,41 +62,31 @@ export function parseParams(sp: URLSearchParams): SearchParams {
   const rawTagLogic = sp.get('tag_logic');
   const tagLogic: TagLogic = rawTagLogic === 'or' ? 'or' : 'and';
 
-  const rawTags = sp.get('tags');
-  const includeTags = rawTags ? rawTags.split(',').filter(Boolean) : [];
-
-  const rawExclude = sp.get('exclude');
-  const excludeTags = rawExclude ? rawExclude.split(',').filter(Boolean) : [];
+  const rawQuery = normalizeQuery(sp.get('q') || '');
+  const tokenized = tokenizeSearchPayload(rawQuery);
+  const query = stripChannelTokens(rawQuery);
 
   return {
-    query: sp.get('q') || '',
-    channel: sp.get('channel') || null,
+    query,
+    channel: sp.get('channel') || tokenized.channels[0] || null,
     sortMethod,
-    includeTags,
-    excludeTags,
+    includeTags: tokenizeSearchPayload(query).includeTags,
+    excludeTags: tokenizeSearchPayload(query).excludeTags,
+    includeAuthors: tokenizeSearchPayload(query).includeAuthors,
+    excludeAuthors: tokenizeSearchPayload(query).excludeAuthors,
     tagLogic,
     timeFrom: sp.get('time_from') || '',
     timeTo: sp.get('time_to') || '',
   };
 }
 
-/**
- * 将搜索参数序列化为 URLSearchParams。
- * 空值 / 默认值不写入 URL，保持 URL 简洁。
- */
 export function serializeParams(params: Partial<SearchParams>): URLSearchParams {
   const sp = new URLSearchParams();
 
-  if (params.query) sp.set('q', params.query);
+  if (params.query) sp.set('q', normalizeQuery(params.query));
   if (params.channel) sp.set('channel', params.channel);
   if (params.sortMethod && params.sortMethod !== 'last_active_desc') {
     sp.set('sort', params.sortMethod);
-  }
-  if (params.includeTags && params.includeTags.length > 0) {
-    sp.set('tags', params.includeTags.join(','));
-  }
-  if (params.excludeTags && params.excludeTags.length > 0) {
-    sp.set('exclude', params.excludeTags.join(','));
   }
   if (params.tagLogic && params.tagLogic !== 'and') {
     sp.set('tag_logic', params.tagLogic);
@@ -109,47 +97,38 @@ export function serializeParams(params: Partial<SearchParams>): URLSearchParams 
   return sp;
 }
 
-/**
- * 搜索参数 URL 协议 Hook
- *
- * @returns `params` — 当前 URL 中解析出的搜索条件
- * @returns `setParams` — 合并更新搜索参数并写回 URL
- * @returns `clearParams` — 清空所有筛选条件
- */
 export function useSearchURLParams() {
   const [searchParams, setSearchParams] = useRouterSearchParams();
 
-  // 解析当前 URL 参数
   const params = useMemo(() => parseParams(searchParams), [searchParams]);
 
-  // 合并更新：只更新传入的字段，其余保持不变
   const setParams = useCallback(
     (updates: Partial<SearchParams>) => {
       const current = parseParams(searchParams);
       const merged = { ...current, ...updates };
       const newSP = serializeParams(merged);
-      // replace: true 避免每次筛选都往 history 里堆一条记录
-      // 搜索词变化用 push（可回退），筛选微调用 replace
       const isQueryChange = updates.query !== undefined && updates.query !== current.query;
       setSearchParams(newSP, { replace: !isQueryChange });
     },
     [searchParams, setSearchParams],
   );
 
-  // 清空所有筛选
   const clearParams = useCallback(() => {
     setSearchParams(new URLSearchParams(), { replace: true });
   }, [setSearchParams]);
 
-  // 判断是否有任何活动筛选
   const hasActiveFilters = useMemo(() => {
     return !!(
       params.query ||
       params.channel ||
       params.includeTags.length > 0 ||
       params.excludeTags.length > 0 ||
+      params.includeAuthors.length > 0 ||
+      params.excludeAuthors.length > 0 ||
       params.timeFrom ||
-      params.timeTo
+      params.timeTo ||
+      (params.sortMethod && params.sortMethod !== 'last_active_desc') ||
+      (params.tagLogic && params.tagLogic !== 'and')
     );
   }, [params]);
 

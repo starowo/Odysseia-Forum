@@ -1,6 +1,6 @@
-import { useRef, useState, useEffect, KeyboardEvent } from 'react';
-import { X, Tag as TagIcon, User } from 'lucide-react';
 import { parseSearchQuery, removeToken, SearchToken, tokensToQuery } from '@/shared/lib/searchTokenizer';
+import { Tag as TagIcon, User, X } from 'lucide-react';
+import { KeyboardEvent, type MutableRefObject, useEffect, useRef, useState } from 'react';
 
 interface SearchTokenInputProps {
   value: string;
@@ -8,6 +8,7 @@ interface SearchTokenInputProps {
   onSearch?: () => void;
   onFocus?: () => void;
   onBlur?: () => void;
+  externalInputRef?: MutableRefObject<HTMLInputElement | null>;
   placeholder?: string;
   className?: string;
 }
@@ -18,6 +19,7 @@ export function SearchTokenInput({
   onSearch,
   onFocus,
   onBlur,
+  externalInputRef,
   placeholder = '搜索...',
   className = '',
 }: SearchTokenInputProps) {
@@ -26,7 +28,7 @@ export function SearchTokenInput({
   const [editingTokenIndex, setEditingTokenIndex] = useState<number | null>(null);
   const [editingValue, setEditingValue] = useState('');
 
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const editInputRefs = useRef<Map<number, HTMLInputElement>>(new Map());
 
@@ -161,7 +163,7 @@ export function SearchTokenInput({
     <div
       ref={containerRef}
       onClick={() => inputRef.current?.focus()}
-      className={`flex min-h-[40px] w-full flex-wrap items-center gap-2 rounded-lg border-none bg-[var(--od-bg-secondary)] px-3 py-2 text-sm text-[var(--od-text-primary)] transition-all duration-200 focus-within:bg-[var(--od-bg-tertiary)] focus-within:ring-2 focus-within:ring-[var(--od-accent)]/60 ${className}`}
+      className={`flex min-h-[40px] w-full min-w-0 flex-nowrap items-center gap-1.5 overflow-hidden rounded-lg border-none bg-[var(--od-bg-secondary)] px-2 py-1.5 text-sm text-[var(--od-text-primary)] transition-all duration-200 ${className}`}
     >
       {/* 显示 token chips */}
       {tokens
@@ -172,7 +174,7 @@ export function SearchTokenInput({
           return (
             <div
               key={`${token.type}-${token.value}-${index}`}
-              className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all duration-200 ${isEditing ? 'ring-2 ring-[var(--od-accent)]' : 'hover:scale-105'
+              className={`flex max-w-[42%] shrink-0 items-center gap-1.5 rounded-full border px-2 py-1 text-xs font-medium transition-all duration-200 ${isEditing ? 'ring-2 ring-[var(--od-accent)]' : 'hover:scale-105'
                 } ${getTokenColor(token.type)}`}
             >
               {getTokenIcon(token.type)}
@@ -195,12 +197,12 @@ export function SearchTokenInput({
                     }
                   }}
                   onBlur={() => handleFinishEdit(token, editingValue)}
-                  className="min-w-[60px] max-w-[120px] bg-transparent outline-none"
+                  className="min-w-[48px] max-w-[96px] bg-transparent outline-none"
                   style={{ width: `${Math.max(60, editingValue.length * 8)}px` }}
                 />
               ) : (
                 <span
-                  className="max-w-[120px] truncate cursor-pointer"
+                  className="max-w-[72px] truncate cursor-pointer"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleTokenClick(token);
@@ -230,7 +232,12 @@ export function SearchTokenInput({
 
       {/* 输入框 */}
       <input
-        ref={inputRef}
+        ref={(element) => {
+          inputRef.current = element;
+          if (externalInputRef) {
+            externalInputRef.current = element;
+          }
+        }}
         type="text"
         value={inputValue}
         onChange={handleInputChange}
@@ -238,7 +245,7 @@ export function SearchTokenInput({
         onFocus={onFocus}
         onBlur={onBlur}
         placeholder={tokens.length === 0 ? placeholder : ''}
-        className="min-w-[120px] flex-1 bg-transparent text-[var(--od-text-primary)] placeholder:text-[var(--od-text-tertiary)] focus:outline-none"
+        className="min-w-0 flex-1 bg-transparent text-[var(--od-text-primary)] placeholder:text-[var(--od-text-tertiary)] focus:outline-none"
       />
     </div>
   );

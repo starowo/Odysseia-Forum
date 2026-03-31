@@ -14,7 +14,6 @@ import {
   Minimize2,
   Scan,
   Maximize2,
-  Megaphone,
 } from 'lucide-react';
 
 import { useSettings } from '@/shared/hooks/useSettings';
@@ -376,29 +375,7 @@ export function SettingsPage() {
             </div>
           </div>
 
-          {/* 欢迎横幅 */}
-          <div className="rounded-xl bg-[var(--od-card)] p-6">
-            <div className="mb-4 flex items-center gap-3">
-              <Megaphone className="h-5 w-5 text-[var(--od-accent)]" />
-              <h2 className="text-lg font-semibold text-[var(--od-text-primary)]">横幅</h2>
-            </div>
-            <div className="flex items-center justify-between rounded-lg bg-[var(--od-bg-tertiary)] p-4">
-              <div>
-                <p className="text-sm font-medium text-[var(--od-text-primary)]">显示欢迎横幅</p>
-                <p className="text-xs text-[var(--od-text-tertiary)]">在右下角显示一个可折叠的欢迎横幅</p>
-              </div>
-              <button
-                onClick={() => updateSettings({ showFloatingBanner: !settings.showFloatingBanner })}
-                className={`relative h-6 w-11 rounded-full transition-colors ${settings.showFloatingBanner ? 'bg-[var(--od-accent)]' : 'bg-[var(--od-border-strong)]'
-                  }`}
-              >
-                <div
-                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${settings.showFloatingBanner ? 'translate-x-5' : 'translate-x-0.5'
-                    }`}
-                />
-              </button>
-            </div>
-          </div>
+
 
           {/* 通知设置 */}
           <div className="rounded-xl bg-[var(--od-card)] p-6">
