@@ -1,12 +1,11 @@
-import { Bookmark, Settings, Info, LogOut, Search as SearchIcon, Bell, Tag as TagIcon, TestTube } from 'lucide-react';
+import { Bookmark, Settings, Info, LogOut, Search as SearchIcon, Tag as TagIcon, TestTube } from 'lucide-react';
 import ServerIcon from '@/assets/images/icon/A90C044F8DDF1959B2E9078CB629C239.png';
-import { useState } from 'react';
+
 import { Link, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ThemeToggle } from '@/shared/ui/ThemeToggle';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useSearchURLParams } from '@/features/search/hooks/useSearchParams';
-import { NotificationCenter } from '@/features/notifications/components/NotificationCenter';
 import { apiClient } from '@/shared/api/client';
 import type { Channel } from '@/entities/thread/types';
 import { AnimatedIcon } from '@/shared/ui/animation/AnimatedIcon';
@@ -16,9 +15,6 @@ export function AppSidebar() {
   const location = useLocation();
   const { params, setParams } = useSearchURLParams();
   const selectedChannel = params.channel;
-  const [notificationOpen, setNotificationOpen] = useState(false);
-  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
-
   // 频道列表：在搜索页左侧展示（生产环境走真实 API，本地走 MSW mock）
   // 后端 /v1/meta/channels 返回的是扁平的 Channel[] 列表
   const { data: channels } = useQuery({
@@ -43,21 +39,19 @@ export function AppSidebar() {
     window.location.href = '/login';
   };
 
-  const handleNotificationUnreadChange = (count: number) => {
-    setHasUnreadNotifications(count > 0);
-  };
+
 
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <div className="flex h-full flex-col bg-[var(--od-bg-secondary)]">
+    <div className="flex h-full flex-col">
       {/* 顶部 Header */}
       {/* 顶部 Header */}
-      <div className="flex items-center gap-3 px-4 py-4">
-        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-full shadow-md">
+      <div className="flex items-center gap-2 px-3 py-3">
+        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center overflow-hidden rounded-full shadow-md">
           <img src={ServerIcon} alt="Server Icon" className="h-full w-full object-cover" />
         </div>
-        <h1 className="text-lg font-bold tracking-tight text-[var(--od-text-primary)]">
+        <h1 className="text-base font-bold tracking-tight text-[var(--od-text-primary)]">
           类脑ΟΔΥΣΣΕΙΑ
         </h1>
       </div>
@@ -128,28 +122,7 @@ export function AppSidebar() {
               <span className="truncate">搜索页面</span>
             </Link>
 
-            <button
-              type="button"
-              onClick={() => setNotificationOpen((prev) => !prev)}
-              className={`group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${notificationOpen
-                ? 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-primary)]'
-                : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
-                }`}
-            >
-              <span className="relative inline-flex">
-                <AnimatedIcon
-                  icon={Bell}
-                  className={`h-4 w-4 flex-shrink-0 ${notificationOpen ? 'text-[var(--od-accent)]' : ''
-                    } ${hasUnreadNotifications ? 'notification-bell-wiggle' : ''}`}
-                  animation="shake"
-                  trigger="hover"
-                />
-                {hasUnreadNotifications && (
-                  <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-[var(--od-error)] shadow-[0_0_0_2px_var(--od-bg)]" />
-                )}
-              </span>
-              <span className="truncate">通知中心</span>
-            </button>
+
 
             <Link
               to="/follows"
@@ -235,22 +208,22 @@ export function AppSidebar() {
       </div>
 
       {/* 底部用户信息栏 */}
-      <div className="border-t border-[var(--od-border)] bg-[var(--od-bg-secondary)] p-3">
-        <div className="flex items-center justify-between rounded-xl bg-[var(--od-bg-tertiary)] p-3 shadow-sm transition-all hover:shadow-md">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="relative h-10 w-10 flex-shrink-0">
+      <div className="border-t border-[var(--od-border)] bg-[var(--od-bg-secondary)] p-2">
+        <div className="flex items-center justify-between rounded-xl bg-[var(--od-bg-tertiary)] p-2 shadow-sm transition-all hover:shadow-md">
+          <div className="flex items-center gap-2 overflow-hidden">
+            <div className="relative h-8 w-8 flex-shrink-0">
               <img
                 src={user?.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` : 'https://cdn.discordapp.com/embed/avatars/0.png'}
                 alt={user?.username}
                 className="h-full w-full rounded-full object-cover ring-2 ring-[var(--od-bg-secondary)]"
               />
-              <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[var(--od-bg-secondary)] bg-green-500" />
+              <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full border-2 border-[var(--od-bg-secondary)] bg-green-500" />
             </div>
             <div className="flex flex-col overflow-hidden">
-              <span className="truncate text-sm font-bold text-[var(--od-text-primary)]">
+              <span className="truncate text-xs font-bold text-[var(--od-text-primary)]">
                 {user?.global_name || user?.username || 'Guest'}
               </span>
-              <span className="truncate text-xs text-[var(--od-text-tertiary)]">
+              <span className="truncate text-[10px] text-[var(--od-text-tertiary)]">
                 @{user?.username}
               </span>
             </div>
@@ -265,13 +238,6 @@ export function AppSidebar() {
           </button>
         </div>
       </div>
-
-      {/* 通知中心面板 */}
-      <NotificationCenter
-        open={notificationOpen}
-        onClose={() => setNotificationOpen(false)}
-        onUnreadChange={handleNotificationUnreadChange}
-      />
     </div>
   );
 }

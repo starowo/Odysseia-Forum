@@ -16,7 +16,7 @@ import {
   Maximize2,
   Megaphone,
 } from 'lucide-react';
-import { MainLayout } from '@/widgets/layout/MainLayout';
+
 import { useSettings } from '@/shared/hooks/useSettings';
 import { resetUserSettings } from '@/shared/lib/settings';
 import { toast } from 'sonner';
@@ -86,7 +86,7 @@ export function SettingsPage() {
   };
 
   return (
-    <MainLayout>
+    <>
       <div className="bg-[var(--od-bg)] text-[var(--od-text-primary)]">
         {/* 标题栏 */}
         <div className="border-b border-[var(--od-border)] bg-[var(--od-bg-secondary)] px-4 py-4">
@@ -524,6 +524,6 @@ export function SettingsPage() {
           </div>
         </div>
       </div>
-    </MainLayout>
+    </>
   );
 }

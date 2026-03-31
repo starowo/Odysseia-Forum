@@ -1,63 +1,18 @@
-import { useState, ReactNode } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { ResizableSidebar } from '@/widgets/sidebar/ResizableSidebar';
-import { TopBar } from '@/widgets/layout/TopBar';
-import { AppSidebar } from '@/widgets/layout/AppSidebar';
-import { useSettings } from '@/shared/hooks/useSettings';
+/**
+ * MainLayout — 已弃用
+ *
+ * V2 架构下，布局由 RootLayout (AppShell) 统一提供。
+ * 此文件保留仅为向后兼容，新页面不应再使用。
+ */
+import { ReactNode } from 'react';
 
 interface MainLayoutProps {
   children: ReactNode;
   showTopBar?: boolean;
-  enableAutoSearch?: boolean;  // 允许页面自定义是否启用自动搜索
 }
 
-export function MainLayout({ children, showTopBar = true, enableAutoSearch }: MainLayoutProps) {
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const { settings, updateSettings } = useSettings();
-  const [searchInput, setSearchInput] = useState('');
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  // 默认只在搜索页面（根路径）启用自动搜索
-  const shouldEnableAutoSearch = enableAutoSearch ?? (location.pathname === '/');
-
-  const handleSearch = () => {
-    // 使用 React Router 导航，不会刷新页面
-    if (searchInput.trim()) {
-      navigate(`/?q=${encodeURIComponent(searchInput)}`);
-    } else {
-      navigate('/');
-    }
-  };
-
-  return (
-    <div className="flex min-h-screen bg-[var(--od-bg)]">
-      {/* 侧边栏 */}
-      <ResizableSidebar
-        isMobileOpen={isMobileOpen}
-        setIsMobileOpen={setIsMobileOpen}
-        isCollapsed={settings.sidebarCollapsed}
-        setIsCollapsed={(collapsed: boolean) => updateSettings({ sidebarCollapsed: collapsed })}
-      >
-        <AppSidebar />
-      </ResizableSidebar>
-
-      {/* 主内容区：根据侧边栏折叠状态调整左侧留白（PC 端） */}
-      <main
-        className={`flex-1 bg-[var(--od-bg)] pb-20 transition-all duration-300 ${settings.sidebarCollapsed ? 'lg:ml-0' : 'lg:ml-[210px]'
-          }`}
-      >
-        {showTopBar && (
-          <TopBar
-            searchValue={searchInput}
-            onSearchChange={setSearchInput}
-            onSearch={handleSearch}
-            onMenuClick={() => setIsMobileOpen(true)}
-            enableAutoSearch={shouldEnableAutoSearch}
-          />
-        )}
-        {children}
-      </main>
-    </div>
-  );
+/** @deprecated 请使用 AppShell (RootLayout) 代替 */
+export function MainLayout({ children }: MainLayoutProps) {
+  // V2: 直接渲染 children，布局由 AppShell 提供
+  return <>{children}</>;
 }

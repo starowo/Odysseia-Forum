@@ -5,7 +5,6 @@ import { toast } from 'sonner';
 import { HighlightText } from '@/shared/ui/HighlightText';
 import type { Thread } from '@/entities/thread/types';
 import { fetchImagesApi } from '@/features/threads/api/fetchImagesApi';
-import { MultiImageGrid } from '@/entities/thread/MultiImageGrid';
 import { ThreadActions } from '@/features/threads/components/ThreadActions';
 import { AuthorAvatar } from '@/entities/user/AuthorAvatar';
 import { ThreadStatusBadges } from '@/entities/thread/ThreadStatusBadges';
@@ -120,6 +119,7 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
   return (
     <MotionWrapper
       as="article"
+      layoutId={`thread-card-${thread.id}`}
       className="group relative flex aspect-[3/5] w-full flex-col overflow-hidden rounded-xl bg-[var(--od-card)] shadow-md cursor-pointer md:aspect-[3/4]"
       onClick={() => onPreview?.(thread)}
       scale={1.02}
@@ -131,8 +131,8 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
         className="absolute inset-[-10%] z-0 h-[120%] w-[120%] bg-[var(--od-bg-tertiary)] transition-transform duration-100 ease-out will-change-transform"
       >
         {thread.thumbnail_urls && thread.thumbnail_urls.length > 0 ? (
-          <MultiImageGrid
-            images={thread.thumbnail_urls}
+          <img
+            src={thread.thumbnail_urls[0]}
             alt={thread.title}
             className="h-full w-full object-cover"
           />

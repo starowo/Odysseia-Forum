@@ -1,10 +1,9 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { Search } from 'lucide-react';
 import { useKeyboardShortcuts } from '@/shared/hooks/useKeyboardShortcuts';
-import { ResizableSidebar } from '@/widgets/sidebar/ResizableSidebar';
-import { TopBar } from '@/widgets/layout/TopBar';
 import { BannerCarousel } from '@/widgets/layout/BannerCarousel';
 import { StatsBar } from '@/widgets/layout/StatsBar';
 import { useSearchURLParams } from '@/features/search/hooks/useSearchParams';
@@ -15,12 +14,9 @@ import { ThreadListItem } from '@/entities/thread/ThreadListItem';
 import { ThreadCardSkeleton } from '@/entities/thread/ThreadCardSkeleton';
 import { searchApi } from '@/features/search/api/searchApi';
 import { useSettings } from '@/shared/hooks/useSettings';
-import { AppSidebar } from '@/widgets/layout/AppSidebar';
-import { addSearchHistory } from '@/shared/lib/searchHistory';
 import { addToken, parseSearchQuery } from '@/shared/lib/searchTokenizer';
-import type { Thread, Channel } from '@/entities/thread/types';
+import type { Thread } from '@/entities/thread/types';
 import bannerImage from '@/assets/images/banners/adfd891a-f9f7-4f9d-8d7c-975fb32a7f0d.png';
-import { apiClient } from '@/shared/api/client';
 
 import { useMascotStore } from '@/features/mascot/store/mascotStore';
 import { MascotDialog } from '@/features/mascot/components/MascotDialog';
@@ -36,6 +32,14 @@ const defaultBanners = [
   },
 ];
 
+/**
+ * SearchPage — 搜索结果页
+ *
+ * V2 升级：
+ *   - 不再自建布局（Sidebar / TopBar 由 AppShell 统一提供）
+ *   - 只输出内容 sections：Banner → StatsBar → 列表
+ *   - 所有搜索条件从 useSearchURLParams 读取
+ */
 export function SearchPage() {
   // ─── V2 数据源：URL 参数是搜索条件的单一来源 ───
   const { params, setParams, clearParams, hasActiveFilters } = useSearchURLParams();
@@ -52,18 +56,14 @@ export function SearchPage() {
   // ─── 本地 UI 状态（不需要 URL 化） ───
   const [searchInput, setSearchInput] = useState(query);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [mergedThreads, setMergedThreads] = useState<Thread[]>([]);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(24);
-  // 标签面板的选择模式（included / excluded）仅影响 UI 交互，不需要 URL 化
-  const [tagMode, setTagMode] = useState<'included' | 'excluded'>('included');
-  // 本地维护的 tagStates Map（用于面板 UI 交互），实际筛选条件写入 URL
-  const [tagStates, setTagStates] = useState<Map<string, 'included' | 'excluded'>>(new Map());
+
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
-  const { settings, updateSettings } = useSettings();
+  const { settings } = useSettings();
 
   // 当 URL 中的 query 变化时，同步到本地输入框
   useEffect(() => {
@@ -73,13 +73,7 @@ export function SearchPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
 
-  // 当 URL 中的 tags/exclude 变化时，同步到本地 tagStates
-  useEffect(() => {
-    const newStates = new Map<string, 'included' | 'excluded'>();
-    urlIncludeTags.forEach(tag => newStates.set(tag, 'included'));
-    urlExcludeTags.forEach(tag => newStates.set(tag, 'excluded'));
-    setTagStates(newStates);
-  }, [urlIncludeTags, urlExcludeTags]);
+
 
   // URL 搜索条件变化时，重置分页到第 1 页
   useEffect(() => {
@@ -96,16 +90,6 @@ export function SearchPage() {
       console.error('Failed to read onboarding flag:', error);
     }
   }, []);
-
-  // 获取频道列表
-  const { data: channels } = useQuery({
-    queryKey: ['meta', 'channels'],
-    queryFn: async () => {
-      const res = await apiClient.get<Channel[]>('/meta/channels');
-      return res.data;
-    },
-    staleTime: 5 * 60 * 1000,
-  });
 
   // ─── token 解析（从搜索词中提取 $tag:xxx$ / $author:xxx$） ───
   const { keywordQuery, tokenIncludeTags, authorNameFromToken } = useMemo(() => {
@@ -205,20 +189,6 @@ export function SearchPage() {
 
   const totalResults = searchData?.total || 0;
 
-  // 可用标签
-  const availableTags = useMemo(() => {
-    const tags = new Set<string>();
-    if (searchData?.available_tags && searchData.available_tags.length > 0) {
-      searchData.available_tags.forEach(tag => tags.add(tag));
-    } else if (searchData?.results) {
-      searchData.results.forEach(thread => {
-        if (thread.tags) thread.tags.forEach(tag => tags.add(tag));
-      });
-    }
-    tagStates.forEach((_, tag) => tags.add(tag));
-    return Array.from(tags).sort();
-  }, [searchData, tagStates]);
-
   const totalPages = Math.ceil(totalResults / perPage);
 
   // 合并多页搜索结果
@@ -239,33 +209,6 @@ export function SearchPage() {
       return [...prev, ...newThreads];
     });
   }, [searchData, page]);
-
-  // ─── 搜索操作：写 URL 而不是 Store ───
-  const handleSearch = useCallback(() => {
-    const trimmedQuery = searchInput.trim();
-    if (trimmedQuery === query) return;
-    setParams({ query: trimmedQuery });
-    if (trimmedQuery) {
-      addSearchHistory(trimmedQuery);
-      reactToSearch('start', trimmedQuery);
-    }
-  }, [searchInput, query, setParams, reactToSearch]);
-
-  const handleSelectHistory = (historyQuery: string) => {
-    setSearchInput(historyQuery);
-    setParams({ query: historyQuery });
-    searchInputRef.current?.focus();
-  };
-
-  const handleQuickSearch = (template: string) => {
-    if (!searchInput.trim()) {
-      setSearchInput(template);
-    } else {
-      setSearchInput(searchInput + ' ' + template);
-    }
-    searchInputRef.current?.focus();
-    toast.success('已添加搜索模板', { duration: 2000 });
-  };
 
   // 无缝滚动加载
   useEffect(() => {
@@ -311,13 +254,6 @@ export function SearchPage() {
       },
       description: '清空搜索',
     },
-    {
-      key: '/',
-      callback: () => {
-        searchInputRef.current?.focus();
-      },
-      description: '快速搜索',
-    },
   ]);
 
   // 标签点击 - 从卡片点击时添加到搜索框
@@ -325,34 +261,6 @@ export function SearchPage() {
     const newQuery = addToken(searchInput, 'tag', tag);
     setParams({ query: newQuery });
     toast.success(`已添加标签：${tag}`, { duration: 2000 });
-  };
-
-  // 高级面板中的标签筛选
-  const handleFilterTagClick = (tag: string) => {
-    const newTagStates = new Map(tagStates);
-    const current = newTagStates.get(tag);
-
-    if (current === tagMode) {
-      newTagStates.delete(tag);
-    } else {
-      newTagStates.set(tag, tagMode);
-    }
-
-    setTagStates(newTagStates);
-
-    // 同步到 URL
-    const newInclude: string[] = [];
-    const newExclude: string[] = [];
-    newTagStates.forEach((state, t) => {
-      if (state === 'included') newInclude.push(t);
-      else if (state === 'excluded') newExclude.push(t);
-    });
-    setParams({ includeTags: newInclude, excludeTags: newExclude });
-  };
-
-  const handleClearAllTags = () => {
-    setTagStates(new Map());
-    setParams({ includeTags: [], excludeTags: [] });
   };
 
   const handleCloseOnboarding = () => {
@@ -392,208 +300,233 @@ export function SearchPage() {
     setMergedThreads([]);
   }, []);
 
+  // --- Virtualization State ---
+  const [containerWidth, setContainerWidth] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      setContainerWidth(entries[0].contentRect.width);
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const cols = useMemo(() => {
+    if (settings.layoutMode === 'list') return 1;
+    if (containerWidth === 0) {
+      if (typeof window === 'undefined') return 4;
+      const w = window.innerWidth;
+      if (w < 640) return 2;
+      if (w < 1024) return 3;
+      if (settings.sidebarCollapsed || w > 1280) return 5;
+      return 4;
+    }
+    if (containerWidth < 640) return 2;
+    if (containerWidth < 1024) return 3;
+    if (settings.sidebarCollapsed || containerWidth > 1280) return 5;
+    return 4;
+  }, [containerWidth, settings.layoutMode, settings.sidebarCollapsed]);
+
+  const rowCount = Math.ceil(mergedThreads.length / cols);
+
+  const virtualizer = useVirtualizer({
+    count: rowCount,
+    getScrollElement: () => document.getElementById('main-scroll-container') as HTMLElement,
+    estimateSize: () => settings.layoutMode === 'list' ? 120 : 360,
+    overscan: 3,
+  });
+
+  // ─── 渲染：不再包含 Sidebar / TopBar，直接输出内容 sections ───
   return (
-    <div className="flex min-h-screen bg-[var(--od-bg)]">
+    <div>
+      {/* 频道标题栏 */}
+      <div className="border-b border-white/[0.06] px-4 py-3 sm:px-8 sm:pt-6">
+        <h1 className="text-lg font-semibold text-[var(--od-text-primary)] transition-all duration-300">
+          # {currentChannelName}
+        </h1>
+      </div>
 
-      {/* 侧边栏 */}
-      <ResizableSidebar
-        isMobileOpen={isMobileOpen}
-        setIsMobileOpen={setIsMobileOpen}
-        isCollapsed={settings.sidebarCollapsed}
-        setIsCollapsed={(collapsed: boolean) => updateSettings({ sidebarCollapsed: collapsed })}
-      >
-        <AppSidebar />
-      </ResizableSidebar>
+      {/* Banner 轮播 - 只在无搜索时显示 */}
+      {!query && (
+        <div ref={bannerRef} className="p-4 animate-in fade-in slide-in-from-top-4 duration-500">
+          <BannerCarousel
+            banners={displayBanners}
+            onBannerClick={(banner) => {
+              if (banner.id.startsWith('default-')) return;
+              const thread = searchData?.results?.find(t => t.thread_id === banner.id);
+              if (thread) {
+                setPreviewThread(thread);
+              } else {
+                toast.error('无法预览该帖子');
+              }
+            }}
+          />
+        </div>
+      )}
 
-      {/* 主内容区 */}
-      <main
-        className={`flex-1 bg-[var(--od-bg)] pb-20 transition-all duration-300 ${settings.sidebarCollapsed ? 'lg:ml-0' : 'lg:ml-[210px]'
-          }`}
-      >
-        {/* 顶部搜索栏 */}
-        <TopBar
-          searchValue={searchInput}
-          onSearchChange={setSearchInput}
-          onSearch={handleSearch}
-          onMenuClick={() => setIsMobileOpen(true)}
-          onQuickSearch={handleQuickSearch}
-          searchInputRef={searchInputRef}
-          onSelectHistory={handleSelectHistory}
-          timeFrom={timeFrom}
-          timeTo={timeTo}
-          sortMethod={sortMethod}
-          tagLogic={tagLogic}
-          availableTags={availableTags}
-          tagStates={tagStates}
-          channels={channels || []}
-          onTimeFromChange={(v) => setParams({ timeFrom: v })}
-          onTimeToChange={(v) => setParams({ timeTo: v })}
-          onSortMethodChange={(value) => setParams({ sortMethod: value as any })}
-          onTagLogicChange={(v) => setParams({ tagLogic: v })}
-          tagMode={tagMode}
-          onTagModeChange={setTagMode}
-          onTagClick={handleFilterTagClick}
-          onClearAllTags={handleClearAllTags}
-        />
-
-        {/* 频道标题栏 */}
-        <div className="border-b border-[var(--od-border)] bg-[var(--od-bg-secondary)] px-4 py-3">
-          <h1 className="text-lg font-semibold text-[var(--od-text-primary)] transition-all duration-300">
-            # {currentChannelName}
-          </h1>
+      {/* 搜索结果 */}
+      <div className="p-4">
+        <div className="animate-in fade-in duration-300">
+          <StatsBar
+            totalCount={totalResults}
+            perPage={perPage}
+            currentPage={page}
+            totalPages={totalPages}
+            onPerPageChange={handlePerPageChange}
+          />
         </div>
 
-        {/* Banner 轮播 - 只在主页显示（无搜索时） */}
-        {!query && (
-          <div ref={bannerRef} className="p-4 animate-in fade-in slide-in-from-top-4 duration-500">
-            <BannerCarousel
-              banners={displayBanners}
-              onBannerClick={(banner) => {
-                if (banner.id.startsWith('default-')) return;
-                const thread = searchData?.results?.find(t => t.thread_id === banner.id);
-                if (thread) {
-                  setPreviewThread(thread);
-                } else {
-                  toast.error('无法预览该帖子');
-                }
+        {/* 清空筛选按钮 */}
+        {hasActiveFilters && (
+          <div className="mb-4 animate-in fade-in slide-in-from-top-2 duration-300">
+            <button
+              onClick={() => {
+                setSearchInput('');
+                clearParams();
               }}
-            />
+              className="text-sm text-[#00a8fc] transition-all duration-200 hover:scale-105 hover:text-[#00c7fc] hover:underline"
+            >
+              清空所有筛选条件
+            </button>
           </div>
         )}
 
-        {/* 搜索结果 */}
-        <div className="p-4">
-          <div className="animate-in fade-in duration-300">
-            <StatsBar
-              totalCount={totalResults}
-              perPage={perPage}
-              currentPage={page}
-              totalPages={totalPages}
-              onPerPageChange={handlePerPageChange}
-            />
+        {/* 搜索结果列表 */}
+        {isLoading ? (
+          <div
+            className={
+              settings.layoutMode === 'list'
+                ? 'space-y-4 animate-in fade-in duration-300'
+                : `grid grid-cols-2 gap-4 sm:grid-cols-3 ${settings.sidebarCollapsed ? 'lg:grid-cols-5' : 'lg:grid-cols-4'
+                } animate-in fade-in duration-300`
+            }
+          >
+            {Array.from({ length: perPage }).map((_, i) => (
+              <ThreadCardSkeleton key={i} />
+            ))}
           </div>
-
-          {/* 清空筛选按钮 */}
-          {hasActiveFilters && (
-            <div className="mb-4 animate-in fade-in slide-in-from-top-2 duration-300">
+        ) : isError ? (
+          <div className="flex min-h-[400px] items-center justify-center rounded-lg bg-[var(--od-card)] p-8 animate-in fade-in duration-300">
+            <div className="text-center">
+              <Search className="mx-auto mb-4 h-16 w-16 text-[var(--od-text-tertiary)]" />
+              <h3 className="mb-2 text-xl font-bold text-[var(--od-text-primary)]">
+                搜索出错
+              </h3>
+              <p className="mb-4 text-[var(--od-text-secondary)]">
+                搜索服务暂时不可用，请稍后重试。
+              </p>
               <button
-                onClick={() => {
-                  setSearchInput('');
-                  setTagStates(new Map());
-                  clearParams();
-                }}
-                className="text-sm text-[#00a8fc] transition-all duration-200 hover:scale-105 hover:text-[#00c7fc] hover:underline"
+                type="button"
+                onClick={() => refetch()}
+                className="rounded-lg bg-[var(--od-accent)] px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:scale-105 hover:bg-[var(--od-accent-hover)]"
               >
-                清空所有筛选条件
+                重试
               </button>
             </div>
-          )}
+          </div>
+        ) : mergedThreads.length > 0 ? (
+          <div ref={containerRef} className="animate-in fade-in duration-300">
+            <div
+              style={{
+                height: `${virtualizer.getTotalSize()}px`,
+                width: '100%',
+                position: 'relative',
+              }}
+            >
+              {virtualizer.getVirtualItems().map((virtualRow) => {
+                const startIndex = virtualRow.index * cols;
+                const rowItems = mergedThreads.slice(startIndex, startIndex + cols);
 
-          {/* 搜索结果列表 */}
-          {isLoading ? (
-            <div
-              className={
-                settings.layoutMode === 'list'
-                  ? 'space-y-4 animate-in fade-in duration-300'
-                  : `grid grid-cols-2 gap-4 sm:grid-cols-3 ${settings.sidebarCollapsed ? 'lg:grid-cols-5' : 'lg:grid-cols-4'
-                  } animate-in fade-in duration-300`
-              }
-            >
-              {Array.from({ length: perPage }).map((_, i) => (
-                <ThreadCardSkeleton key={i} />
-              ))}
-            </div>
-          ) : isError ? (
-            <div className="flex min-h-[400px] items-center justify-center rounded-lg bg-[var(--od-card)] p-8 animate-in fade-in duration-300">
-              <div className="text-center">
-                <Search className="mx-auto mb-4 h-16 w-16 text-[var(--od-text-tertiary)]" />
-                <h3 className="mb-2 text-xl font-bold text-[var(--od-text-primary)]">
-                  搜索出错
-                </h3>
-                <p className="mb-4 text-[var(--od-text-secondary)]">
-                  搜索服务暂时不可用，请稍后重试。
-                </p>
-                <button
-                  type="button"
-                  onClick={() => refetch()}
-                  className="rounded-lg bg-[var(--od-accent)] px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:scale-105 hover:bg-[var(--od-accent-hover)]"
-                >
-                  重试
-                </button>
-              </div>
-            </div>
-          ) : mergedThreads.length > 0 ? (
-            <div
-              className={
-                settings.layoutMode === 'list'
-                  ? 'space-y-4 animate-in fade-in duration-300'
-                  : `grid grid-cols-2 gap-4 sm:grid-cols-3 ${settings.sidebarCollapsed ? 'lg:grid-cols-5' : 'lg:grid-cols-4'
-                  } animate-in fade-in duration-300`
-              }
-            >
-              {mergedThreads.map((thread) =>
-                settings.layoutMode === 'list' ? (
-                  <ThreadListItem
-                    key={thread.thread_id}
-                    thread={thread}
-                    onTagClick={handleTagClick}
-                    searchQuery={query}
-                    onAuthorClick={(authorName) => {
-                      const newQuery = addToken(searchInput, 'author', authorName);
-                      setParams({ query: newQuery });
-                      toast.success(`已添加作者：${authorName} `, { duration: 2000 });
+                // 动态拼接 grid 布局 className 以避免被 tailwind purge
+                const gridClass = `grid gap-od-card-gap pb-od-card-gap grid-cols-${cols}`;
+
+                return (
+                  <div
+                    key={virtualRow.key}
+                    data-index={virtualRow.index}
+                    ref={virtualizer.measureElement}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      transform: `translateY(${virtualRow.start}px)`,
                     }}
-                    onPreview={setPreviewThread}
-                  />
+                    className={
+                      settings.layoutMode === 'list'
+                        ? 'flex flex-col space-y-od-list-gap pb-4'
+                        : gridClass
+                    }
+                  >
+                    {rowItems.map((thread) =>
+                      settings.layoutMode === 'list' ? (
+                        <ThreadListItem
+                          key={thread.thread_id}
+                          thread={thread}
+                          onTagClick={handleTagClick}
+                          searchQuery={query}
+                          onAuthorClick={(authorName) => {
+                            const newQuery = addToken(searchInput, 'author', authorName);
+                            setParams({ query: newQuery });
+                            toast.success(`已添加作者：${authorName}`, { duration: 2000 });
+                          }}
+                          onPreview={setPreviewThread}
+                        />
+                      ) : (
+                        <ThreadCard
+                          key={thread.thread_id}
+                          thread={thread}
+                          onTagClick={handleTagClick}
+                          searchQuery={query}
+                          onAuthorClick={(authorName) => {
+                            const newQuery = addToken(searchInput, 'author', authorName);
+                            setParams({ query: newQuery });
+                            toast.success(`已添加作者：${authorName}`, { duration: 2000 });
+                          }}
+                          onPreview={setPreviewThread}
+                        />
+                      )
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* 无缝加载触发器 */}
+            {page < totalPages && (
+              <div
+                ref={loadMoreRef}
+                className="col-span-full flex items-center justify-center py-8"
+              >
+                {isFetching ? (
+                  <div className="flex items-center gap-2 text-sm text-[var(--od-text-secondary)]">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--od-accent)] border-t-transparent" />
+                    <span>加载中...</span>
+                  </div>
                 ) : (
-                  <ThreadCard
-                    key={thread.thread_id}
-                    thread={thread}
-                    onTagClick={handleTagClick}
-                    searchQuery={query}
-                    onAuthorClick={(authorName) => {
-                      const newQuery = addToken(searchInput, 'author', authorName);
-                      setParams({ query: newQuery });
-                      toast.success(`已添加作者：${authorName} `, { duration: 2000 });
-                    }}
-                    onPreview={setPreviewThread}
-                  />
-                )
-              )}
-              {/* 无缝加载触发器 */}
-              {page < totalPages && (
-                <div
-                  ref={loadMoreRef}
-                  className="col-span-full flex items-center justify-center py-8"
-                >
-                  {isFetching ? (
-                    <div className="flex items-center gap-2 text-sm text-[var(--od-text-secondary)]">
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--od-accent)] border-t-transparent" />
-                      <span>加载中...</span>
-                    </div>
-                  ) : (
-                    <div className="h-1" />
-                  )}
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="flex min-h-[400px] items-center justify-center rounded-lg bg-[var(--od-card)] p-8 animate-in fade-in duration-300">
-              <div className="text-center">
-                <Search className="mx-auto mb-4 h-16 w-16 text-[var(--od-text-tertiary)]" />
-                <h3 className="mb-2 text-xl font-bold text-[var(--od-text-primary)]">
-                  {hasActiveFilters ? '没有找到匹配的结果' : '开始搜索'}
-                </h3>
-                <p className="text-[var(--od-text-secondary)]">
-                  {hasActiveFilters
-                    ? '尝试调整搜索条件或清空筛选'
-                    : '输入关键词或选择频道开始探索'}
-                </p>
+                  <div className="h-1" />
+                )}
               </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex min-h-[400px] items-center justify-center rounded-lg bg-[var(--od-card)] p-8 animate-in fade-in duration-300">
+            <div className="text-center">
+              <Search className="mx-auto mb-4 h-16 w-16 text-[var(--od-text-tertiary)]" />
+              <h3 className="mb-2 text-xl font-bold text-[var(--od-text-primary)]">
+                {hasActiveFilters ? '没有找到匹配的结果' : '开始搜索'}
+              </h3>
+              <p className="text-[var(--od-text-secondary)]">
+                {hasActiveFilters
+                  ? '尝试调整搜索条件或清空筛选'
+                  : '输入关键词或选择频道开始探索'}
+              </p>
             </div>
-          )}
-        </div>
-      </main>
+          </div>
+        )}
+      </div>
 
       {/* 首次访问引导浮层 */}
       <MascotDialog

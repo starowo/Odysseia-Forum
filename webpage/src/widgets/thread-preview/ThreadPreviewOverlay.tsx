@@ -4,7 +4,7 @@ import { zhCN } from 'date-fns/locale';
 import { useEffect, useState } from 'react';
 
 import { MarkdownText } from '@/shared/ui/MarkdownText';
-import { MultiImageGrid } from '@/entities/thread/MultiImageGrid';
+import { ImageCarousel } from '@/entities/thread/ImageCarousel';
 import { AuthorAvatar } from '@/entities/user/AuthorAvatar';
 import { ThreadActions } from '@/features/threads/components/ThreadActions';
 import { ThreadStatusBadges } from '@/entities/thread/ThreadStatusBadges';
@@ -126,10 +126,10 @@ export function ThreadPreviewOverlay({
           {/* Images */}
           {thread.thumbnail_urls && thread.thumbnail_urls.length > 0 && (
             <div className="mb-6 overflow-hidden rounded-xl border border-[var(--od-border)]">
-              <MultiImageGrid
+              <ImageCarousel
                 images={thread.thumbnail_urls}
                 alt={thread.title}
-                className="w-full"
+                className="h-[300px] sm:h-[400px]"
               />
             </div>
           )}

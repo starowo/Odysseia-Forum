@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Bookmark } from 'lucide-react';
-import { MainLayout } from '@/widgets/layout/MainLayout';
 import { StatsBar } from '@/widgets/layout/StatsBar';
 import { ThreadCard } from '@/entities/thread/ThreadCard';
 import { ThreadListItem } from '@/entities/thread/ThreadListItem';
@@ -57,105 +56,103 @@ export function FollowsPage() {
   };
 
   return (
-    <MainLayout>
-      <div>
-        {/* 标题栏 */}
-        <div className="border-b border-[var(--od-border)] bg-[var(--od-bg-secondary)] px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Bookmark className="h-6 w-6 text-[#f2f3f5]" />
-              <div>
-                <h1 className="text-xl font-bold text-[var(--od-text-primary)]">
-                  我的关注{currentChannelName && ` · ${currentChannelName}`}
-                </h1>
-                <p className="text-sm text-[var(--od-text-secondary)]">
-                  共 {follows.length} 个帖子
-                  {selectedChannel && allFollows.length !== follows.length && (
-                    <span className="ml-2 text-xs text-[var(--od-text-tertiary)]">
-                      （全部 {allFollows.length} 个）
-                    </span>
-                  )}
-                  {unreadCount > 0 && (
-                    <span className="ml-2 rounded bg-[#23a55a] px-2 py-0.5 text-xs font-bold text-white">
-                      {unreadCount} 个更新
-                    </span>
-                  )}
-                </p>
-              </div>
+    <>
+      {/* 标题栏 */}
+      <div className="border-b border-[var(--od-border)] bg-[var(--od-bg-secondary)] px-4 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Bookmark className="h-6 w-6 text-[#f2f3f5]" />
+            <div>
+              <h1 className="text-xl font-bold text-[var(--od-text-primary)]">
+                我的关注{currentChannelName && ` · ${currentChannelName}`}
+              </h1>
+              <p className="text-sm text-[var(--od-text-secondary)]">
+                共 {follows.length} 个帖子
+                {selectedChannel && allFollows.length !== follows.length && (
+                  <span className="ml-2 text-xs text-[var(--od-text-tertiary)]">
+                    （全部 {allFollows.length} 个）
+                  </span>
+                )}
+                {unreadCount > 0 && (
+                  <span className="ml-2 rounded bg-[#23a55a] px-2 py-0.5 text-xs font-bold text-white">
+                    {unreadCount} 个更新
+                  </span>
+                )}
+              </p>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* 布局选择栏 */}
-        {follows.length > 0 && (
-          <div className="border-b border-[var(--od-border)] bg-[var(--od-bg)] px-4 py-2">
-            <StatsBar
-              totalCount={follows.length}
-              perPage={24}
-              onPerPageChange={() => { }} // 关注页面不需要分页
-            />
+      {/* 布局选择栏 */}
+      {follows.length > 0 && (
+        <div className="border-b border-[var(--od-border)] bg-[var(--od-bg)] px-4 py-2">
+          <StatsBar
+            totalCount={follows.length}
+            perPage={24}
+            onPerPageChange={() => { }}
+          />
+        </div>
+      )}
+
+      {/* 关注列表 */}
+      <div className="p-4">
+        {isLoading ? (
+          <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${settings.sidebarCollapsed ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <ThreadCardSkeleton key={i} />
+            ))}
           </div>
-        )}
-
-        {/* 关注列表 */}
-        <div className="p-4">
-          {isLoading ? (
-            <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${settings.sidebarCollapsed ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
-              {Array.from({ length: 6 }).map((_, i) => (
-                <ThreadCardSkeleton key={i} />
+        ) : follows.length > 0 ? (
+          settings.layoutMode === 'grid' ? (
+            <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${settings.sidebarCollapsed ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} animate-in fade-in duration-500`}>
+              {follows.map((thread, index) => (
+                <div
+                  key={thread.thread_id}
+                  className="animate-in fade-in slide-in-from-bottom-4"
+                  style={{
+                    animationDelay: `${index * 50}ms`,
+                    animationFillMode: 'backwards',
+                  }}
+                >
+                  <ThreadCard thread={thread} onPreview={setPreviewThread} />
+                </div>
               ))}
             </div>
-          ) : follows.length > 0 ? (
-            settings.layoutMode === 'grid' ? (
-              <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${settings.sidebarCollapsed ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} animate-in fade-in duration-500`}>
-                {follows.map((thread, index) => (
-                  <div
-                    key={thread.thread_id}
-                    className="animate-in fade-in slide-in-from-bottom-4"
-                    style={{
-                      animationDelay: `${index * 50}ms`,
-                      animationFillMode: 'backwards',
-                    }}
-                  >
-                    <ThreadCard thread={thread} onPreview={setPreviewThread} />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col gap-4 animate-in fade-in duration-500">
-                {follows.map((thread, index) => (
-                  <div
-                    key={thread.thread_id}
-                    className="animate-in fade-in slide-in-from-bottom-2"
-                    style={{
-                      animationDelay: `${index * 30}ms`,
-                      animationFillMode: 'backwards',
-                    }}
-                  >
-                    <ThreadListItem thread={thread} onPreview={setPreviewThread} />
-                  </div>
-                ))}
-              </div>
-            )
           ) : (
-            <div className="flex min-h-[400px] items-center justify-center">
-              <div className="text-center">
-                <Bookmark className="mx-auto mb-4 h-16 w-16 text-[var(--od-border-strong)]" />
-                <h3 className="mb-2 text-xl font-bold text-[var(--od-text-primary)]">
-                  还没有关注任何帖子
-                </h3>
-                <p className="text-[var(--od-text-secondary)]">
-                  在Discord中使用Bot命令关注帖子
-                </p>
-              </div>
+            <div className="flex flex-col gap-4 animate-in fade-in duration-500">
+              {follows.map((thread, index) => (
+                <div
+                  key={thread.thread_id}
+                  className="animate-in fade-in slide-in-from-bottom-2"
+                  style={{
+                    animationDelay: `${index * 30}ms`,
+                    animationFillMode: 'backwards',
+                  }}
+                >
+                  <ThreadListItem thread={thread} onPreview={setPreviewThread} />
+                </div>
+              ))}
             </div>
-          )}
-        </div>
+          )
+        ) : (
+          <div className="flex min-h-[400px] items-center justify-center">
+            <div className="text-center">
+              <Bookmark className="mx-auto mb-4 h-16 w-16 text-[var(--od-border-strong)]" />
+              <h3 className="mb-2 text-xl font-bold text-[var(--od-text-primary)]">
+                还没有关注任何帖子
+              </h3>
+              <p className="text-[var(--od-text-secondary)]">
+                在Discord中使用Bot命令关注帖子
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {previewThread && (
         <ThreadPreviewOverlay thread={previewThread} onClose={handleClosePreview} />
       )}
-    </MainLayout>
+    </>
   );
 }

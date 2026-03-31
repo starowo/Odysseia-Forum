@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { screen, fireEvent } from '@testing-library/react';
 import { render } from '@/tests/test-utils';
 import { SearchPage } from './index';
 import { useSearchURLParams } from '@/features/search/hooks/useSearchParams';

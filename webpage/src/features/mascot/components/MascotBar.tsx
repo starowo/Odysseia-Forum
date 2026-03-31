@@ -13,7 +13,7 @@ export function MascotBar() {
     if (!isVisible) return null;
 
     return (
-        <div className="fixed bottom-0 lg:bottom-4 z-40 flex flex-col-reverse items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500 left-1/2 -translate-x-1/2 lg:left-64 lg:translate-x-0 lg:flex-row lg:items-end pointer-events-none">
+        <div className="fixed bottom-20 md:bottom-4 z-40 flex flex-col-reverse items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500 left-1/2 -translate-x-1/2 lg:left-64 lg:translate-x-0 lg:flex-row lg:items-end pointer-events-none">
             {/* Mascot Image */}
             <div
                 className="relative z-10 -mb-2 h-24 w-24 cursor-pointer transition-transform hover:scale-110 active:scale-95 pointer-events-auto"

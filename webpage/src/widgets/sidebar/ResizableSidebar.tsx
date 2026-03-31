@@ -16,7 +16,7 @@ export function ResizableSidebar({
   isCollapsed = false,
   setIsCollapsed,
 }: ResizableSidebarProps) {
-  const sidebarWidth = 210;
+  const sidebarWidth = 170;
 
   return (
     <>
@@ -32,7 +32,7 @@ export function ResizableSidebar({
       <aside
         style={{ width: `${sidebarWidth}px` }}
         className={`
-          fixed left-0 top-0 z-50 h-screen border-r border-[var(--od-border)] bg-[var(--od-bg-secondary)] transition-transform duration-300
+          fixed left-0 top-0 z-50 h-screen bg-[var(--od-bg)] transition-transform duration-300
           ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
           ${isCollapsed ? 'lg:-translate-x-full' : 'lg:translate-x-0'}
         `}
@@ -50,7 +50,7 @@ export function ResizableSidebar({
         {!isCollapsed && (
           <button
             onClick={() => setIsCollapsed?.(true)}
-            className="absolute right-0 top-1/2 z-10 hidden h-16 -translate-y-1/2 rounded-l-full border-y border-l border-[var(--od-border)] bg-[var(--od-bg-secondary)] px-1 text-[var(--od-text-tertiary)] opacity-20 transition-all duration-200 hover:opacity-100 hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)] lg:flex lg:items-center lg:justify-center"
+            className="absolute right-0 top-1/2 z-10 hidden h-16 -translate-y-1/2 rounded-l-full px-1 text-[var(--od-text-tertiary)] opacity-20 transition-all duration-200 hover:opacity-100 hover:bg-white/[0.06] hover:text-[var(--od-text-primary)] lg:flex lg:items-center lg:justify-center"
             aria-label="收起侧边栏"
           >
             <ChevronLeft className="h-4 w-4 transition-transform duration-300" />
@@ -65,7 +65,7 @@ export function ResizableSidebar({
       {isCollapsed && (
         <button
           onClick={() => setIsCollapsed?.(false)}
-          className="fixed left-0 top-1/2 z-40 hidden h-16 -translate-y-1/2 rounded-r-full border-y border-r border-[var(--od-border)] bg-[var(--od-bg-secondary)] px-1 text-[var(--od-text-tertiary)] opacity-20 transition-all duration-200 hover:opacity-100 hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)] lg:flex lg:items-center lg:justify-center"
+          className="fixed left-0 top-1/2 z-40 hidden h-16 -translate-y-1/2 rounded-r-full border border-white/[0.06] bg-[var(--od-bg-tertiary)] px-1 text-[var(--od-text-tertiary)] opacity-20 transition-all duration-200 hover:opacity-100 hover:bg-white/[0.1] hover:text-[var(--od-text-primary)] lg:flex lg:items-center lg:justify-center"
           aria-label="展开侧边栏"
         >
           <ChevronLeft className="h-4 w-4 rotate-180 transition-transform duration-300" />

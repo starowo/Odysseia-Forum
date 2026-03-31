@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, Tag as TagIcon, TrendingUp, Hash } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { MainLayout } from '@/widgets/layout/MainLayout';
+
 import { searchApi } from '@/features/search/api/searchApi';
 import { addToken } from '@/shared/lib/searchTokenizer';
 import { useSettings } from '@/shared/hooks/useSettings';
@@ -95,7 +95,7 @@ export function TagsPage() {
   const totalThreads = tagsWithCounts.reduce((sum, tag) => sum + tag.count, 0);
 
   return (
-    <MainLayout>
+    <>
       <div className="bg-[var(--od-bg)] text-[var(--od-text-primary)]">
         {/* 标题栏 */}
         <div className="border-b border-[var(--od-border)] bg-[var(--od-bg-secondary)] px-4 py-4">
@@ -253,6 +253,6 @@ export function TagsPage() {
           </div>
         </div>
       </div>
-    </MainLayout>
+    </>
   );
 }
