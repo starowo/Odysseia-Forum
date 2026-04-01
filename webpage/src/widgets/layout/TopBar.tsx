@@ -8,6 +8,12 @@ import { useSearchURLParams } from '@/features/search/hooks/useSearchParams';
 import { usePreviewStore } from '@/features/search/store/previewStore';
 import { ALL_VIRTUAL_TAGS } from '@/shared/config/navigation';
 import {
+  addSearchHistory,
+  clearSearchHistory,
+  getSearchHistory,
+  removeSearchHistory,
+} from '@/shared/lib/searchHistory';
+import {
   addToken,
   parseSearchQuery,
   removeToken,
@@ -15,8 +21,8 @@ import {
 } from '@/shared/lib/searchTokenizer';
 import { SearchTokenInput } from '@/shared/ui/SearchTokenInput';
 import { AnimatedIcon } from '@/shared/ui/animation/AnimatedIcon';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { AnimatePresence } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   Bell,
   Compass,
@@ -40,12 +46,20 @@ function mergeUnique(values: string[]) {
   return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)));
 }
 
+function tokenSignature(query: string) {
+  return parseSearchQuery(query || '')
+    .filter((token) => token.type !== 'text')
+    .map((token) => `${token.mode || 'include'}:${token.type}:${token.value.trim()}`)
+    .filter(Boolean)
+    .sort()
+    .join('|');
+}
+
 export function TopBar({ onMenuClick }: TopBarProps) {
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const location = useLocation();
   const { params, setParams } = useSearchURLParams();
-  const { setPreviewThreadId } = usePreviewStore();
+  const { setPreviewThread, setPreviewThreadId } = usePreviewStore();
 
   const [searchInput, setSearchInput] = useState(params.query);
   const [debouncedQuery, setDebouncedQuery] = useState(params.query.trim());
@@ -55,9 +69,15 @@ export function TopBar({ onMenuClick }: TopBarProps) {
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
   const [includeAuthorDraft, setIncludeAuthorDraft] = useState('');
   const [excludeAuthorDraft, setExcludeAuthorDraft] = useState('');
+  const [historyItems, setHistoryItems] = useState(() => getSearchHistory());
 
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  const closePanels = useCallback(() => {
+    setShowSuggestions(false);
+    setShowFilters(false);
+  }, []);
 
   useEffect(() => {
     const handleNotificationCountMatch = (e: Event) => {
@@ -84,15 +104,20 @@ export function TopBar({ onMenuClick }: TopBarProps) {
   }, [searchInput]);
 
   useEffect(() => {
+    if (showSuggestions) {
+      setHistoryItems(getSearchHistory());
+    }
+  }, [showSuggestions]);
+
+  useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
-        setShowSuggestions(false);
-        setShowFilters(false);
+        closePanels();
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [closePanels]);
 
   const activeVirtualTag = useMemo(() => {
     const tokens = parseSearchQuery(searchInput || '');
@@ -100,27 +125,6 @@ export function TopBar({ onMenuClick }: TopBarProps) {
     if (!tagToken) return null;
     return ALL_VIRTUAL_TAGS.find((virtualTag) => virtualTag.name === tagToken.value);
   }, [searchInput]);
-
-  const addSearchHistoryMutation = useMutation({
-    mutationFn: (query: string) => searchApi.addSearchHistory(query),
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['search-history'] });
-    },
-  });
-
-  const removeSearchHistoryMutation = useMutation({
-    mutationFn: (params: { id?: string; query?: string }) => searchApi.removeSearchHistory(params),
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['search-history'] });
-    },
-  });
-
-  const clearSearchHistoryMutation = useMutation({
-    mutationFn: () => searchApi.clearSearchHistory(),
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['search-history'] });
-    },
-  });
 
   const executeSearch = useCallback(
     (nextQuery: string) => {
@@ -134,11 +138,29 @@ export function TopBar({ onMenuClick }: TopBarProps) {
       }
 
       if (trimmed) {
-        addSearchHistoryMutation.mutate(trimmed);
+        addSearchHistory(trimmed);
+        setHistoryItems(getSearchHistory());
       }
-      setShowSuggestions(false);
+      closePanels();
     },
-    [addSearchHistoryMutation, location.pathname, navigate, setParams],
+    [closePanels, location.pathname, navigate, setParams],
+  );
+
+  const applyInputChange = useCallback(
+    (nextQuery: string) => {
+      setSearchInput(nextQuery);
+
+      const tokenChanged = tokenSignature(nextQuery) !== tokenSignature(params.query || '');
+      if (!tokenChanged) return;
+
+      const trimmed = nextQuery.trim();
+      if (location.pathname !== '/') {
+        navigate(trimmed ? `/?q=${encodeURIComponent(trimmed)}` : '/');
+      } else {
+        setParams({ query: trimmed });
+      }
+    },
+    [location.pathname, navigate, params.query, setParams],
   );
 
   const handleSearch = useCallback(() => {
@@ -148,8 +170,12 @@ export function TopBar({ onMenuClick }: TopBarProps) {
   const handleSuggestionSelect = useCallback(
     (action: SearchSuggestionAction) => {
       if (action.type === 'open_thread') {
-        setPreviewThreadId(action.threadId);
-        setShowSuggestions(false);
+        if (action.thread) {
+          setPreviewThread(action.thread);
+        } else {
+          setPreviewThreadId(action.threadId);
+        }
+        closePanels();
         return;
       }
 
@@ -157,26 +183,31 @@ export function TopBar({ onMenuClick }: TopBarProps) {
         if (action.submit) {
           executeSearch(action.value);
         } else {
-          setSearchInput(action.value);
-          setShowSuggestions(false);
+          applyInputChange(action.value);
+          closePanels();
         }
         return;
       }
 
       const newValue = `${searchInput}${action.value}`.trim();
-      setSearchInput(newValue);
-      setShowSuggestions(false);
+      applyInputChange(newValue);
+      closePanels();
     },
-    [executeSearch, searchInput, setPreviewThreadId],
+    [applyInputChange, closePanels, executeSearch, searchInput, setPreviewThread, setPreviewThreadId],
   );
 
   const toggleFilters = () => {
-    setShowFilters((prev) => !prev);
+    if (showFilters) {
+      closePanels();
+      return;
+    }
     setShowSuggestions(false);
+    setShowFilters(true);
   };
 
   const handleInputFocus = () => {
     setShowSuggestions(true);
+    setShowFilters(false);
   };
 
   const needsFilter = location.pathname === '/' || location.pathname === '/follows';
@@ -191,35 +222,105 @@ export function TopBar({ onMenuClick }: TopBarProps) {
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: channelTagCatalog = [] } = useQuery({
+    queryKey: ['search-filter-meta', 'channel-tag-catalog'],
+    queryFn: () => searchApi.getChannelTagCatalog(),
+    enabled: !params.channel,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+
+  const globalAvailableTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    for (const channel of channelTagCatalog) {
+      for (const tag of channel.available_tags || []) {
+        if (tag?.trim()) tagSet.add(tag.trim());
+      }
+      for (const tag of channel.virtual_tags || []) {
+        if (tag?.trim()) tagSet.add(tag.trim());
+      }
+    }
+    return Array.from(tagSet);
+  }, [channelTagCatalog]);
+
+  const virtualTagOriginChannelMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const channel of channelTagCatalog) {
+      for (const tag of channel.virtual_tags || []) {
+        if (tag?.trim() && !map.has(tag.trim())) {
+          map.set(tag.trim(), channel.channel_id);
+        }
+      }
+    }
+    return map;
+  }, [channelTagCatalog]);
+
   const availableTags = useMemo(() => {
     return mergeUnique([
       ...(filterMeta?.virtual_tags || []),
       ...(filterMeta?.available_tags || []),
+      ...globalAvailableTags,
       ...params.includeTags,
       ...params.excludeTags,
     ]);
-  }, [filterMeta?.available_tags, filterMeta?.virtual_tags, params.includeTags, params.excludeTags]);
+  }, [filterMeta?.available_tags, filterMeta?.virtual_tags, globalAvailableTags, params.includeTags, params.excludeTags]);
 
-  const { data: suggestionData } = useQuery({
+  const { data: suggestionSearchData } = useQuery({
     queryKey: ['search-suggestions', debouncedQuery, params.channel],
     queryFn: () =>
-      searchApi.suggest({
-        q: debouncedQuery,
-        channel_id: params.channel,
+      searchApi.search({
+        query: debouncedQuery,
+        channel_ids: params.channel ? [params.channel] : undefined,
         limit: 5,
+        sort_method: 'relevance',
       }),
-    enabled: showSuggestions,
+    enabled: showSuggestions && debouncedQuery.length > 0,
     staleTime: 30 * 1000,
     retry: false,
   });
 
-  const { data: historyItems = [] } = useQuery({
-    queryKey: ['search-history'],
-    queryFn: () => searchApi.getSearchHistory({ limit: 10 }),
-    enabled: showSuggestions,
-    staleTime: 30 * 1000,
-    retry: false,
-  });
+  const suggestionThreads = useMemo(() => {
+    return (suggestionSearchData?.results || []).slice(0, 5).map((thread) => ({
+      thread_id: thread.thread_id,
+      title: thread.title,
+      snippet: thread.first_message_excerpt || '',
+      thumbnail_url: thread.thumbnail_urls?.[0] || null,
+      author_name:
+        thread.author?.display_name ||
+        thread.author?.global_name ||
+        thread.author?.name ||
+        '未知用户',
+      author_avatar_url: thread.author?.avatar_url || null,
+      source_thread: thread,
+    }));
+  }, [suggestionSearchData?.results]);
+
+  const suggestionAuthors = useMemo(() => {
+    const unique = new Map<string, { id: string; name: string; avatar_url?: string | null }>();
+
+    for (const thread of suggestionSearchData?.results || []) {
+      if (!thread.author) continue;
+      const authorId = String(thread.author.id);
+      if (unique.has(authorId)) continue;
+
+      unique.set(authorId, {
+        id: authorId,
+        name: thread.author.display_name || thread.author.global_name || thread.author.name,
+        avatar_url: thread.author.avatar_url || null,
+      });
+
+      if (unique.size >= 5) break;
+    }
+
+    return Array.from(unique.values());
+  }, [suggestionSearchData?.results]);
+
+  const suggestionTags = useMemo(() => {
+    return mergeUnique([
+      ...(suggestionSearchData?.virtual_tags || []),
+      ...(suggestionSearchData?.available_tags || []),
+    ]).slice(0, 5);
+  }, [suggestionSearchData?.available_tags, suggestionSearchData?.virtual_tags]);
 
   const allQueryTokens = useMemo(() => parseSearchQuery(searchInput), [searchInput]);
   const includeAuthorTokens = useMemo(
@@ -242,6 +343,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
     (params.tagLogic && params.tagLogic !== 'and');
 
   const hasPanelFilters = hasActiveFilters;
+  const isPanelOpen = showSuggestions || showFilters;
 
   const updateQueryFromTokenMutation = useCallback(
     (mutator: (tokens: SearchToken[]) => string) => {
@@ -258,10 +360,33 @@ export function TopBar({ onMenuClick }: TopBarProps) {
         const existing = tokens.find(
           (token) => token.type === 'tag' && token.value === tagName && token.mode === mode,
         );
+        const virtualOriginChannelId = !params.channel
+          ? virtualTagOriginChannelMap.get(tagName) || null
+          : null;
 
         let nextQuery = params.query || '';
         if (existing) {
           nextQuery = removeToken(nextQuery, existing);
+          if (virtualOriginChannelId) {
+            const nextTokens = parseSearchQuery(nextQuery);
+            const hasOtherVirtualFromSameOrigin = nextTokens.some(
+              (token) =>
+                token.type === 'tag'
+                && token.mode === 'include'
+                && virtualTagOriginChannelMap.get(token.value) === virtualOriginChannelId,
+            );
+            if (!hasOtherVirtualFromSameOrigin) {
+              const channelToken = nextTokens.find(
+                (token) =>
+                  token.type === 'channel'
+                  && token.mode === 'include'
+                  && token.value === virtualOriginChannelId,
+              );
+              if (channelToken) {
+                nextQuery = removeToken(nextQuery, channelToken);
+              }
+            }
+          }
         } else {
           const opposite = tokens.find(
             (token) => token.type === 'tag' && token.value === tagName && token.mode !== mode,
@@ -270,11 +395,14 @@ export function TopBar({ onMenuClick }: TopBarProps) {
             nextQuery = removeToken(nextQuery, opposite);
           }
           nextQuery = addToken(nextQuery, 'tag', tagName, mode);
+          if (virtualOriginChannelId) {
+            nextQuery = addToken(nextQuery, 'channel', virtualOriginChannelId, 'include');
+          }
         }
         return nextQuery.trim();
       });
     },
-    [params.query, updateQueryFromTokenMutation],
+    [params.channel, params.query, updateQueryFromTokenMutation, virtualTagOriginChannelMap],
   );
 
   const removeAuthorToken = useCallback(
@@ -353,10 +481,10 @@ export function TopBar({ onMenuClick }: TopBarProps) {
             <div className="min-w-0 flex-1 overflow-hidden">
               <SearchTokenInput
                 value={searchInput}
-                onChange={setSearchInput}
+                onChange={applyInputChange}
                 onSearch={() => {
                   handleSearch();
-                  setShowSuggestions(false);
+                  closePanels();
                 }}
                 onFocus={handleInputFocus}
                 externalInputRef={searchInputRef}
@@ -385,253 +513,294 @@ export function TopBar({ onMenuClick }: TopBarProps) {
           </div>
 
           <AnimatePresence>
-            {showSuggestions && (
-              <SearchSuggestions
-                currentQuery={searchInput}
-                availableTags={availableTags}
-                channels={[]}
-                authors={suggestionData?.top_authors || []}
-                threads={suggestionData?.top_threads || []}
-                suggestedTags={suggestionData?.top_tags || []}
-                history={historyItems}
-                onSelect={handleSuggestionSelect}
-                onRemoveHistory={(item) => {
-                  removeSearchHistoryMutation.mutate({
-                    id: item.id,
-                    query: item.query,
-                  });
-                }}
-                onClearHistory={() => {
-                  clearSearchHistoryMutation.mutate();
-                }}
-                onClose={() => setShowSuggestions(false)}
-                inputRef={searchInputRef}
-              />
-            )}
-          </AnimatePresence>
-
-          {showFilters && (
-            <div className="absolute left-1/2 top-full z-50 mt-2 w-[calc(100vw-1.5rem)] max-w-[560px] -translate-x-1/2 rounded-2xl border border-white/[0.06] bg-[var(--od-bg-secondary)] p-4 shadow-2xl sm:left-auto sm:right-0 sm:w-[560px] sm:max-w-none sm:translate-x-0">
-              <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-[var(--od-text-primary)]">高级筛选</h3>
-                {hasPanelFilters && (
-                  <button
-                    onClick={() => {
-                      setSearchInput('');
-                      setIncludeAuthorDraft('');
-                      setExcludeAuthorDraft('');
-                      setParams({
-                        query: '',
-                        sortMethod: 'last_active_desc',
-                        timeFrom: '',
-                        timeTo: '',
-                        tagLogic: 'and',
-                      });
-                    }}
-                    className="text-xs text-[var(--od-accent)] hover:underline"
-                  >
-                    清空筛选
-                  </button>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="topbar-sort" className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-[var(--od-text-tertiary)]">
-                    排序方式
-                  </label>
-                  <select
-                    id="topbar-sort"
-                    value={params.sortMethod}
-                    onChange={(e) => setParams({ sortMethod: e.target.value as any })}
-                    className="w-full rounded-xl border border-white/[0.06] bg-[var(--od-bg-tertiary)] px-3 py-2 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
-                  >
-                    <option value="last_active_desc">最近活跃</option>
-                    <option value="created_desc">最新发布</option>
-                    <option value="reply_desc">回复数</option>
-                    <option value="reaction_desc">反应数</option>
-                    <option value="relevance">相关度</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="topbar-tagLogic" className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-[var(--od-text-tertiary)]">
-                    标签逻辑
-                  </label>
-                  <select
-                    id="topbar-tagLogic"
-                    value={params.tagLogic}
-                    onChange={(e) => setParams({ tagLogic: e.target.value as 'and' | 'or' })}
-                    className="w-full rounded-xl border border-white/[0.06] bg-[var(--od-bg-tertiary)] px-3 py-2 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
-                  >
-                    <option value="and">全部包含 (AND)</option>
-                    <option value="or">任一即可 (OR)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label htmlFor="topbar-timeFrom" className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-[var(--od-text-tertiary)]">
-                    不早于
-                  </label>
-                  <input
-                    id="topbar-timeFrom"
-                    type="date"
-                    value={params.timeFrom}
-                    onChange={(e) => setParams({ timeFrom: e.target.value })}
-                    className="w-full rounded-xl border border-white/[0.06] bg-[var(--od-bg-tertiary)] px-3 py-2 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="topbar-timeTo" className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-[var(--od-text-tertiary)]">
-                    不晚于
-                  </label>
-                  <input
-                    id="topbar-timeTo"
-                    type="date"
-                    value={params.timeTo}
-                    onChange={(e) => setParams({ timeTo: e.target.value })}
-                    className="w-full rounded-xl border border-white/[0.06] bg-[var(--od-bg-tertiary)] px-3 py-2 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
-                  />
-                </div>
-              </div>
-
-              <div className="mt-4 space-y-4">
-                <div>
-                  <div className="mb-2 flex items-center justify-between">
-                    <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--od-text-tertiary)]">
-                      标签筛选
-                    </h4>
-                    <span className="text-[11px] text-[var(--od-text-tertiary)]">
-                      点击标签切换包含 / 排除 / 取消，不在这里显示删除按钮
-                    </span>
+            {isPanelOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                transition={{ type: 'spring', stiffness: 320, damping: 26 }}
+                className="absolute left-1/2 top-full z-50 mt-2 w-[calc(100vw-1.5rem)] max-w-[560px] -translate-x-1/2 overflow-hidden rounded-2xl border border-white/[0.06] bg-[var(--od-bg-secondary)] shadow-2xl sm:left-auto sm:right-0 sm:w-[560px] sm:max-w-none sm:translate-x-0"
+              >
+                {needsFilter && (
+                  <div className="flex items-center gap-2 border-b border-white/[0.06] p-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowSuggestions(true);
+                        setShowFilters(false);
+                      }}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                        showSuggestions
+                          ? 'bg-[var(--od-accent)]/20 text-[var(--od-accent)]'
+                          : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)]'
+                      }`}
+                    >
+                      搜索建议
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowFilters(true);
+                        setShowSuggestions(false);
+                      }}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                        showFilters
+                          ? 'bg-[var(--od-accent)]/20 text-[var(--od-accent)]'
+                          : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)]'
+                      }`}
+                    >
+                      高级筛选
+                    </button>
                   </div>
-                  <div className="flex max-h-[180px] flex-wrap gap-2 overflow-y-auto rounded-2xl bg-[var(--od-bg-tertiary)] p-3">
-                    {availableTags.length > 0 ? (
-                      availableTags.map((tag) => {
-                        const isIncluded = params.includeTags.includes(tag);
-                        const isExcluded = params.excludeTags.includes(tag);
+                )}
 
-                        return (
-                          <div key={tag} className="flex items-center rounded-full bg-[var(--od-bg-secondary)] p-1">
+                {showFilters ? (
+                  <div className="p-4">
+                    <div className="mb-4 flex items-center justify-between">
+                      <h3 className="text-sm font-semibold text-[var(--od-text-primary)]">高级筛选</h3>
+                      {hasPanelFilters && (
+                        <button
+                          onClick={() => {
+                            setSearchInput('');
+                            setIncludeAuthorDraft('');
+                            setExcludeAuthorDraft('');
+                            setParams({
+                              query: '',
+                              sortMethod: 'last_active_desc',
+                              timeFrom: '',
+                              timeTo: '',
+                              tagLogic: 'and',
+                            });
+                          }}
+                          className="text-xs text-[var(--od-accent)] hover:underline"
+                        >
+                          清空筛选
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label htmlFor="topbar-sort" className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-[var(--od-text-tertiary)]">
+                          排序方式
+                        </label>
+                        <select
+                          id="topbar-sort"
+                          value={params.sortMethod}
+                          onChange={(e) => setParams({ sortMethod: e.target.value as any })}
+                          className="w-full rounded-xl border border-white/[0.06] bg-[var(--od-bg-tertiary)] px-3 py-2 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
+                        >
+                          <option value="last_active_desc">最近活跃</option>
+                          <option value="created_desc">最新发布</option>
+                          <option value="reply_desc">回复数</option>
+                          <option value="reaction_desc">反应数</option>
+                          <option value="relevance">相关度</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label htmlFor="topbar-tagLogic" className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-[var(--od-text-tertiary)]">
+                          标签逻辑
+                        </label>
+                        <select
+                          id="topbar-tagLogic"
+                          value={params.tagLogic}
+                          onChange={(e) => setParams({ tagLogic: e.target.value as 'and' | 'or' })}
+                          className="w-full rounded-xl border border-white/[0.06] bg-[var(--od-bg-tertiary)] px-3 py-2 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
+                        >
+                          <option value="and">全部包含 (AND)</option>
+                          <option value="or">任一即可 (OR)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label htmlFor="topbar-timeFrom" className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-[var(--od-text-tertiary)]">
+                          不早于
+                        </label>
+                        <input
+                          id="topbar-timeFrom"
+                          type="date"
+                          value={params.timeFrom}
+                          onChange={(e) => setParams({ timeFrom: e.target.value })}
+                          className="w-full rounded-xl border border-white/[0.06] bg-[var(--od-bg-tertiary)] px-3 py-2 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
+                        />
+                      </div>
+
+                      <div>
+                        <label htmlFor="topbar-timeTo" className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-[var(--od-text-tertiary)]">
+                          不晚于
+                        </label>
+                        <input
+                          id="topbar-timeTo"
+                          type="date"
+                          value={params.timeTo}
+                          onChange={(e) => setParams({ timeTo: e.target.value })}
+                          className="w-full rounded-xl border border-white/[0.06] bg-[var(--od-bg-tertiary)] px-3 py-2 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mt-4 space-y-4">
+                      <div>
+                        <div className="mb-2 flex items-center justify-between">
+                          <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--od-text-tertiary)]">
+                            标签筛选
+                          </h4>
+                          <span className="text-[11px] text-[var(--od-text-tertiary)]">
+                            点击标签切换包含 / 排除 / 取消，不在这里显示删除按钮
+                          </span>
+                        </div>
+                        <div className="flex max-h-[180px] flex-wrap gap-2 overflow-y-auto rounded-2xl bg-[var(--od-bg-tertiary)] p-3">
+                          {availableTags.length > 0 ? (
+                            availableTags.map((tag) => {
+                              const isIncluded = params.includeTags.includes(tag);
+                              const isExcluded = params.excludeTags.includes(tag);
+
+                              return (
+                                <div key={tag} className="flex items-center rounded-full bg-[var(--od-bg-secondary)] p-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      if (isIncluded) {
+                                        toggleTagToken(tag, 'exclude');
+                                        return;
+                                      }
+                                      if (isExcluded) {
+                                        toggleTagToken(tag, 'exclude');
+                                        return;
+                                      }
+                                      toggleTagToken(tag, 'include');
+                                    }}
+                                    className={`rounded-full px-3 py-1 text-xs transition-colors ${
+                                      isIncluded
+                                        ? 'bg-emerald-500/20 text-emerald-300'
+                                        : isExcluded
+                                          ? 'bg-rose-500/20 text-rose-300'
+                                          : 'text-[var(--od-text-secondary)] hover:bg-emerald-500/10 hover:text-emerald-300'
+                                    }`}
+                                  >
+                                    {isIncluded ? '✓ ' : isExcluded ? '✕ ' : ''}{tag}
+                                  </button>
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <span className="text-sm text-[var(--od-text-tertiary)]">当前上下文暂时没有可用标签</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div>
+                          <label className="mb-2 flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-[var(--od-text-tertiary)]">
+                            <User className="h-3.5 w-3.5" />
+                            包含作者
+                          </label>
+                          <div className="flex gap-2">
+                            <input
+                              value={includeAuthorDraft}
+                              onChange={(e) => setIncludeAuthorDraft(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  submitAuthorDraft('include');
+                                }
+                              }}
+                              placeholder="输入昵称或用户名"
+                              className="w-full rounded-xl border border-white/[0.06] bg-[var(--od-bg-tertiary)] px-3 py-2 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
+                            />
                             <button
                               type="button"
-                              onClick={() => {
-                                if (isIncluded) {
-                                  toggleTagToken(tag, 'exclude');
-                                  return;
-                                }
-                                if (isExcluded) {
-                                  toggleTagToken(tag, 'exclude');
-                                  return;
-                                }
-                                toggleTagToken(tag, 'include');
-                              }}
-                              className={`rounded-full px-3 py-1 text-xs transition-colors ${
-                                isIncluded
-                                  ? 'bg-emerald-500/20 text-emerald-300'
-                                  : isExcluded
-                                    ? 'bg-rose-500/20 text-rose-300'
-                                    : 'text-[var(--od-text-secondary)] hover:bg-emerald-500/10 hover:text-emerald-300'
-                              }`}
+                              onClick={() => submitAuthorDraft('include')}
+                              className="rounded-xl bg-emerald-500/20 px-3 text-sm text-emerald-300 transition-colors hover:bg-emerald-500/30"
                             >
-                              {isIncluded ? '✓ ' : isExcluded ? '✕ ' : ''}{tag}
+                              添加
                             </button>
                           </div>
-                        );
-                      })
-                    ) : (
-                      <span className="text-sm text-[var(--od-text-tertiary)]">当前上下文暂时没有可用标签</span>
-                    )}
-                  </div>
-                </div>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {includeAuthorTokens.map((token) => (
+                              <button
+                                key={`${token.mode}-${token.value}`}
+                                type="button"
+                                onClick={() => removeAuthorToken(token)}
+                                className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-3 py-1 text-xs text-emerald-300"
+                              >
+                                {token.value}
+                                <X className="h-3 w-3" />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-2 flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-[var(--od-text-tertiary)]">
-                      <User className="h-3.5 w-3.5" />
-                      包含作者
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        value={includeAuthorDraft}
-                        onChange={(e) => setIncludeAuthorDraft(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            submitAuthorDraft('include');
-                          }
-                        }}
-                        placeholder="输入昵称或用户名"
-                        className="w-full rounded-xl border border-white/[0.06] bg-[var(--od-bg-tertiary)] px-3 py-2 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => submitAuthorDraft('include')}
-                        className="rounded-xl bg-emerald-500/20 px-3 text-sm text-emerald-300 transition-colors hover:bg-emerald-500/30"
-                      >
-                        添加
-                      </button>
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {includeAuthorTokens.map((token) => (
-                        <button
-                          key={`${token.mode}-${token.value}`}
-                          type="button"
-                          onClick={() => removeAuthorToken(token)}
-                          className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-3 py-1 text-xs text-emerald-300"
-                        >
-                          {token.value}
-                          <X className="h-3 w-3" />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="mb-2 flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-[var(--od-text-tertiary)]">
-                      <User className="h-3.5 w-3.5" />
-                      排除作者
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        value={excludeAuthorDraft}
-                        onChange={(e) => setExcludeAuthorDraft(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            submitAuthorDraft('exclude');
-                          }
-                        }}
-                        placeholder="输入昵称或用户名"
-                        className="w-full rounded-xl border border-white/[0.06] bg-[var(--od-bg-tertiary)] px-3 py-2 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => submitAuthorDraft('exclude')}
-                        className="rounded-xl bg-rose-500/20 px-3 text-sm text-rose-300 transition-colors hover:bg-rose-500/30"
-                      >
-                        添加
-                      </button>
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {excludeAuthorTokens.map((token) => (
-                        <button
-                          key={`${token.mode}-${token.value}`}
-                          type="button"
-                          onClick={() => removeAuthorToken(token)}
-                          className="inline-flex items-center gap-1 rounded-full bg-rose-500/15 px-3 py-1 text-xs text-rose-300"
-                        >
-                          {token.value}
-                          <X className="h-3 w-3" />
-                        </button>
-                      ))}
+                        <div>
+                          <label className="mb-2 flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-[var(--od-text-tertiary)]">
+                            <User className="h-3.5 w-3.5" />
+                            排除作者
+                          </label>
+                          <div className="flex gap-2">
+                            <input
+                              value={excludeAuthorDraft}
+                              onChange={(e) => setExcludeAuthorDraft(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  submitAuthorDraft('exclude');
+                                }
+                              }}
+                              placeholder="输入昵称或用户名"
+                              className="w-full rounded-xl border border-white/[0.06] bg-[var(--od-bg-tertiary)] px-3 py-2 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => submitAuthorDraft('exclude')}
+                              className="rounded-xl bg-rose-500/20 px-3 text-sm text-rose-300 transition-colors hover:bg-rose-500/30"
+                            >
+                              添加
+                            </button>
+                          </div>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {excludeAuthorTokens.map((token) => (
+                              <button
+                                key={`${token.mode}-${token.value}`}
+                                type="button"
+                                onClick={() => removeAuthorToken(token)}
+                                className="inline-flex items-center gap-1 rounded-full bg-rose-500/15 px-3 py-1 text-xs text-rose-300"
+                              >
+                                {token.value}
+                                <X className="h-3 w-3" />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            </div>
-          )}
+                ) : (
+                  <SearchSuggestions
+                    currentQuery={searchInput}
+                    availableTags={availableTags}
+                    channels={[]}
+                    authors={suggestionAuthors}
+                    threads={suggestionThreads}
+                    suggestedTags={suggestionTags}
+                    history={historyItems}
+                    onSelect={handleSuggestionSelect}
+                    onRemoveHistory={(item) => {
+                      removeSearchHistory(item.query);
+                      setHistoryItems(getSearchHistory());
+                    }}
+                    onClearHistory={() => {
+                      clearSearchHistory();
+                      setHistoryItems([]);
+                    }}
+                    onClose={closePanels}
+                    inputRef={searchInputRef}
+                    embedded
+                  />
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         <div className="relative">

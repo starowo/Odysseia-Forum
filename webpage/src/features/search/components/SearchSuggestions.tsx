@@ -10,7 +10,7 @@ import { motion } from 'framer-motion';
 export type SearchSuggestionAction =
   | { type: 'append'; value: string }
   | { type: 'replace_query'; value: string; submit?: boolean }
-  | { type: 'open_thread'; threadId: string };
+  | { type: 'open_thread'; threadId: string; thread?: SearchSuggestionThread['source_thread'] };
 
 interface SearchSuggestionsProps {
   currentQuery: string;
@@ -25,6 +25,7 @@ interface SearchSuggestionsProps {
   onRemoveHistory?: (item: SearchHistoryItem) => void;
   onClearHistory?: () => void;
   inputRef?: React.RefObject<HTMLInputElement>;
+  embedded?: boolean;
 }
 
 export function SearchSuggestions({
@@ -40,6 +41,7 @@ export function SearchSuggestions({
   onRemoveHistory,
   onClearHistory,
   inputRef,
+  embedded = false,
 }: SearchSuggestionsProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -92,6 +94,7 @@ export function SearchSuggestions({
         thumbnailUrl?: string | null;
         authorName?: string | null;
         authorAvatarUrl?: string | null;
+        sourceThread?: SearchSuggestionThread['source_thread'];
       };
 
   const isZeroState = !currentQuery.trim();
@@ -135,22 +138,6 @@ export function SearchSuggestions({
         flatItems.push(...popularTags);
       }
     } else {
-      const directThreads: SuggestionItem[] = threads.slice(0, 5).map((thread, index) => ({
-        key: `thread-${thread.thread_id}-${index}`,
-        type: 'thread',
-        display: thread.title,
-        threadId: thread.thread_id,
-        snippet: thread.snippet,
-        thumbnailUrl: thread.thumbnail_url,
-        authorName: thread.author_name,
-        authorAvatarUrl: thread.author_avatar_url,
-        icon: FileText,
-      }));
-      if (directThreads.length > 0) {
-        sectionedGroups.push({ title: '帖子直达', icon: FileText, items: directThreads });
-        flatItems.push(...directThreads);
-      }
-
       const relevantAuthors: SuggestionItem[] = authors
         .filter((author) => author.name.toLowerCase().includes(queryLower))
         .slice(0, 5)
@@ -165,6 +152,23 @@ export function SearchSuggestions({
       if (relevantAuthors.length > 0) {
         sectionedGroups.push({ title: '匹配作者', icon: User, items: relevantAuthors });
         flatItems.push(...relevantAuthors);
+      }
+
+      const directThreads: SuggestionItem[] = threads.slice(0, 5).map((thread, index) => ({
+        key: `thread-${thread.thread_id}-${index}`,
+        type: 'thread',
+        display: thread.title,
+        threadId: thread.thread_id,
+        snippet: thread.snippet,
+        thumbnailUrl: thread.thumbnail_url,
+        authorName: thread.author_name,
+        authorAvatarUrl: thread.author_avatar_url,
+        sourceThread: thread.source_thread,
+        icon: FileText,
+      }));
+      if (directThreads.length > 0) {
+        sectionedGroups.push({ title: '帖子直达', icon: FileText, items: directThreads });
+        flatItems.push(...directThreads);
       }
 
       const relevantTags: SuggestionItem[] = availableTags
@@ -227,7 +231,7 @@ export function SearchSuggestions({
 
   const handleSelect = (item: SuggestionItem) => {
     if (item.type === 'thread') {
-      onSelect({ type: 'open_thread', threadId: item.threadId });
+      onSelect({ type: 'open_thread', threadId: item.threadId, thread: item.sourceThread });
       return;
     }
 
@@ -239,19 +243,13 @@ export function SearchSuggestions({
     onSelect({ type: 'append', value: item.value });
   };
 
-  if (groups.flatItems.length === 0) {
-    return null;
-  }
-
-  return (
-    <motion.div
-      ref={dropdownRef}
-      initial={{ opacity: 0, y: -10, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -10, scale: 0.95 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-      className="absolute right-0 top-full z-50 mt-od-sm w-full sm:w-[560px] overflow-hidden rounded-lg border border-[var(--od-border-strong)] bg-[var(--od-bg-secondary)] shadow-2xl origin-top"
-    >
+  const content = (
+    <>
+      {groups.flatItems.length === 0 ? (
+        <div className="p-4 text-sm text-[var(--od-text-tertiary)]">
+          暂无联想结果，继续输入更多关键词试试。
+        </div>
+      ) : (
       <div className="max-h-[420px] overflow-y-auto p-2">
         {groups.sectionedGroups.map((group, groupIndex) => (
           <div
@@ -363,6 +361,7 @@ export function SearchSuggestions({
           </div>
         ))}
       </div>
+      )}
 
       <div className="flex items-center justify-between border-t border-[var(--od-border)] bg-[var(--od-bg-tertiary)]/50 p-od-sm text-od-xs text-[var(--od-text-tertiary)]">
         <div>智能搜索导航</div>
@@ -376,6 +375,27 @@ export function SearchSuggestions({
           </span>
         </div>
       </div>
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <div ref={dropdownRef} className="w-full">
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <motion.div
+      ref={dropdownRef}
+      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+      className="absolute right-0 top-full z-50 mt-od-sm w-full sm:w-[560px] overflow-hidden rounded-lg border border-[var(--od-border-strong)] bg-[var(--od-bg-secondary)] shadow-2xl origin-top"
+    >
+      {content}
     </motion.div>
   );
 }

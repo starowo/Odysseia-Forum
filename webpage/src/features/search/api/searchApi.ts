@@ -1,5 +1,6 @@
 import { SearchParams as ApiSearchParams, SearchResponse, Thread } from '@/entities/thread/types';
 import { apiClient } from '@/shared/api/client';
+import { CHANNEL_CATEGORIES } from '@/shared/config/navigation';
 import { tokenizeSearchPayload } from '@/shared/lib/searchTokenizer';
 
 export type UISortMethod =
@@ -39,6 +40,7 @@ export interface SearchSuggestionThread {
   thumbnail_url?: string | null;
   author_name?: string | null;
   author_avatar_url?: string | null;
+  source_thread?: Thread;
 }
 
 export interface SearchSuggestionResponse {
@@ -53,7 +55,15 @@ export interface SearchHistoryItem {
   timestamp: number;
 }
 
+export interface ChannelTagCatalogItem {
+  channel_id: string;
+  channel_name: string;
+  available_tags: string[];
+  virtual_tags: string[];
+}
+
 const DEFAULT_NUMERIC_RANGE = '[0, 10000000)';
+const GLOBAL_TAG_DISCOVERY_BATCH_SIZE = 6;
 
 function normalizeIdList(values?: Array<number | string> | null): string[] | null {
   if (!values || values.length === 0) return null;
@@ -169,44 +179,67 @@ export const searchApi = {
     return response.data;
   },
 
-  suggest: async (params: {
-    q?: string;
-    channel_id?: string | null;
-    limit?: number;
-  }): Promise<SearchSuggestionResponse> => {
-    const response = await apiClient.get<SearchSuggestionResponse>('/search/suggest', {
-      params: {
-        q: params.q || '',
-        channel_id: params.channel_id || undefined,
-        limit: params.limit || 5,
-      },
-    });
-    return response.data;
-  },
+  // 兼容没有 /meta/channels 的后端：通过逐频道 search 聚合频道标签目录
+  getChannelTagCatalog: async (): Promise<ChannelTagCatalogItem[]> => {
+    const channels = CHANNEL_CATEGORIES.flatMap((category) => category.channels);
+    const uniqueChannels = Array.from(new Map(channels.map((channel) => [channel.id, channel])).values());
+    const catalog: ChannelTagCatalogItem[] = [];
+    let failedCount = 0;
 
-  getSearchHistory: async (params?: { limit?: number }): Promise<SearchHistoryItem[]> => {
-    const response = await apiClient.get<SearchHistoryItem[]>('/search/history', {
-      params: { limit: params?.limit || 10 },
-    });
-    return response.data || [];
-  },
+    for (let i = 0; i < uniqueChannels.length; i += GLOBAL_TAG_DISCOVERY_BATCH_SIZE) {
+      const batch = uniqueChannels.slice(i, i + GLOBAL_TAG_DISCOVERY_BATCH_SIZE);
+      const responses = await Promise.all(
+        batch.map(async (channel) => {
+          try {
+            const result = await searchApi.search({
+              channel_ids: [channel.id],
+              limit: 1,
+            });
+            return {
+              channel_id: channel.id,
+              channel_name: channel.name,
+              available_tags: Array.from(
+                new Set((result.available_tags || []).map((tag) => tag.trim()).filter(Boolean)),
+              ),
+              virtual_tags: Array.from(
+                new Set((result.virtual_tags || []).map((tag) => tag.trim()).filter(Boolean)),
+              ),
+            } satisfies ChannelTagCatalogItem;
+          } catch {
+            failedCount += 1;
+            return null;
+          }
+        }),
+      );
 
-  addSearchHistory: async (query: string): Promise<void> => {
-    await apiClient.post('/search/history', { query });
-  },
-
-  removeSearchHistory: async (params: { id?: string; query?: string }): Promise<void> => {
-    if (params.id) {
-      await apiClient.delete(`/search/history/${params.id}`);
-      return;
+      for (const item of responses) {
+        if (!item) continue;
+        catalog.push(item);
+      }
     }
 
-    await apiClient.delete('/search/history', {
-      data: { query: params.query || '' },
-    });
+    if (failedCount > 0) {
+      console.warn(
+        `[searchApi.getChannelTagCatalog] ${failedCount}/${uniqueChannels.length} channel catalog requests failed.`,
+      );
+    }
+
+    return catalog;
   },
 
-  clearSearchHistory: async (): Promise<void> => {
-    await apiClient.delete('/search/history');
+  // 兼容没有 /meta/channels 的后端：通过逐频道 search 聚合全局标签
+  getGlobalTags: async (): Promise<string[]> => {
+    const tagSet = new Set<string>();
+    const catalog = await searchApi.getChannelTagCatalog();
+    for (const item of catalog) {
+      for (const tag of item.virtual_tags) {
+        if (tag?.trim()) tagSet.add(tag.trim());
+      }
+      for (const tag of item.available_tags) {
+        if (tag?.trim()) tagSet.add(tag.trim());
+      }
+    }
+
+    return Array.from(tagSet);
   },
 };

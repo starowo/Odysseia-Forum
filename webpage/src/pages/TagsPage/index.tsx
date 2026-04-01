@@ -8,77 +8,154 @@ import { addToken } from '@/shared/lib/searchTokenizer';
 import { useSettings } from '@/shared/hooks/useSettings';
 
 interface TagWithCount {
+  key: string;
   name: string;
+  channelId: string;
+  channelName: string;
+  isVirtual: boolean;
   count: number;
 }
 
+const TAG_COUNT_BATCH_SIZE = 8;
+const ALL_CHANNELS_VALUE = '__all__';
+
 export function TagsPage() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedChannelId, setSelectedChannelId] = useState<string>(ALL_CHANNELS_VALUE);
   const navigate = useNavigate();
   const { settings } = useSettings();
 
-  // 使用 search 作为底座获取所有可用的真实标签和映射标签
-  const { data: initialSearchData, isLoading: isSearchLoading } = useQuery({
-    queryKey: ['tags-overview', 'initial-search'],
-    queryFn: () => searchApi.search({ limit: 1 }),
+  // 全频道标签源（兼容没有 /meta/channels 的后端）
+  const { data: channelTagCatalog = [], isLoading: isCatalogLoading } = useQuery({
+    queryKey: ['tags-overview', 'channel-tag-catalog'],
+    queryFn: () => searchApi.getChannelTagCatalog(),
     staleTime: 5 * 60 * 1000,
+    retry: false,
   });
 
-  // 聚合所有标签 (优先使用 search 接口直接返回的全局可用标签)
-  const availableTags = useMemo(() => {
-    if (!initialSearchData) return [];
-    
-    // 如果后端 SearchResponse 提供了 available_tags 和 virtual_tags，我们合并它们作为全量标签
-    const tags = new Set<string>();
-    if (initialSearchData.available_tags) {
-      initialSearchData.available_tags.forEach((t: string) => tags.add(t));
+  const channelOptions = useMemo(() => {
+    return channelTagCatalog
+      .filter((channel) => (channel.available_tags?.length || 0) > 0 || (channel.virtual_tags?.length || 0) > 0)
+      .map((channel) => ({
+        id: channel.channel_id,
+        name: channel.channel_name,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+  }, [channelTagCatalog]);
+
+  const scopedTagEntries = useMemo(() => {
+    const entries: Array<{
+      key: string;
+      name: string;
+      channelId: string;
+      channelName: string;
+      isVirtual: boolean;
+    }> = [];
+
+    for (const channel of channelTagCatalog) {
+      if (
+        selectedChannelId !== ALL_CHANNELS_VALUE
+        && channel.channel_id !== selectedChannelId
+      ) {
+        continue;
+      }
+
+      const virtualSet = new Set((channel.virtual_tags || []).map((tag) => tag.trim()).filter(Boolean));
+      const realTags = (channel.available_tags || [])
+        .map((tag) => tag.trim())
+        .filter((tag) => Boolean(tag) && !virtualSet.has(tag));
+
+      for (const tag of realTags) {
+        entries.push({
+          key: `${channel.channel_id}::real::${tag}`,
+          name: tag,
+          channelId: channel.channel_id,
+          channelName: channel.channel_name,
+          isVirtual: false,
+        });
+      }
+
+      for (const tag of virtualSet) {
+        entries.push({
+          key: `${channel.channel_id}::virtual::${tag}`,
+          name: tag,
+          channelId: channel.channel_id,
+          channelName: channel.channel_name,
+          isVirtual: true,
+        });
+      }
     }
-    if (initialSearchData.virtual_tags) {
-      initialSearchData.virtual_tags.forEach((t: string) => tags.add(t));
-    }
-    
-    return Array.from(tags).filter(Boolean);
-  }, [initialSearchData]);
+
+    return entries;
+  }, [channelTagCatalog, selectedChannelId]);
+
+  // 当前频道范围内总帖子数
+  const { data: scopedSearchData, isLoading: isScopedSearchLoading } = useQuery({
+    queryKey: ['tags-overview', 'total-threads', selectedChannelId],
+    queryFn: () =>
+      searchApi.search({
+        limit: 1,
+        channel_ids:
+          selectedChannelId === ALL_CHANNELS_VALUE ? undefined : [selectedChannelId],
+      }),
+    staleTime: 60 * 1000,
+  });
 
   // 获取每个标签的帖子数量
   const { data: tagCounts } = useQuery({
-    queryKey: ['tag-counts', availableTags],
+    queryKey: ['tag-counts', selectedChannelId, scopedTagEntries.map((tag) => tag.key)],
     queryFn: async () => {
       const counts: Record<string, number> = {};
 
-      // 并行获取所有标签的数量
-      await Promise.all(
-        availableTags.map(async (tag) => {
-          try {
-            const result = await searchApi.search({
-              include_tags: [tag],
-              limit: 1,
-            });
-            counts[tag] = result.total;
-          } catch (error) {
-            console.error(`Failed to fetch count for tag: ${tag}`, error);
-            counts[tag] = 0;
-          }
-        })
-      );
+      // 分批并发，避免一次性请求过多导致 429/超时
+      for (let i = 0; i < scopedTagEntries.length; i += TAG_COUNT_BATCH_SIZE) {
+        const batch = scopedTagEntries.slice(i, i + TAG_COUNT_BATCH_SIZE);
+        const batchEntries = await Promise.all(
+          batch.map(async (tagEntry) => {
+            if (tagEntry.isVirtual) {
+              return [tagEntry.key, 0] as const;
+            }
+
+            try {
+              const result = await searchApi.search({
+                include_tags: [tagEntry.name],
+                channel_ids:
+                  selectedChannelId === ALL_CHANNELS_VALUE ? undefined : [tagEntry.channelId],
+                limit: 1,
+              });
+              return [tagEntry.key, result.total] as const;
+            } catch (error) {
+              console.error(`Failed to fetch count for tag: ${tagEntry.name}`, error);
+              return [tagEntry.key, 0] as const;
+            }
+          }),
+        );
+
+        for (const [tag, count] of batchEntries) {
+          counts[tag] = count;
+        }
+      }
 
       return counts;
     },
-    enabled: availableTags.length > 0,
+    enabled: scopedTagEntries.length > 0,
     staleTime: 5 * 60 * 1000,
+    retry: false,
   });
 
   // 组合标签和数量
   const tagsWithCounts: TagWithCount[] = useMemo(() => {
-    if (!tagCounts) return [];
-
-    return availableTags
-      .map((tag) => ({
-        name: tag,
-        count: tagCounts[tag] || 0,
+    return scopedTagEntries
+      .map((tagEntry) => ({
+        key: tagEntry.key,
+        name: tagEntry.name,
+        channelId: tagEntry.channelId,
+        channelName: tagEntry.channelName,
+        isVirtual: tagEntry.isVirtual,
+        count: tagCounts?.[tagEntry.key] || 0,
       }))
       .sort((a, b) => b.count - a.count); // 按数量降序排序
-  }, [availableTags, tagCounts]);
+  }, [scopedTagEntries, tagCounts]);
 
   // 过滤标签
   const filteredTags = useMemo(() => {
@@ -86,19 +163,21 @@ export function TagsPage() {
 
     const query = searchQuery.toLowerCase();
     return tagsWithCounts.filter((tag) =>
-      tag.name.toLowerCase().includes(query)
+      tag.name.toLowerCase().includes(query) || tag.channelName.toLowerCase().includes(query)
     );
   }, [tagsWithCounts, searchQuery]);
 
   // 点击标签跳转到搜索页（使用统一的 token 语法生成）
-  const handleTagClick = (tagName: string) => {
-    const query = addToken('', 'tag', tagName);
+  const handleTagClick = (tag: TagWithCount) => {
+    let query = addToken('', 'tag', tag.name);
+    query = addToken(query, 'channel', tag.channelId);
     navigate(`/?q=${encodeURIComponent(query)}`);
   };
 
   // 统计信息
-  const totalTags = tagsWithCounts.length;
-  const totalThreads = tagsWithCounts.reduce((sum, tag) => sum + tag.count, 0);
+  const totalTags = new Set(scopedTagEntries.map((tag) => tag.name)).size;
+  const totalThreads = Number(scopedSearchData?.total || 0);
+  const isPageLoading = isCatalogLoading || isScopedSearchLoading;
 
   return (
     <>
@@ -171,20 +250,34 @@ export function TagsPage() {
               className="mb-6 animate-in fade-in slide-in-from-top-4 duration-500"
               style={{ animationDelay: '200ms' }}
             >
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--od-text-tertiary)]" />
-                <input
-                  type="search"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="搜索标签..."
-                  className="w-full rounded-lg border border-[var(--od-border)] bg-[var(--od-card)] py-3 pl-12 pr-4 text-[var(--od-text-primary)] placeholder:text-[var(--od-text-tertiary)] focus:border-[var(--od-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--od-accent)]/20"
-                />
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-[220px_minmax(0,1fr)]">
+                <select
+                  value={selectedChannelId}
+                  onChange={(e) => setSelectedChannelId(e.target.value)}
+                  className="rounded-lg border border-[var(--od-border)] bg-[var(--od-card)] px-3 py-3 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
+                >
+                  <option value={ALL_CHANNELS_VALUE}>全部频道</option>
+                  {channelOptions.map((channel) => (
+                    <option key={channel.id} value={channel.id}>
+                      {channel.name}
+                    </option>
+                  ))}
+                </select>
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--od-text-tertiary)]" />
+                  <input
+                    type="search"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="搜索标签..."
+                    className="w-full rounded-lg border border-[var(--od-border)] bg-[var(--od-card)] py-3 pl-12 pr-4 text-[var(--od-text-primary)] placeholder:text-[var(--od-text-tertiary)] focus:border-[var(--od-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--od-accent)]/20"
+                  />
+                </div>
               </div>
             </div>
 
             {/* 标签网格 */}
-            {isSearchLoading ? (
+            {isPageLoading ? (
               <div className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${settings.sidebarCollapsed ? 'lg:grid-cols-4 xl:grid-cols-5' : 'lg:grid-cols-3 xl:grid-cols-4'}`}>
                 {Array.from({ length: 12 }).map((_, i) => (
                   <div
@@ -200,8 +293,8 @@ export function TagsPage() {
               >
                 {filteredTags.map((tag, index) => (
                   <button
-                    key={tag.name}
-                    onClick={() => handleTagClick(tag.name)}
+                    key={tag.key}
+                    onClick={() => handleTagClick(tag)}
                     className="group relative overflow-hidden rounded-lg border border-[var(--od-border)] bg-[var(--od-card)] p-4 text-left shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[var(--od-accent)] hover:shadow-md"
                     style={{
                       animationDelay: `${300 + index * 30}ms`,
@@ -212,12 +305,20 @@ export function TagsPage() {
 
                     <div className="relative flex items-start justify-between">
                       <div className="flex-1 overflow-hidden">
-                        <div className="mb-2 flex items-center">
+                        <div className="mb-2 flex items-center gap-2">
                           <h3 className="truncate font-semibold text-[var(--od-text-primary)] transition-colors group-hover:text-[var(--od-accent)]">
                             {tag.name}
                           </h3>
+                          {tag.isVirtual && (
+                            <span className="rounded-full border border-[var(--od-accent)]/30 bg-[var(--od-accent)]/10 px-2 py-0.5 text-[10px] font-semibold text-[var(--od-accent)]">
+                              虚拟
+                            </span>
+                          )}
                         </div>
-                        <p className="text-sm text-[var(--od-text-secondary)]">
+                        <p className="truncate text-xs text-[var(--od-text-tertiary)]">
+                          频道：{tag.channelName}
+                        </p>
+                        <p className="mt-1 text-sm text-[var(--od-text-secondary)]">
                           {tag.count} 个帖子
                         </p>
                       </div>
@@ -234,7 +335,7 @@ export function TagsPage() {
                         className="h-full bg-gradient-to-r from-[var(--od-accent)]/50 to-[var(--od-accent)] transition-all duration-500"
                         style={{
                           width: `${Math.min(
-                            (tag.count / Math.max(...filteredTags.map((t) => t.count))) * 100,
+                            (tag.count / Math.max(...filteredTags.map((t) => t.count), 1)) * 100,
                             100
                           )}%`,
                         }}

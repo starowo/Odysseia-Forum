@@ -1,7 +1,8 @@
-import { X, MessageCircle, ThumbsUp, Calendar, Hash, User } from 'lucide-react';
+import { X, MessageCircle, ThumbsUp, Calendar, Hash, User, Eye, Clock3 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import { MarkdownText } from '@/shared/ui/MarkdownText';
 import { ImageCarousel } from '@/entities/thread/ImageCarousel';
@@ -12,6 +13,8 @@ import type { Thread } from '@/entities/thread/types';
 import { useSettings } from '@/shared/hooks/useSettings';
 import { fontSizeMap } from '@/shared/lib/settings';
 import { useLockBodyScroll } from '@/shared/hooks/useLockBodyScroll';
+import { useSearchURLParams } from '@/features/search/hooks/useSearchParams';
+import { addToken } from '@/shared/lib/searchTokenizer';
 
 interface ThreadPreviewOverlayProps {
   thread: Thread;
@@ -26,6 +29,9 @@ export function ThreadPreviewOverlay({
   externalUrlOverride,
   hideExternalButton,
 }: ThreadPreviewOverlayProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { params, setParams } = useSearchURLParams();
   const { settings } = useSettings();
   const fontSizes = fontSizeMap[settings.fontSize];
   const [isVisible, setIsVisible] = useState(false);
@@ -58,12 +64,34 @@ export function ThreadPreviewOverlay({
   const fullTime = format(new Date(thread.created_at), 'yyyy年MM月dd日 HH:mm', {
     locale: zhCN,
   });
+  const lastActiveTime = thread.last_active_at
+    ? formatDistanceToNow(new Date(thread.last_active_at), {
+        addSuffix: true,
+        locale: zhCN,
+      })
+    : null;
+  const virtualOnlyTags = (thread.virtual_tags || []).filter((tag) => !thread.tags.includes(tag));
 
-  const authorName =
+  const searchableAuthorName =
     thread.author?.display_name ??
     thread.author?.global_name ??
-    thread.author?.name ??
-    '未知用户';
+    thread.author?.name;
+  const authorName = searchableAuthorName || '未知用户';
+
+  const applySearchToken = useCallback(
+    (type: 'tag' | 'author', value: string) => {
+      const nextQuery = addToken(params.query || '', type, value, 'include');
+
+      if (location.pathname !== '/') {
+        navigate(nextQuery ? `/?q=${encodeURIComponent(nextQuery)}` : '/');
+      } else {
+        setParams({ query: nextQuery });
+      }
+
+      handleClose();
+    },
+    [location.pathname, navigate, params.query, setParams],
+  );
 
   return (
     <div
@@ -77,22 +105,83 @@ export function ThreadPreviewOverlay({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[var(--od-border)] bg-[var(--od-card)] px-6 py-4">
-          <div className="flex items-center gap-3">
-            <AuthorAvatar author={thread.author} className="h-10 w-10" />
-            <div>
-              <div className="font-bold text-[var(--od-text-primary)]">{authorName}</div>
-              <div className="text-xs text-[var(--od-text-tertiary)]">
-                发布于 {createdTime}
+        <div className="border-b border-[var(--od-border)] bg-[var(--od-card)] px-6 py-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0 flex flex-1 items-start gap-3">
+              <AuthorAvatar author={thread.author} className="h-10 w-10" />
+              <div className="min-w-0">
+                {searchableAuthorName ? (
+                  <button
+                    type="button"
+                    onClick={() => applySearchToken('author', searchableAuthorName)}
+                    className="truncate text-left font-bold text-[var(--od-text-primary)] hover:text-[var(--od-accent)] hover:underline"
+                    title={`搜索作者：${searchableAuthorName}`}
+                  >
+                    {authorName}
+                  </button>
+                ) : (
+                  <div className="truncate font-bold text-[var(--od-text-primary)]">{authorName}</div>
+                )}
+                <div className="mt-1">
+                  <ThreadStatusBadges
+                    isFollowing={thread.collected_flag}
+                    hasUpdate={thread.has_update}
+                    variant="detail"
+                  />
+                </div>
               </div>
             </div>
+            <div className="flex items-center gap-2">
+              {!hideExternalButton && (
+                <ThreadActions
+                  threadId={thread.thread_id}
+                  guildId={thread.guild_id}
+                  size="sm"
+                  alwaysVisible={true}
+                  externalUrlOverride={externalUrlOverride}
+                />
+              )}
+              <button
+                onClick={handleClose}
+                className="rounded-full p-2 text-[var(--od-text-tertiary)] transition-colors hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
           </div>
-          <button
-            onClick={handleClose}
-            className="rounded-full p-2 text-[var(--od-text-tertiary)] transition-colors hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]"
-          >
-            <X className="h-5 w-5" />
-          </button>
+
+          <div className="mt-3 grid gap-2 text-xs text-[var(--od-text-tertiary)]">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              <span className="inline-flex items-center gap-1" title={fullTime}>
+                <Calendar className="h-3.5 w-3.5" />
+                发布于 {createdTime}
+              </span>
+              {lastActiveTime && (
+                <span className="inline-flex items-center gap-1">
+                  <Clock3 className="h-3.5 w-3.5" />
+                  活跃于 {lastActiveTime}
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              <span className="inline-flex items-center gap-1">
+                <MessageCircle className="h-3.5 w-3.5" />
+                {thread.reply_count}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <ThumbsUp className="h-3.5 w-3.5" />
+                {thread.reaction_count}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <Eye className="h-3.5 w-3.5" />
+                {thread.display_count}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <User className="h-3.5 w-3.5" />
+                ID: {thread.thread_id}
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Scrollable Content */}
@@ -100,25 +189,38 @@ export function ThreadPreviewOverlay({
           {/* Title */}
           <h2 className={`mb-4 font-bold leading-tight text-[var(--od-text-primary)] ${fontSizes.title}`}>
             {thread.title}
-            <ThreadStatusBadges
-              isFollowing={thread.collected_flag}
-              hasUpdate={thread.has_update}
-              variant="detail"
-              className="ml-3 align-middle"
-            />
           </h2>
 
           {/* Tags */}
           {thread.tags && thread.tags.length > 0 && (
             <div className="mb-6 flex flex-wrap gap-2">
               {thread.tags.map((tag) => (
-                <span
+                <button
+                  type="button"
                   key={tag}
-                  className="flex items-center gap-1 rounded-md bg-[var(--od-bg-secondary)] px-2.5 py-1 text-xs font-medium text-[var(--od-text-secondary)]"
+                  onClick={() => applySearchToken('tag', tag)}
+                  className="flex items-center gap-1 rounded-md bg-[var(--od-bg-secondary)] px-2.5 py-1 text-xs font-medium text-[var(--od-text-secondary)] transition-colors hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-accent)]"
+                  title={`添加标签筛选：${tag}`}
                 >
                   <Hash className="h-3 w-3" />
                   {tag}
-                </span>
+                </button>
+              ))}
+            </div>
+          )}
+          {virtualOnlyTags.length > 0 && (
+            <div className="mb-6 flex flex-wrap gap-2">
+              {virtualOnlyTags.map((tag) => (
+                <button
+                  type="button"
+                  key={`vt-${tag}`}
+                  onClick={() => applySearchToken('tag', tag)}
+                  className="flex items-center gap-1 rounded-md border border-[var(--od-accent)]/30 bg-[var(--od-accent)]/10 px-2.5 py-1 text-xs font-medium text-[var(--od-accent)] transition-colors hover:bg-[var(--od-accent)]/20"
+                  title={`添加标签筛选：${tag}`}
+                >
+                  <Hash className="h-3 w-3" />
+                  {tag}
+                </button>
               ))}
             </div>
           )}
@@ -141,40 +243,6 @@ export function ThreadPreviewOverlay({
             </div>
           )}
 
-          {/* Meta Info - Flat Row */}
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-[var(--od-text-tertiary)] border-t border-[var(--od-border)] pt-6">
-            <div className="flex items-center gap-2">
-              <MessageCircle className="h-4 w-4" />
-              <span className="font-bold text-[var(--od-text-primary)]">{thread.reply_count}</span>
-              <span>回复</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <ThumbsUp className="h-4 w-4" />
-              <span className="font-bold text-[var(--od-text-primary)]">{thread.reaction_count}</span>
-              <span>反应</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4" />
-              <span>{fullTime}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              <span>ID: {thread.thread_id}</span>
-            </div>
-          </div>
-
-          {/* Actions */}
-          {!hideExternalButton && (
-            <div className="mt-6 flex justify-end">
-              <ThreadActions
-                threadId={thread.thread_id}
-                guildId={thread.guild_id}
-                size="md"
-                alwaysVisible={true}
-                externalUrlOverride={externalUrlOverride}
-              />
-            </div>
-          )}
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { MessageCircle, ThumbsUp } from 'lucide-react';
+import { MessageCircle, ThumbsUp, Eye, Clock3 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { LazyImage } from '@/shared/ui/LazyImage';
@@ -11,6 +11,7 @@ import { fontSizeMap } from '@/shared/lib/settings';
 import { ThreadActions } from '@/features/threads/components/ThreadActions';
 import { AuthorAvatar } from '@/entities/user/AuthorAvatar';
 import { ThreadStatusBadges } from '@/entities/thread/ThreadStatusBadges';
+import { usePretextClampText } from '@/shared/hooks/usePretextClampText';
 
 
 interface ThreadListItemProps {
@@ -29,6 +30,13 @@ export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick,
     addSuffix: true,
     locale: zhCN,
   });
+  const lastActiveTime = thread.last_active_at
+    ? formatDistanceToNow(new Date(thread.last_active_at), {
+        addSuffix: true,
+        locale: zhCN,
+      })
+    : null;
+  const virtualOnlyTags = (thread.virtual_tags || []).filter((tag) => !thread.tags.includes(tag));
 
   const authorName =
     thread.author?.display_name ??
@@ -39,6 +47,8 @@ export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick,
   const hasExcerpt =
     !!thread.first_message_excerpt &&
     thread.first_message_excerpt.trim() !== '...';
+  const { measureRef: titleMeasureRef, clampedText: clampedTitle } =
+    usePretextClampText<HTMLHeadingElement>(thread.title, { maxLines: 2 });
 
   return (
     <article
@@ -50,9 +60,10 @@ export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick,
           {/* 标题 */}
           <div>
             <h3
+              ref={titleMeasureRef}
               className={`mb-1 font-bold leading-snug text-[var(--od-text-primary)] transition-colors duration-200 ${fontSizes.title} line-clamp-2 md:mb-2 break-all`}
             >
-              <HighlightText text={thread.title} highlight={searchQuery} />
+              <HighlightText text={clampedTitle} highlight={searchQuery} />
               <ThreadStatusBadges
                 isFollowing={thread.collected_flag}
                 hasUpdate={thread.has_update}
@@ -79,6 +90,15 @@ export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick,
               </button>
               <span>·</span>
               <span className="whitespace-nowrap">{createdTime}</span>
+              {lastActiveTime && (
+                <>
+                  <span>·</span>
+                  <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                    <Clock3 className="h-3 w-3" />
+                    活跃 {lastActiveTime}
+                  </span>
+                </>
+              )}
             </div>
 
             {/* 内容摘要 - 列表模式也使用 Markdown 渲染 */}
@@ -110,6 +130,14 @@ export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick,
               {thread.tags && thread.tags.length > 3 && (
                 <span className="flex items-center text-[10px] text-[#949ba4] md:text-xs">+{thread.tags.length - 3}</span>
               )}
+              {virtualOnlyTags.slice(0, 2).map((tag) => (
+                <span
+                  key={`vt-${tag}`}
+                  className="rounded-md border border-[var(--od-accent)]/20 bg-[var(--od-accent)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--od-accent)] md:text-xs"
+                >
+                  ~{tag}
+                </span>
+              ))}
             </div>
 
             {/* 统计信息和跳转按钮 */}
@@ -122,6 +150,10 @@ export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick,
                 <div className="flex items-center gap-1 text-[var(--od-text-tertiary)]">
                   <ThumbsUp className="h-3 w-3 md:h-4 md:w-4" />
                   <span className="text-xs md:text-sm">{thread.reaction_count}</span>
+                </div>
+                <div className="flex items-center gap-1 text-[var(--od-text-tertiary)]">
+                  <Eye className="h-3 w-3 md:h-4 md:w-4" />
+                  <span className="text-xs md:text-sm">{thread.display_count}</span>
                 </div>
               </div>
 
