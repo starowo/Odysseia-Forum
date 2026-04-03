@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="src/assets/images/mascot/durvis.png" width="250" alt="Mascot" />
+  <img src="src/assets/images/mascot/durvis_spin.gif" width="250" alt="Mascot" />
 </div>
 
 <h1 align="center">Odysseia Forum Webpage</h1>
