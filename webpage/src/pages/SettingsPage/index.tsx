@@ -20,6 +20,7 @@ import { useSettings } from '@/shared/hooks/useSettings';
 import { resetUserSettings } from '@/shared/lib/settings';
 import { toast } from 'sonner';
 import { themes } from '@/shared/styles/themes';
+import { APP_VERSION } from '@/shared/config/appInfo';
 
 export function SettingsPage() {
   const { settings, updateSettings } = useSettings();
@@ -483,7 +484,7 @@ export function SettingsPage() {
             </div>
             <p className="text-sm text-[var(--od-text-secondary)]">
               当前前端版本：
-              <span className="ml-1 font-mono text-[var(--od-text-primary)]">2.0.0</span>
+              <span className="ml-1 font-mono text-[var(--od-text-primary)]">{APP_VERSION}</span>
             </p>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-[var(--od-text-tertiary)]">
               <li>新增帖子预览浮层与 Markdown 展示体验</li>

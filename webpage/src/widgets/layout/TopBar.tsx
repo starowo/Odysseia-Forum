@@ -58,6 +58,7 @@ function tokenSignature(query: string) {
 export function TopBar({ onMenuClick }: TopBarProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const isSearchPage = location.pathname === '/search';
   const { params, setParams } = useSearchURLParams();
   const { setPreviewThread, setPreviewThreadId } = usePreviewStore();
 
@@ -131,8 +132,8 @@ export function TopBar({ onMenuClick }: TopBarProps) {
       const trimmed = nextQuery.trim();
       setSearchInput(trimmed);
 
-      if (location.pathname !== '/') {
-        navigate(trimmed ? `/?q=${encodeURIComponent(trimmed)}` : '/');
+      if (!isSearchPage) {
+        navigate(trimmed ? `/search?q=${encodeURIComponent(trimmed)}` : '/search');
       } else {
         setParams({ query: trimmed });
       }
@@ -143,7 +144,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
       }
       closePanels();
     },
-    [closePanels, location.pathname, navigate, setParams],
+    [closePanels, isSearchPage, navigate, setParams],
   );
 
   const applyInputChange = useCallback(
@@ -154,13 +155,13 @@ export function TopBar({ onMenuClick }: TopBarProps) {
       if (!tokenChanged) return;
 
       const trimmed = nextQuery.trim();
-      if (location.pathname !== '/') {
-        navigate(trimmed ? `/?q=${encodeURIComponent(trimmed)}` : '/');
+      if (!isSearchPage) {
+        navigate(trimmed ? `/search?q=${encodeURIComponent(trimmed)}` : '/search');
       } else {
         setParams({ query: trimmed });
       }
     },
-    [location.pathname, navigate, params.query, setParams],
+    [isSearchPage, navigate, params.query, setParams],
   );
 
   const handleSearch = useCallback(() => {
@@ -210,7 +211,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
     setShowFilters(false);
   };
 
-  const needsFilter = location.pathname === '/' || location.pathname === '/follows';
+  const needsFilter = isSearchPage || location.pathname === '/follows';
 
   const { data: filterMeta } = useQuery({
     queryKey: ['search-filter-meta', params.channel],
@@ -439,11 +440,14 @@ export function TopBar({ onMenuClick }: TopBarProps) {
     if (location.pathname === '/follows') {
       return { icon: Star, label: '关注' };
     }
-    if (location.pathname === '/') {
+    if (location.pathname === '/search') {
       if (activeVirtualTag) {
         return { icon: Hash, label: activeVirtualTag.name };
       }
       return { icon: Compass, label: '探索' };
+    }
+    if (location.pathname === '/') {
+      return { icon: Compass, label: '广场' };
     }
     return null;
   };

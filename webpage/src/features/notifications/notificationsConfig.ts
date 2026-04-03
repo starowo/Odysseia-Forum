@@ -1,6 +1,8 @@
+import { APP_VERSION, RELEASE_FEED_URL } from '@/shared/config/appInfo';
+import type { Thread } from '@/entities/thread/types';
+import { parse as parseYaml } from 'yaml';
 
-
-export type StaticNotificationKind = 'site_announcement' | 'greeting';
+export type StaticNotificationKind = 'release_update';
 
 export interface StaticNotificationDefinition {
   id: string;
@@ -8,49 +10,156 @@ export interface StaticNotificationDefinition {
   title: string;
   message: string;
   created_at: string;
-  // 未来可以扩展 target/userSegment 等字段
+  source: 'webpage' | 'system';
+  version?: string;
+  url?: string;
+  previewThread?: Thread;
 }
 
 export interface ResolvedNotificationContext {
-  // 预留：后续可以根据用户信息/时间等做个性化过滤
-  isFirstVisit?: boolean;
+  currentAppVersion?: string;
 }
 
-/**
- * 静态站点公告与问候语配置。
- *
- * - 仅在前端维护，不依赖后端接口；
- * - 主要用于：
- *   - 欢迎语（例如首次访问时）；
- *   - 站点前后端功能更新说明；
- *   - 临时公告。
- */
-export const STATIC_NOTIFICATIONS: StaticNotificationDefinition[] = [
-  {
-    id: 'greeting-welcome',
-    kind: 'greeting',
-    title: '欢迎来到 Odysseia 索引站',
-    message:
-      '这里是 Odysseia 论坛的导航与搜索面板，你可以通过搜索和关注功能快速定位感兴趣的讨论。',
-    created_at: '2024-01-01T00:00:00.000Z',
-  },
-  {
-    id: 'site-update-notification-center',
-    kind: 'site_announcement',
-    title: '通知中心已上线（实验功能）',
-    message:
-      '现在你可以在左侧「通知中心」里快速查看关注帖子是否有新的更新。后续会逐步加入站点更新公告和更多提示。',
-    created_at: '2024-01-10T00:00:00.000Z',
-  },
-  {
-    id: 'site-update-2025-advanced-search',
-    kind: 'site_announcement',
-    title: '搜索体验与布局全面升级',
-    message:
-      '本次更新带来了基于 $tag:xxx$ / $author:xxx$ 的高级搜索语法、标签总览页一键跳转搜索、PC 端侧边栏收起/展开，以及通知中心与无缝滚动加载的进一步打磨。欢迎体验，如有问题可在主服相关频道反馈。',
-    created_at: '2025-11-16T00:00:00.000Z',
-  },
-];
+interface ReleaseFeedItem {
+  id: string;
+  title: string;
+  message: string;
+  created_at: string;
+  source: 'webpage' | 'system';
+  version?: string;
+  url?: string;
+  min_app_version?: string;
+  preview_thread?: {
+    thread_id?: string;
+    guild_id?: string;
+    channel_id?: string;
+    title?: string;
+    created_at?: string;
+    last_active_at?: string | null;
+    first_message_excerpt?: string;
+    thumbnail_urls?: string[];
+    tags?: string[];
+    virtual_tags?: string[];
+    author?: {
+      id?: string;
+      name?: string;
+      global_name?: string | null;
+      display_name?: string;
+      avatar_url?: string | null;
+    };
+  };
+}
+
+interface ReleaseFeedPayload {
+  updates: ReleaseFeedItem[];
+}
+
+function compareSemver(a: string, b: string): number {
+  const toNums = (v: string) =>
+    v
+      .split('.')
+      .map((part) => Number.parseInt(part, 10))
+      .map((n) => (Number.isFinite(n) ? n : 0));
+  const av = toNums(a);
+  const bv = toNums(b);
+  const max = Math.max(av.length, bv.length);
+  for (let i = 0; i < max; i += 1) {
+    const ai = av[i] ?? 0;
+    const bi = bv[i] ?? 0;
+    if (ai > bi) return 1;
+    if (ai < bi) return -1;
+  }
+  return 0;
+}
+
+function toPreviewThread(item: ReleaseFeedItem): Thread {
+  const preview = item.preview_thread;
+  const createdAt = preview?.created_at ?? item.created_at;
+  const author = preview?.author
+    ? {
+        id: preview.author.id ?? `notification-author-${item.id}`,
+        name: preview.author.name ?? preview.author.display_name ?? 'Odysseia',
+        global_name: preview.author.global_name ?? null,
+        display_name: preview.author.display_name ?? preview.author.name ?? 'Odysseia',
+        avatar_url: preview.author.avatar_url ?? null,
+      }
+    : null;
+
+  return {
+    thread_id: preview?.thread_id ?? `notification-${item.id}`,
+    guild_id: preview?.guild_id,
+    channel_id: preview?.channel_id ?? 'notification',
+    title: preview?.title ?? item.title,
+    author,
+    created_at: createdAt,
+    last_active_at: preview?.last_active_at ?? createdAt,
+    reaction_count: 0,
+    reply_count: 0,
+    display_count: 0,
+    first_message_excerpt: preview?.first_message_excerpt ?? item.message,
+    tags: preview?.tags ?? [],
+    virtual_tags: preview?.virtual_tags ?? [],
+    thumbnail_urls: preview?.thumbnail_urls ?? [],
+    collected_flag: false,
+    has_update: false,
+  };
+}
+
+function mapFeedItem(item: ReleaseFeedItem): StaticNotificationDefinition {
+  return {
+    id: item.id,
+    kind: 'release_update',
+    title: item.title,
+    message: item.message,
+    created_at: item.created_at,
+    source: item.source,
+    version: item.version,
+    url: item.url,
+    previewThread: toPreviewThread(item),
+  };
+}
+
+export async function fetchReleaseNotifications(
+  context?: ResolvedNotificationContext,
+): Promise<StaticNotificationDefinition[]> {
+  const currentVersion = context?.currentAppVersion ?? APP_VERSION;
+  try {
+    const response = await fetch(RELEASE_FEED_URL, {
+      method: 'GET',
+      cache: 'no-store',
+      headers: {
+        Accept: 'application/yaml, text/yaml, application/json, text/plain',
+      },
+    });
+    if (!response.ok) {
+      return [];
+    }
+
+    const raw = await response.text();
+    const payload = parseYaml(raw) as ReleaseFeedPayload;
+    const updates = Array.isArray(payload.updates) ? payload.updates : [];
+
+    return updates
+      .filter((item): item is ReleaseFeedItem => {
+        if (!item || typeof item !== 'object') return false;
+        return (
+          typeof item.id === 'string' &&
+          typeof item.title === 'string' &&
+          typeof item.message === 'string' &&
+          typeof item.created_at === 'string' &&
+          (item.source === 'webpage' || item.source === 'system')
+        );
+      })
+      .filter((item) => {
+        if (!item.min_app_version) return true;
+        return compareSemver(currentVersion, item.min_app_version) >= 0;
+      })
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .map(mapFeedItem);
+  } catch {
+    return [];
+  }
+}
 
 /**
  * 根据上下文过滤静态通知。
@@ -58,8 +167,8 @@ export const STATIC_NOTIFICATIONS: StaticNotificationDefinition[] = [
  * 当前实现比较简单：直接返回全部静态通知。
  * 未来可以根据用户偏好 / 是否首次访问等做更精细的控制。
  */
-export function resolveStaticNotifications(
-  _context?: ResolvedNotificationContext,
-): StaticNotificationDefinition[] {
-  return STATIC_NOTIFICATIONS;
+export async function resolveStaticNotifications(
+  context?: ResolvedNotificationContext,
+): Promise<StaticNotificationDefinition[]> {
+  return fetchReleaseNotifications(context);
 }

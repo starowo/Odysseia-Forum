@@ -1,0 +1,105 @@
+updates:
+  - id: webpage-2.1.0-plaza-booklist
+    title: 索引页 2.1.0 发布：广场与书单系统升级
+    message: |
+      这次更新完成了广场页与书单系统的核心建设：
+
+      - 首页切换为「内容广场」：聚合 Banner、推荐卡流、书单精选
+      - 新增独立搜索路由 `/search`，保留完整筛选与联想能力
+      - 书单系统上线：列表、详情、创建、编辑、删除、条目维护
+      - 通知系统继续由 YAML 驱动，并可复用详情预览样式展示更新说明
+    created_at: '2026-04-03T04:40:00.000Z'
+    source: webpage
+    version: 2.1.0
+    url: https://github.com/starowo/Odysseia-Forum/releases
+    min_app_version: 2.1.0
+    preview_thread:
+      title: Odysseia Index 2.1.0 更新公告
+      first_message_excerpt: |
+        # Odysseia Index 2.1.0
+
+        本次版本重点在“内容发现”和“沉淀管理”两条线：
+
+        ## 1) 内容广场上线
+        - 首页切换为广场
+        - 聚合 Banner 推荐位
+        - 推荐卡流支持最近上新/点赞飙升/讨论升温/今日精选
+
+        ## 2) 书单系统上线
+        - 新增书单列表与详情页面
+        - 支持创建、编辑、删除、收藏
+        - 支持书单项备注与排序维护
+
+        ## 3) 路由与交互一致性
+        - 搜索页迁移到 `/search`
+        - Sidebar 与移动端导航已同步
+        - 主题保持统一 `--od-*` 视觉体系
+
+        欢迎继续反馈广场轨道策略与书单体验问题，我们会快速迭代。
+      tags: [版本更新, 广场, 书单系统]
+      virtual_tags: [release, plaza, booklist]
+      author:
+        id: odysseia-web
+        name: Odysseia
+        display_name: Odysseia Web Team
+      thumbnail_urls:
+        - https://cdn.jsdelivr.net/gh/starowo/Odysseia-Forum@main/webpage/src/assets/images/background/winter.png
+
+  - id: webpage-2.0.0-release
+    title: 索引页 2.0.0 发布
+    message: |
+      索引页引入新版通知中心，支持关注帖子更新与版本/系统更新公告双轨通知。
+      
+      - 通知支持统一预览浮层
+      - 支持远端 YAML 更新源
+      - 设置页/关于页版本号读取 package.json
+    created_at: '2026-04-03T00:00:00.000Z'
+    source: webpage
+    version: 2.0.0
+    url: https://github.com/starowo/Odysseia-Forum/releases
+    min_app_version: 2.0.0
+    preview_thread:
+      title: 索引页 2.0.0 更新说明
+      first_message_excerpt: |
+        # Odysseia Index 2.0.0
+
+        这一版主要完成通知中心升级：
+
+        1. 关注帖子更新继续保留
+        2. 新增索引页/系统更新公告
+        3. 更新公告改为 YAML Feed 驱动
+
+        你可以继续在这个 Feed 文件里维护后续更新日志。
+      tags: [版本更新, 通知中心]
+      virtual_tags: [release, changelog]
+      author:
+        id: odysseia-system
+        name: Odysseia
+        display_name: Odysseia 系统
+      thumbnail_urls:
+        - https://cdn.jsdelivr.net/gh/starowo/Odysseia-Forum@main/webpage/src/assets/images/background/winter.png
+
+  - id: system-maintenance-example
+    title: 系统维护窗口通知
+    message: |
+      主系统将在周日凌晨进行维护，期间搜索接口可能有短时抖动。
+    created_at: '2026-04-02T12:00:00.000Z'
+    source: system
+    url: https://github.com/starowo/Odysseia-Forum
+    preview_thread:
+      title: 系统维护窗口通知
+      first_message_excerpt: |
+        ## 维护时间
+        周日 02:00 - 03:00（UTC+8）
+
+        ## 影响范围
+        - 搜索接口短时波动
+        - 关注更新同步可能延迟
+
+        ## 建议
+        如出现异常，请稍后重试。
+      tags: [系统公告]
+      author:
+        id: odysseia-maintainer
+        name: Maintainer
+        display_name: 系统维护组

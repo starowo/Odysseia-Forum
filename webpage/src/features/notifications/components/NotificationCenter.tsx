@@ -4,10 +4,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { followsApi } from '@/features/follows/api/followsApi';
 import type { Thread } from '@/entities/thread/types';
+import { APP_VERSION } from '@/shared/config/appInfo';
 import { resolveStaticNotifications } from '@/features/notifications/notificationsConfig';
 import { usePreviewStore } from '@/features/search/store/previewStore';
 
-type NotificationKind = 'follow_update' | 'site_announcement' | 'greeting';
+type NotificationKind = 'follow_update' | 'release_update';
 
 interface NotificationItem {
   id: string;
@@ -16,6 +17,7 @@ interface NotificationItem {
   message: string;
   created_at?: string;
   thread?: Thread;
+  source?: 'webpage' | 'system';
 }
 
 interface NotificationCenterProps {
@@ -56,11 +58,20 @@ export function NotificationCenter({ open, onClose, onUnreadChange }: Notificati
     staleTime: 60 * 1000,
   });
 
+  const {
+    data: staticDefs = [],
+    isLoading: isStaticLoading,
+    isError: isStaticError,
+  } = useQuery({
+    queryKey: ['release-notifications', APP_VERSION],
+    queryFn: () => resolveStaticNotifications({ currentAppVersion: APP_VERSION }),
+    staleTime: 5 * 60 * 1000,
+  });
+
   const follows = data?.results ?? [];
   const unreadCount = data?.unread_count ?? 0;
 
-  // 静态站点公告与问候语（可永久关闭）
-  const staticDefs = resolveStaticNotifications();
+  // 版本 / 系统更新通知（可永久关闭）
   const staticNotifications: NotificationItem[] = staticDefs
     .filter((def) => !dismissedStaticIds.includes(def.id))
     .map((def) => ({
@@ -69,6 +80,8 @@ export function NotificationCenter({ open, onClose, onUnreadChange }: Notificati
       title: def.title,
       message: def.message,
       created_at: def.created_at,
+      thread: def.previewThread,
+      source: def.source,
     }));
 
   // 关注更新类通知
@@ -103,26 +116,10 @@ export function NotificationCenter({ open, onClose, onUnreadChange }: Notificati
       return;
     }
 
-    // 静态公告 / 问候：点击后也视为已读，从列表中移除，同时用预览浮层展示 Markdown 文本（不显示「在 Discord 中打开」按钮）
+    // 更新公告：点击后也视为已读，并复用详情预览浮层
     setDismissedStaticIds((prev) => (prev.includes(item.id) ? prev : [...prev, item.id]));
 
-    const pseudoThread: Thread = {
-      thread_id: `notification-${item.id}`,
-      channel_id: '',
-      title: item.title,
-      author: null,
-      created_at: new Date(item.created_at ?? Date.now()).toISOString(),
-      last_active_at: new Date(item.created_at ?? Date.now()).toISOString(),
-      reaction_count: 0,
-      reply_count: 0,
-      display_count: 0,
-      first_message_excerpt: item.message,
-      tags: [],
-      thumbnail_urls: [],
-      collected_flag: false,
-    };
-
-    setPreviewThread(pseudoThread, {
+    setPreviewThread(item.thread ?? null, {
       hideExternalButton: true,
       externalUrlOverride: null,
     });
@@ -136,14 +133,14 @@ export function NotificationCenter({ open, onClose, onUnreadChange }: Notificati
   const queryClient = useQueryClient();
 
   const handleClearAllNotifications = async () => {
-    // 静态通知：全部标记为已关闭
+    // 更新通知：全部标记为已关闭
     setDismissedStaticIds((prev) => {
       const allStaticIds = staticDefs.map((d) => d.id);
       const merged = Array.from(new Set([...prev, ...allStaticIds]));
       return merged;
     });
 
-    // 关注更新通知：基于当前 has_update 的帖子全部标记为已读
+    // 关注帖子通知：基于当前 has_update 的帖子全部标记为已读
     const allFollowIds = follows
       .filter((thread) => thread.has_update)
       .map((thread) => `follow-${thread.thread_id}`);
@@ -178,7 +175,7 @@ export function NotificationCenter({ open, onClose, onUnreadChange }: Notificati
             <h2 className="text-sm font-semibold text-[var(--od-text-primary)]">通知中心</h2>
           </div>
           <p className="mt-1 text-xs text-[var(--od-text-secondary)]">
-            关注的帖子有更新时，会在这里显示摘要。
+            包含关注帖子更新与索引页/系统更新公告。
           </p>
         </div>
         <button
@@ -213,7 +210,7 @@ export function NotificationCenter({ open, onClose, onUnreadChange }: Notificati
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 pb-3 pt-1">
-        {isLoading && (
+        {(isLoading || isStaticLoading) && (
           <div className="space-y-2">
             {Array.from({ length: 3 }).map((_, idx) => (
               <div
@@ -224,22 +221,22 @@ export function NotificationCenter({ open, onClose, onUnreadChange }: Notificati
           </div>
         )}
 
-        {isError && !isLoading && (
+        {(isError || isStaticError) && !(isLoading || isStaticLoading) && (
           <div className="flex flex-col items-center justify-center gap-2 py-10 text-center text-xs text-[var(--od-text-secondary)]">
             <AlertCircle className="h-5 w-5 text-[var(--od-error)]" />
             <p>加载通知失败，请稍后重试。</p>
           </div>
         )}
 
-        {!isLoading && !isError && !hasAnyNotification && (
+        {!isLoading && !isStaticLoading && !isError && !isStaticError && !hasAnyNotification && (
           <div className="flex flex-col items-center justify-center gap-2 py-10 text-center text-xs text-[var(--od-text-secondary)]">
             <Bell className="h-6 w-6 text-[var(--od-border-strong)]" />
-            <p>当前没有新的关注更新。</p>
-            <p>可以在「我的关注」中管理你感兴趣的帖子。</p>
+            <p>当前没有新的通知。</p>
+            <p>可以在「我的关注」中管理帖子更新。</p>
           </div>
         )}
 
-        {!isLoading && !isError && hasAnyNotification && (
+        {!isLoading && !isStaticLoading && !isError && !isStaticError && hasAnyNotification && (
           <div className="space-y-2">
             {allNotifications.map((item) => (
               <div
@@ -250,6 +247,11 @@ export function NotificationCenter({ open, onClose, onUnreadChange }: Notificati
                 <div className="mb-1 flex items-center justify-between gap-2">
                   <p className="line-clamp-1 font-semibold text-[var(--od-text-primary)]">{item.title}</p>
                   <div className="flex items-center gap-1">
+                    {item.kind === 'release_update' && (
+                      <span className="rounded bg-[var(--od-bg-tertiary)] px-1.5 py-0.5 text-[10px] text-[var(--od-text-tertiary)]">
+                        {item.source === 'system' ? '系统更新' : '索引页更新'}
+                      </span>
+                    )}
                     {item.created_at && (
                       <span className="whitespace-nowrap text-[10px] text-[var(--od-text-tertiary)]">
                         {new Date(item.created_at).toLocaleString()}
@@ -267,7 +269,37 @@ export function NotificationCenter({ open, onClose, onUnreadChange }: Notificati
                     )}
                   </div>
                 </div>
-                <p className="line-clamp-2 text-[var(--od-text-secondary)]">{item.message}</p>
+                {item.kind === 'follow_update' && item.thread && (
+                  <div className="mb-2 flex items-start gap-2">
+                    <div className="h-10 w-10 flex-shrink-0 overflow-hidden rounded-md bg-[var(--od-bg-tertiary)]">
+                      {item.thread.thumbnail_urls && item.thread.thumbnail_urls.length > 0 ? (
+                        <img
+                          src={item.thread.thumbnail_urls[0]}
+                          alt={item.title}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-[var(--od-text-tertiary)]">
+                          <Bell className="h-4 w-4" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-[11px] text-[var(--od-text-tertiary)]">
+                        {item.thread.author?.display_name ??
+                          item.thread.author?.global_name ??
+                          item.thread.author?.name ??
+                          '未知作者'}
+                      </p>
+                      <p className="line-clamp-2 text-[11px] text-[var(--od-text-secondary)]">
+                        {item.message}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {item.kind !== 'follow_update' && (
+                  <p className="line-clamp-2 text-[var(--od-text-secondary)]">{item.message}</p>
+                )}
               </div>
             ))}
           </div>

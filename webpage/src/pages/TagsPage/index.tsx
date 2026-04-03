@@ -171,7 +171,7 @@ export function TagsPage() {
   const handleTagClick = (tag: TagWithCount) => {
     let query = addToken('', 'tag', tag.name);
     query = addToken(query, 'channel', tag.channelId);
-    navigate(`/?q=${encodeURIComponent(query)}`);
+    navigate(`/search?q=${encodeURIComponent(query)}`);
   };
 
   // 统计信息
@@ -196,7 +196,7 @@ export function TagsPage() {
             </div>
             <button
               type="button"
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/search')}
               className="hidden rounded-lg border border-[var(--od-border)] bg-[var(--od-bg-secondary)] px-3 py-1.5 text-xs font-medium text-[var(--od-text-secondary)] transition-all duration-200 hover:border-[var(--od-accent)] hover:text-[var(--od-text-primary)] sm:inline-flex"
             >
               返回搜索

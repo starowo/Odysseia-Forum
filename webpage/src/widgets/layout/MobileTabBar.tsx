@@ -11,7 +11,7 @@ interface TabItem {
 const TABS: TabItem[] = [
   { id: 'home', path: '/', icon: Home, label: '广场' },
   { id: 'search', path: '/search', icon: Search, label: '搜索' },
-  { id: 'follows', path: '/follows', icon: Bookmark, label: '收藏' },
+  { id: 'follows', path: '/follows', icon: Bookmark, label: '关注' },
   { id: 'profile', path: '/settings', icon: User, label: '我的' },
 ];
 
@@ -26,8 +26,8 @@ export function MobileTabBar() {
   const location = useLocation();
 
   const isActive = (path: string) => {
-    if (path === '/') return location.pathname === '/' && !location.search.includes('q=');
-    if (path === '/search') return location.pathname === '/' && location.search.includes('q=');
+    if (path === '/') return location.pathname === '/';
+    if (path === '/search') return location.pathname === '/search';
     return location.pathname === path;
   };
 

@@ -2,11 +2,14 @@ import { createBrowserRouter } from 'react-router-dom';
 import { LoginPage } from '@/pages/AuthPage/LoginPage';
 import { CallbackPage } from '@/pages/AuthPage/CallbackPage';
 import { SearchPage } from '@/pages/SearchPage';
+import { PlazaPage } from '@/pages/PlazaPage';
 import { FollowsPage } from '@/pages/FollowsPage';
 import { TagsPage } from '@/pages/TagsPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { AboutPage } from '@/pages/AboutPage';
 import { TestPage } from '@/pages/TestPage';
+import { BooklistsPage } from '@/pages/BooklistsPage';
+import { BooklistDetailPage } from '@/pages/BooklistDetailPage';
 import { ProtectedRoute } from '@/app/providers/ProtectedRoute';
 import { RootLayout } from '@/widgets/layout/RootLayout';
 import { NotFoundPage } from '@/pages/NotFoundPage';
@@ -16,6 +19,10 @@ const isDevToolsEnabled = import.meta.env.DEV || import.meta.env.VITE_API_MOCKIN
 const appChildren = [
   {
     index: true,
+    element: <PlazaPage />,
+  },
+  {
+    path: 'search',
     element: <SearchPage />,
   },
   {
@@ -25,6 +32,14 @@ const appChildren = [
   {
     path: 'tags',
     element: <TagsPage />,
+  },
+  {
+    path: 'booklists',
+    element: <BooklistsPage />,
+  },
+  {
+    path: 'booklists/:id',
+    element: <BooklistDetailPage />,
   },
   {
     path: 'settings',

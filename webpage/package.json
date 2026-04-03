@@ -1,6 +1,6 @@
 {
   "name": "odysseia-forum-web",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -36,6 +36,7 @@
     "sonner": "^1.4.3",
     "tailwind-merge": "^2.2.1",
     "three": "^0.183.2",
+    "yaml": "^2.8.3",
     "zod": "^3.22.4",
     "zustand": "^4.5.2"
   },

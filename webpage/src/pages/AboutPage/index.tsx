@@ -3,6 +3,7 @@ import { Github } from 'lucide-react';
 
 import forumIcon from '@/assets/images/icon/A90C044F8DDF1959B2E9078CB629C239.png';
 import backgroundImage from '@/assets/images/background/winter.png';
+import { APP_VERSION } from '@/shared/config/appInfo';
 import { WordLogoStatic } from '@/shared/ui/loaders/WordLogoStatic';
 
 export function AboutPage() {
@@ -85,7 +86,7 @@ export function AboutPage() {
             {/* 版本信息 */}
             <div className="text-center">
               <p className="text-sm text-[var(--od-text-secondary)]">
-                前端版本 2.0.1 · Odysseia Forum Webpage
+                前端版本 {APP_VERSION} · Odysseia Forum Webpage
               </p>
               <p className="mt-1 text-xs text-[var(--od-text-tertiary)]">
                 最近更新：banner申请功能

@@ -7,7 +7,9 @@ import { ThemeToggle } from '@/shared/ui/ThemeToggle';
 import { AnimatedIcon } from '@/shared/ui/animation/AnimatedIcon';
 import { WordLogoStatic } from '@/shared/ui/loaders/WordLogoStatic';
 import {
+  BookOpen,
   Bookmark,
+  Compass,
   Info,
   LogOut,
   Search as SearchIcon,
@@ -86,12 +88,29 @@ export function AppSidebar() {
               }`}
             >
               <AnimatedIcon
-                icon={SearchIcon}
+                icon={Compass}
                 className={`h-4 w-4 flex-shrink-0 ${isActive('/') ? 'text-[var(--od-accent)]' : ''}`}
                 animation="scale"
                 trigger="hover"
               />
-              <span className="truncate">搜索页面</span>
+              <span className="truncate">广场</span>
+            </Link>
+
+            <Link
+              to="/search"
+              className={`group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${
+                isActive('/search')
+                  ? 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-primary)]'
+                  : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
+              }`}
+            >
+              <AnimatedIcon
+                icon={SearchIcon}
+                className={`h-4 w-4 flex-shrink-0 ${isActive('/search') ? 'text-[var(--od-accent)]' : ''}`}
+                animation="scale"
+                trigger="hover"
+              />
+              <span className="truncate">搜索</span>
             </Link>
 
             <Link
@@ -109,6 +128,27 @@ export function AppSidebar() {
                 trigger="hover"
               />
               <span className="truncate">我的关注</span>
+            </Link>
+
+            <Link
+              to="/booklists"
+              className={`group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${
+                isActive('/booklists') || location.pathname.startsWith('/booklists/')
+                  ? 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-primary)]'
+                  : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
+              }`}
+            >
+              <AnimatedIcon
+                icon={BookOpen}
+                className={`h-4 w-4 flex-shrink-0 ${
+                  isActive('/booklists') || location.pathname.startsWith('/booklists/')
+                    ? 'text-[var(--od-accent)]'
+                    : ''
+                }`}
+                animation="scale"
+                trigger="hover"
+              />
+              <span className="truncate">书单</span>
             </Link>
 
             <Link

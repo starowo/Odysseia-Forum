@@ -21,6 +21,8 @@ export interface SearchUIRequest {
   sort_method?: UISortMethod;
   created_after?: string | null;
   created_before?: string | null;
+  active_after?: string | null;
+  active_before?: string | null;
   limit?: number;
   offset?: number;
   guild_id?: number;
@@ -154,6 +156,8 @@ function buildSearchRequest(params: SearchUIRequest): ApiSearchParams {
     search_by_collection: params.search_by_collection || false,
     created_after: params.created_after || null,
     created_before: params.created_before || null,
+    active_after: params.active_after || null,
+    active_before: params.active_before || null,
     sort_method: mapSortMethod(params.sort_method),
     sort_order: 'desc',
     limit: params.limit || 24,

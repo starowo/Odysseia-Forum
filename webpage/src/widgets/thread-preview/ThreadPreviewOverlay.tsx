@@ -82,8 +82,8 @@ export function ThreadPreviewOverlay({
     (type: 'tag' | 'author', value: string) => {
       const nextQuery = addToken(params.query || '', type, value, 'include');
 
-      if (location.pathname !== '/') {
-        navigate(nextQuery ? `/?q=${encodeURIComponent(nextQuery)}` : '/');
+      if (location.pathname !== '/search') {
+        navigate(nextQuery ? `/search?q=${encodeURIComponent(nextQuery)}` : '/search');
       } else {
         setParams({ query: nextQuery });
       }
