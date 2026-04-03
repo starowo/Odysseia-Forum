@@ -1,4 +1,4 @@
-  <img src="/Users/macbookair/Desktop/Odysseia-Forum-main/webpage/src/assets/images/background/spring.png"  alt="ｂａｎｎｎｅｒ" />
+  <img src="/Users/macbookair/Desktop/Odysseia-Forum-main/webpage/src/assets/images/background/spring.png"  alt="banner" />
 
 
 
