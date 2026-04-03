@@ -1,6 +1,13 @@
+  <img src="/Users/macbookair/Desktop/Odysseia-Forum-main/webpage/src/assets/images/background/spring.png"  alt="ｂａｎｎｎｅｒ" />
+
+
+
 <div align="center">
   <img src="src/assets/images/mascot/durvis_spin.gif" width="250" alt="Mascot" />
 </div>
+
+
+
 
 <h1 align="center">
   大家欢迎呀！我是类脑娘！<img align="center" height="36" src="src/assets/images/mascot/hi.png" alt="微笑" />
