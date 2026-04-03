@@ -6,7 +6,6 @@ import { Toaster } from 'sonner';
 import { ErrorBoundary } from '@/app/providers/ErrorBoundary';
 import { ThemeProvider } from '@/app/themes/ThemeProvider';
 import { router } from './router';
-import { GlobalThreadPreview } from '@/widgets/thread-preview/GlobalThreadPreview';
 import { useMascotStore } from '@/features/mascot/store/mascotStore';
 
 const queryClient = new QueryClient({
@@ -59,7 +58,6 @@ export function App() {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <RouterProvider router={router} />
-          <GlobalThreadPreview />
           <Toaster position="top-center" richColors />
           {/* 仅在需要调试时显示 DevTools，默认隐藏 */}
           {import.meta.env.VITE_SHOW_DEVTOOLS === 'true' && (

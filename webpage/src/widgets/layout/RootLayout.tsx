@@ -4,6 +4,7 @@ import { AppSidebar } from '@/widgets/layout/AppSidebar';
 import { TopBar } from '@/widgets/layout/TopBar';
 import { MobileTabBar } from '@/widgets/layout/MobileTabBar';
 import { MascotBar } from '@/features/mascot/components/MascotBar';
+import { GlobalThreadPreview } from '@/widgets/thread-preview/GlobalThreadPreview';
 import { useSettings } from '@/shared/hooks/useSettings';
 import { useState } from 'react';
 
@@ -67,6 +68,7 @@ export function RootLayout() {
       <MobileTabBar />
 
       {/* ── 全局辅助层 ── */}
+      <GlobalThreadPreview />
       <MascotBar />
     </div>
   );
