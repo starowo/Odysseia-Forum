@@ -821,7 +821,18 @@ export function TopBar({ onMenuClick }: TopBarProps) {
               <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full border border-[var(--od-bg)] bg-red-500" />
             )}
           </button>
-          <NotificationCenter open={notificationOpen} onClose={() => setNotificationOpen(false)} />
+          <NotificationCenter
+            open={notificationOpen}
+            onClose={() => setNotificationOpen(false)}
+            onUnreadChange={(count) => {
+              setHasUnreadNotifications(count > 0);
+              window.dispatchEvent(
+                new CustomEvent('odysseia:notification-count', {
+                  detail: { count },
+                }),
+              );
+            }}
+          />
         </div>
       </div>
     </header>

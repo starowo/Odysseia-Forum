@@ -7,8 +7,11 @@ import { MascotDialog } from '@/features/mascot/components/MascotDialog';
 import { searchApi } from '@/features/search/api/searchApi';
 import { useSearchURLParams } from '@/features/search/hooks/useSearchParams';
 import { useSearchStore } from '@/features/search/store/searchStore';
+import { useUserPreferences } from '@/features/preferences/hooks/useUserPreferences';
+import { toPreferencesFormValue } from '@/features/preferences/lib/preferencesMapper';
+import { GUILD_ID } from '@/shared/config/channelCategories.private';
 import { useSettings } from '@/shared/hooks/useSettings';
-import { addToken } from '@/shared/lib/searchTokenizer';
+import { addToken, parseSearchQuery } from '@/shared/lib/searchTokenizer';
 import { ThreadPreviewOverlay } from '@/widgets/thread-preview/ThreadPreviewOverlay';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { Compass, Search, SlidersHorizontal } from 'lucide-react';
@@ -54,6 +57,8 @@ export function SearchPage() {
     return !localStorage.getItem('od_onboarding_shown');
   });
 
+  const { preferences } = useUserPreferences({ guildId: GUILD_ID });
+
   const { setBannerList } = useSearchStore();
   const { settings } = useSettings();
   const [previewThread, setPreviewThread] = useState<Thread | null>(null);
@@ -61,6 +66,39 @@ export function SearchPage() {
   const handleCloseOnboarding = () => {
     setShowOnboarding(false);
     localStorage.setItem('od_onboarding_shown', 'true');
+  };
+
+  const handleApplyPreferences = () => {
+    if (!preferences) {
+      handleCloseOnboarding();
+      return;
+    }
+
+    const mapped = toPreferencesFormValue(preferences);
+
+    let nextQuery = '';
+    for (const tag of mapped.includeTagsText.split(',').map((t) => t.trim()).filter(Boolean)) {
+      nextQuery = addToken(nextQuery, 'tag', tag, 'include');
+    }
+    for (const tag of mapped.excludeTagsText.split(',').map((t) => t.trim()).filter(Boolean)) {
+      nextQuery = addToken(nextQuery, 'tag', tag, 'exclude');
+    }
+
+    if (mapped.includeKeywordsText.trim()) {
+      const hasKeywordText = parseSearchQuery(nextQuery).some((token) => token.type === 'text');
+      nextQuery = hasKeywordText
+        ? `${nextQuery} ${mapped.includeKeywordsText.trim()}`.trim()
+        : mapped.includeKeywordsText.trim();
+    }
+
+    setParams({
+      query: nextQuery,
+      channel: mapped.preferredChannelIds[0] || null,
+      sortMethod: mapped.sortMethod,
+    });
+
+    toast.success('已应用你的默认搜索偏好');
+    handleCloseOnboarding();
   };
 
   const {
@@ -310,8 +348,8 @@ export function SearchPage() {
         onClose={handleCloseOnboarding}
         emotion="hi"
         title="欢迎来到 Odysseia！"
-        actionLabel="开始探索！"
-        onAction={handleCloseOnboarding}
+        actionLabel={preferences ? '应用我的偏好' : '开始探索！'}
+        onAction={preferences ? handleApplyPreferences : handleCloseOnboarding}
       >
         <p className="mb-3">
           我是这里的看板娘<b>类脑娘</b>！这里是全新的 Odysseia 论坛，拥有极强的搜索与筛选能力哦！
@@ -324,6 +362,7 @@ export function SearchPage() {
           </li>
           <li>高级筛选已支持标签正反选、作者包含/排除、时间与排序组合</li>
           <li>点击卡片就能预览详情，不用跳页哦</li>
+          {preferences && <li>你可以一键套用已保存的偏好频道和排序配置</li>}
         </ul>
       </MascotDialog>
 

@@ -12,7 +12,7 @@ const TABS: TabItem[] = [
   { id: 'home', path: '/', icon: Home, label: '广场' },
   { id: 'search', path: '/search', icon: Search, label: '搜索' },
   { id: 'follows', path: '/follows', icon: Bookmark, label: '关注' },
-  { id: 'profile', path: '/settings', icon: User, label: '我的' },
+  { id: 'profile', path: '/me', icon: User, label: '我的' },
 ];
 
 /**

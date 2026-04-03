@@ -12,6 +12,7 @@ import {
   Compass,
   Info,
   LogOut,
+  User,
   Search as SearchIcon,
   Settings,
   Tag as TagIcon,
@@ -325,8 +326,11 @@ export function AppSidebar() {
       </div>
 
       <div className="border-t border-[var(--od-border)] bg-[var(--od-bg-secondary)] p-2">
-        <div className="flex items-center justify-between rounded-xl bg-[var(--od-bg-tertiary)] p-2 shadow-sm transition-all hover:shadow-md">
-          <div className="flex items-center gap-2 overflow-hidden">
+        <div className="rounded-xl bg-[var(--od-bg-tertiary)] p-2 shadow-sm transition-all hover:shadow-md">
+          <Link
+            to="/me"
+            className="group flex items-center gap-2 overflow-hidden rounded-lg p-1.5 transition-colors hover:bg-[var(--od-bg-secondary)]"
+          >
             <div className="relative h-8 w-8 flex-shrink-0">
               <img
                 src={
@@ -339,21 +343,27 @@ export function AppSidebar() {
               />
               <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full border-2 border-[var(--od-bg-secondary)] bg-green-500" />
             </div>
-            <div className="flex flex-col overflow-hidden">
+            <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
               <span className="truncate text-xs font-bold text-[var(--od-text-primary)]">
                 {user?.global_name || user?.username || 'Guest'}
               </span>
               <span className="truncate text-[10px] text-[var(--od-text-tertiary)]">@{user?.username}</span>
             </div>
-          </div>
+            <span className="inline-flex items-center gap-1 rounded-md bg-[var(--od-bg-secondary)] px-2 py-1 text-[10px] font-semibold text-[var(--od-text-secondary)] group-hover:text-[var(--od-text-primary)]">
+              <User className="h-3 w-3" />
+              我的
+            </span>
+          </Link>
 
-          <button
-            onClick={handleLogout}
-            className="rounded-lg p-2 text-[var(--od-text-tertiary)] transition-colors hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-error)]"
-            title="登出"
-          >
-            <AnimatedIcon icon={LogOut} className="h-5 w-5" animation="shake" trigger="hover" />
-          </button>
+          <div className="mt-2 flex items-center justify-end">
+            <button
+              onClick={handleLogout}
+              className="rounded-lg p-2 text-[var(--od-text-tertiary)] transition-colors hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-error)]"
+              title="登出"
+            >
+              <AnimatedIcon icon={LogOut} className="h-5 w-5" animation="shake" trigger="hover" />
+            </button>
+          </div>
         </div>
       </div>
     </div>

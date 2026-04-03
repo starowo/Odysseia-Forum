@@ -7,6 +7,7 @@ import { FollowsPage } from '@/pages/FollowsPage';
 import { TagsPage } from '@/pages/TagsPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { AboutPage } from '@/pages/AboutPage';
+import { MePage } from '@/pages/MePage';
 import { TestPage } from '@/pages/TestPage';
 import { BooklistsPage } from '@/pages/BooklistsPage';
 import { BooklistDetailPage } from '@/pages/BooklistDetailPage';
@@ -44,6 +45,10 @@ const appChildren = [
   {
     path: 'settings',
     element: <SettingsPage />,
+  },
+  {
+    path: 'me',
+    element: <MePage />,
   },
   ...(isDevToolsEnabled
     ? [

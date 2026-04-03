@@ -5,6 +5,7 @@ import { RouterProvider } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { ErrorBoundary } from '@/app/providers/ErrorBoundary';
 import { ThemeProvider } from '@/app/themes/ThemeProvider';
+import { bindThumbnailRepairQueryClient } from '@/features/threads/lib/thumbnailRepairQueue';
 import { router } from './router';
 import { useMascotStore } from '@/features/mascot/store/mascotStore';
 
@@ -31,6 +32,10 @@ if (import.meta.env.DEV) {
 
 export function App() {
   // Extract token from URL hash (iOS/Worker compatibility)
+  useEffect(() => {
+    bindThumbnailRepairQueryClient(queryClient);
+  }, []);
+
   useEffect(() => {
     const hash = window.location.hash;
     const match = hash.match(/[#&]token=([^&]+)/);

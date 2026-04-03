@@ -18,6 +18,8 @@ export function FollowsPage() {
     queryKey: ['follows'],
     queryFn: followsApi.getFollows,
     staleTime: 60 * 1000,
+    refetchInterval: 30 * 1000,
+    refetchOnWindowFocus: true,
   });
 
   const allFollows = followsData?.results || [];

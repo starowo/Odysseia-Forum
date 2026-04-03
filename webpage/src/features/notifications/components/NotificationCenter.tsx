@@ -50,12 +50,14 @@ export function NotificationCenter({ open, onClose, onUnreadChange }: Notificati
     }
   }, [dismissedStaticIds]);
 
-  const [dismissedFollowIds, setDismissedFollowIds] = useState<string[]>([]);
+  const [dismissedFollowUpdates, setDismissedFollowUpdates] = useState<Record<string, string>>({});
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['follows'],
     queryFn: followsApi.getFollows,
     staleTime: 60 * 1000,
+    refetchInterval: 30 * 1000,
+    refetchOnWindowFocus: true,
   });
 
   const {
@@ -87,7 +89,12 @@ export function NotificationCenter({ open, onClose, onUnreadChange }: Notificati
   // 关注更新类通知
   const followNotifications: NotificationItem[] = follows
     .filter((thread) => thread.has_update)
-    .filter((thread) => !dismissedFollowIds.includes(`follow-${thread.thread_id}`))
+    .filter((thread) => {
+      const id = `follow-${thread.thread_id}`;
+      const currentUpdateStamp = thread.last_active_at ?? thread.created_at;
+      const dismissedStamp = dismissedFollowUpdates[id];
+      return dismissedStamp !== currentUpdateStamp;
+    })
     .map((thread) => ({
       id: `follow-${thread.thread_id}`,
       kind: 'follow_update' as const,
@@ -99,7 +106,7 @@ export function NotificationCenter({ open, onClose, onUnreadChange }: Notificati
 
   const allNotifications: NotificationItem[] = [...staticNotifications, ...followNotifications];
   const hasAnyNotification = allNotifications.length > 0;
-  const effectiveUnreadCount = Math.max(unreadCount - dismissedFollowIds.length, 0);
+  const effectiveUnreadCount = unreadCount;
   const unreadTotal = allNotifications.length;
 
   // 将当前未读通知数量回传给父级（用于侧边栏铃铛动画和红点）
@@ -110,7 +117,11 @@ export function NotificationCenter({ open, onClose, onUnreadChange }: Notificati
   const handleNotificationClick = (item: NotificationItem) => {
     // 关注帖子更新：点击即视为已读，从列表中移除，并打开详情预览
     if (item.kind === 'follow_update' && item.thread) {
-      setDismissedFollowIds((prev) => (prev.includes(item.id) ? prev : [...prev, item.id]));
+      const currentUpdateStamp = item.thread.last_active_at ?? item.thread.created_at;
+      setDismissedFollowUpdates((prev) => ({
+        ...prev,
+        [item.id]: currentUpdateStamp,
+      }));
 
       setPreviewThread(item.thread);
       return;
@@ -141,11 +152,15 @@ export function NotificationCenter({ open, onClose, onUnreadChange }: Notificati
     });
 
     // 关注帖子通知：基于当前 has_update 的帖子全部标记为已读
-    const allFollowIds = follows
-      .filter((thread) => thread.has_update)
-      .map((thread) => `follow-${thread.thread_id}`);
-
-    setDismissedFollowIds((prev) => Array.from(new Set([...prev, ...allFollowIds])));
+    setDismissedFollowUpdates((prev) => {
+      const next = { ...prev };
+      for (const thread of follows) {
+        if (!thread.has_update) continue;
+        const id = `follow-${thread.thread_id}`;
+        next[id] = thread.last_active_at ?? thread.created_at;
+      }
+      return next;
+    });
 
     // 调用后端 API 标记所有为已读
     try {
@@ -189,7 +204,7 @@ export function NotificationCenter({ open, onClose, onUnreadChange }: Notificati
       </div>
 
       <div className="flex items-center justify-between px-4 py-2 text-xs text-[var(--od-text-secondary)]">
-        <span>当前共有 {effectiveUnreadCount} 个关注更新</span>
+              <span>当前共有 {effectiveUnreadCount} 个关注更新</span>
         <div className="flex items-center gap-2">
           <button
             type="button"

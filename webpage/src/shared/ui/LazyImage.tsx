@@ -1,16 +1,27 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useSettings } from '@/shared/hooks/useSettings';
+import { reportBrokenThreadThumbnail, subscribeThreadThumbnailRepair } from '@/features/threads/lib/thumbnailRepairQueue';
 
 interface LazyImageProps {
   src: string;
   alt: string;
   className?: string;
   placeholder?: string;
+  threadId?: string;
+  channelId?: string;
 }
 
-export function LazyImage({ src, alt, className = '', placeholder }: LazyImageProps) {
+export function LazyImage({
+  src,
+  alt,
+  className = '',
+  placeholder,
+  threadId,
+  channelId,
+}: LazyImageProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isInView, setIsInView] = useState(false);
+  const [currentSrc, setCurrentSrc] = useState(src);
   const imgRef = useRef<HTMLDivElement>(null);
   const { settings } = useSettings();
   const isImageDisabled = settings.imageMode === 'off';
@@ -36,6 +47,20 @@ export function LazyImage({ src, alt, className = '', placeholder }: LazyImagePr
   }, []);
 
   const imageRef = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    setCurrentSrc(src);
+    setIsLoaded(false);
+  }, [src]);
+
+  useEffect(() => {
+    if (!threadId) return;
+    return subscribeThreadThumbnailRepair(threadId, (urls) => {
+      if (urls.length > 0) {
+        setCurrentSrc(urls[0]);
+      }
+    });
+  }, [threadId]);
 
   // 监听图片是否已经在缓存中，如果是，则直接标记为已加载，避免闪烁
   useLayoutEffect(() => {
@@ -73,11 +98,15 @@ export function LazyImage({ src, alt, className = '', placeholder }: LazyImagePr
           {isInView && (
             <img
               ref={imageRef}
-              src={src}
+              src={currentSrc}
               alt={alt}
               className={`h-full w-full object-cover transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'
                 }`}
               onLoad={() => setIsLoaded(true)}
+              onError={() => {
+                if (!threadId) return;
+                reportBrokenThreadThumbnail({ threadId, channelId });
+              }}
               loading="lazy"
             />
           )}

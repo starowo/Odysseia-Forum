@@ -177,6 +177,8 @@ export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick,
                 src={thread.thumbnail_urls[0]}
                 alt={thread.title}
                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                threadId={thread.thread_id}
+                channelId={thread.channel_id}
               />
               {thread.thumbnail_urls && thread.thumbnail_urls.length > 1 && (
                 <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-md bg-black/60 px-1.5 py-0.5 text-xs font-bold text-white backdrop-blur-sm">

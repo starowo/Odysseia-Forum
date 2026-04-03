@@ -5,9 +5,11 @@ import { zhCN } from 'date-fns/locale';
 import { HighlightText } from '@/shared/ui/HighlightText';
 import type { Thread } from '@/entities/thread/types';
 import { ThreadActions } from '@/features/threads/components/ThreadActions';
+import { reportBrokenThreadThumbnail, subscribeThreadThumbnailRepair } from '@/features/threads/lib/thumbnailRepairQueue';
 import { AuthorAvatar } from '@/entities/user/AuthorAvatar';
 import { ThreadStatusBadges } from '@/entities/thread/ThreadStatusBadges';
 import { usePretextClampText } from '@/shared/hooks/usePretextClampText';
+import { useEffect, useMemo, useState } from 'react';
 
 
 interface ThreadCardProps {
@@ -25,6 +27,18 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
     thread.author?.name ??
     '未知用户';
   const hasThumbnail = thread.thumbnail_urls && thread.thumbnail_urls.length > 0;
+  const initialThumbnail = useMemo(() => thread.thumbnail_urls?.[0] || '', [thread.thumbnail_urls]);
+  const [thumbnailSrc, setThumbnailSrc] = useState(initialThumbnail);
+
+  useEffect(() => {
+    setThumbnailSrc(initialThumbnail);
+  }, [initialThumbnail, thread.thread_id]);
+
+  useEffect(() => {
+    return subscribeThreadThumbnailRepair(thread.thread_id, (urls) => {
+      if (urls.length > 0) setThumbnailSrc(urls[0]);
+    });
+  }, [thread.thread_id]);
   const createdTime = formatDistanceToNow(new Date(thread.created_at), {
     addSuffix: true,
     locale: zhCN,
@@ -62,11 +76,17 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
       <div
         className="absolute inset-0 z-0 bg-[var(--od-bg-tertiary)]"
       >
-        {thread.thumbnail_urls && thread.thumbnail_urls.length > 0 ? (
+        {thumbnailSrc ? (
           <img
-            src={thread.thumbnail_urls[0]}
+            src={thumbnailSrc}
             alt={thread.title}
             className="h-full w-full object-cover"
+            onError={() => {
+              reportBrokenThreadThumbnail({
+                threadId: thread.thread_id,
+                channelId: thread.channel_id,
+              });
+            }}
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-[var(--od-bg-secondary)]">
