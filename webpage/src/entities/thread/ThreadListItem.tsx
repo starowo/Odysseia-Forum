@@ -12,17 +12,19 @@ import { ThreadActions } from '@/features/threads/components/ThreadActions';
 import { AuthorAvatar } from '@/entities/user/AuthorAvatar';
 import { ThreadStatusBadges } from '@/entities/thread/ThreadStatusBadges';
 import { usePretextClampText } from '@/shared/hooks/usePretextClampText';
+import { useNavigate } from 'react-router-dom';
 
 
 interface ThreadListItemProps {
   thread: Thread;
   onTagClick?: (tag: string) => void;
   searchQuery?: string;
-  onAuthorClick?: (authorName: string) => void;
+  onAuthorClick?: (author: { id: string; name: string }) => void;
   onPreview?: (thread: Thread) => void;
 }
 
 export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick, onPreview }: ThreadListItemProps) {
+  const navigate = useNavigate();
   const { settings } = useSettings();
   const fontSizes = fontSizeMap[settings.fontSize];
 
@@ -43,12 +45,23 @@ export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick,
     thread.author?.global_name ??
     thread.author?.name ??
     '未知用户';
+  const authorId = thread.author?.id || '';
 
   const hasExcerpt =
     !!thread.first_message_excerpt &&
     thread.first_message_excerpt.trim() !== '...';
   const { measureRef: titleMeasureRef, clampedText: clampedTitle } =
     usePretextClampText<HTMLHeadingElement>(thread.title, { maxLines: 2 });
+
+  const handleAuthorClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!authorId) return;
+    if (onAuthorClick) {
+      onAuthorClick({ id: authorId, name: authorName });
+      return;
+    }
+    navigate(`/u/${authorId}`);
+  };
 
   return (
     <article
@@ -75,15 +88,12 @@ export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick,
             {/* 作者和时间 */}
             <div className={`mb-1 flex items-center gap-2 ${fontSizes.meta} text-[var(--od-text-tertiary)] md:mb-3`}>
               {/* 头像 */}
-              <AuthorAvatar author={thread.author} className="h-6 w-6 md:h-8 md:w-8" />
+              <button type="button" onClick={handleAuthorClick} className="rounded-full">
+                <AuthorAvatar author={thread.author} className="h-6 w-6 md:h-8 md:w-8" />
+              </button>
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (authorName && onAuthorClick) {
-                    onAuthorClick(authorName);
-                  }
-                }}
+                onClick={handleAuthorClick}
                 className="truncate font-medium text-[var(--od-accent)] hover:underline max-w-[80px] md:max-w-none"
               >
                 {authorName}

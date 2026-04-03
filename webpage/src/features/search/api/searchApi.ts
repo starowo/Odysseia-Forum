@@ -27,6 +27,7 @@ export interface SearchUIRequest {
   offset?: number;
   guild_id?: number;
   search_by_collection?: boolean;
+  author_name?: string;
 }
 
 export interface SearchSuggestionAuthor {
@@ -149,7 +150,7 @@ function buildSearchRequest(params: SearchUIRequest): ApiSearchParams {
     exclude_authors: toApiIntIdList(excludeAuthorIds),
     // 后端路由目前实际不消费 request.author_name，
     // 所以作者名搜索改走 keywords 中的 author: 语法。
-    author_name: null,
+    author_name: params.author_name || null,
     // 作者反选如果没有作者 ID 映射接口，先不要错误地降级成 exclude_keywords，
     // 否则会变成“排除正文包含作者名的帖子”，语义和性能都不对。
     exclude_keywords: null,

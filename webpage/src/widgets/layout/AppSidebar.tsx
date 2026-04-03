@@ -8,11 +8,9 @@ import { AnimatedIcon } from '@/shared/ui/animation/AnimatedIcon';
 import { WordLogoStatic } from '@/shared/ui/loaders/WordLogoStatic';
 import {
   BookOpen,
-  Bookmark,
   Compass,
   Info,
   LogOut,
-  User,
   Search as SearchIcon,
   Settings,
   Tag as TagIcon,
@@ -112,23 +110,6 @@ export function AppSidebar() {
                 trigger="hover"
               />
               <span className="truncate">搜索</span>
-            </Link>
-
-            <Link
-              to="/follows"
-              className={`group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${
-                isActive('/follows')
-                  ? 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-primary)]'
-                  : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
-              }`}
-            >
-              <AnimatedIcon
-                icon={Bookmark}
-                className={`h-4 w-4 flex-shrink-0 ${isActive('/follows') ? 'text-[var(--od-accent)]' : ''}`}
-                animation="scale"
-                trigger="hover"
-              />
-              <span className="truncate">我的关注</span>
             </Link>
 
             <Link
@@ -327,35 +308,31 @@ export function AppSidebar() {
 
       <div className="border-t border-[var(--od-border)] bg-[var(--od-bg-secondary)] p-2">
         <div className="rounded-xl bg-[var(--od-bg-tertiary)] p-2 shadow-sm transition-all hover:shadow-md">
-          <Link
-            to="/me"
-            className="group flex items-center gap-2 overflow-hidden rounded-lg p-1.5 transition-colors hover:bg-[var(--od-bg-secondary)]"
-          >
-            <div className="relative h-8 w-8 flex-shrink-0">
-              <img
-                src={
-                  user?.avatar
-                    ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
-                    : 'https://cdn.discordapp.com/embed/avatars/0.png'
-                }
-                alt={user?.username}
-                className="h-full w-full rounded-full object-cover ring-2 ring-[var(--od-bg-secondary)]"
-              />
-              <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full border-2 border-[var(--od-bg-secondary)] bg-green-500" />
-            </div>
-            <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-              <span className="truncate text-xs font-bold text-[var(--od-text-primary)]">
-                {user?.global_name || user?.username || 'Guest'}
-              </span>
-              <span className="truncate text-[10px] text-[var(--od-text-tertiary)]">@{user?.username}</span>
-            </div>
-            <span className="inline-flex items-center gap-1 rounded-md bg-[var(--od-bg-secondary)] px-2 py-1 text-[10px] font-semibold text-[var(--od-text-secondary)] group-hover:text-[var(--od-text-primary)]">
-              <User className="h-3 w-3" />
-              我的
-            </span>
-          </Link>
+          <div className="flex items-center gap-1">
+            <Link
+              to="/me"
+              className="group flex min-w-0 flex-1 items-center gap-2 overflow-hidden rounded-lg p-2 transition-colors hover:bg-[var(--od-bg-secondary)]"
+            >
+              <div className="relative h-8 w-8 flex-shrink-0">
+                <img
+                  src={
+                    user?.avatar
+                      ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
+                      : 'https://cdn.discordapp.com/embed/avatars/0.png'
+                  }
+                  alt={user?.username}
+                  className="h-full w-full rounded-full object-cover ring-2 ring-[var(--od-bg-secondary)]"
+                />
+                <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full border-2 border-[var(--od-bg-secondary)] bg-green-500" />
+              </div>
+              <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+                <span className="truncate text-xs font-bold text-[var(--od-text-primary)]">
+                  {user?.global_name || user?.username || 'Guest'}
+                </span>
+                <span className="truncate text-[10px] text-[var(--od-text-tertiary)]">@{user?.username}</span>
+              </div>
+            </Link>
 
-          <div className="mt-2 flex items-center justify-end">
             <button
               onClick={handleLogout}
               className="rounded-lg p-2 text-[var(--od-text-tertiary)] transition-colors hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-error)]"

@@ -16,6 +16,7 @@ import { ThreadPreviewOverlay } from '@/widgets/thread-preview/ThreadPreviewOver
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { Compass, Search, SlidersHorizontal } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 const defaultBanners = [
@@ -36,6 +37,7 @@ const defaultBanners = [
 ];
 
 export function SearchPage() {
+  const navigate = useNavigate();
   const { params, setParams } = useSearchURLParams();
   const {
     query,
@@ -203,14 +205,6 @@ export function SearchPage() {
     setParams({ query: nextQuery });
   };
 
-  const handleAuthorToken = (authorName: string, mode: 'include' | 'exclude' = 'include') => {
-    const nextQuery = addToken(query || '', 'author', authorName, mode);
-    setParams({ query: nextQuery });
-    toast.success(`${mode === 'include' ? '已添加作者' : '已排除作者'}：${authorName}`, {
-      duration: 2000,
-    });
-  };
-
   const hasSearchFilters =
     !!query ||
     includeTags.length > 0 ||
@@ -302,7 +296,7 @@ export function SearchPage() {
                     thread={thread}
                     onTagClick={handleTagClick}
                     searchQuery={query}
-                    onAuthorClick={(authorName) => handleAuthorToken(authorName, 'include')}
+                    onAuthorClick={(author) => navigate(`/u/${author.id}`)}
                     onPreview={setPreviewThread}
                   />
                 ) : (
@@ -311,7 +305,7 @@ export function SearchPage() {
                     thread={thread}
                     onTagClick={handleTagClick}
                     searchQuery={query}
-                    onAuthorClick={(authorName) => handleAuthorToken(authorName, 'include')}
+                    onAuthorClick={(author) => navigate(`/u/${author.id}`)}
                     onPreview={setPreviewThread}
                   />
                 ),

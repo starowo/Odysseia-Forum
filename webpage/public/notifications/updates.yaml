@@ -1,4 +1,51 @@
 updates:
+  - id: webpage-2.2.0-me-author-profile
+    title: 索引页 2.2.0 发布：我的中心与作者主页
+    message: |
+      这次更新聚焦个人系统整合与信息架构收敛：
+
+      - `/me` 升级为统一个人中心：书单（我的创建/我的收藏）、关注、我的帖子、偏好
+      - 新增轻量作者主页 `/u/:userId`，支持查看作者帖子与基础统计
+      - 关注页从独立路由迁入 `/me`，侧边栏与移动端导航同步精简
+      - 侧边栏底部个人区改为单行紧凑布局，交互更直观
+      - 保留并延续既有能力：偏好接口联动、缩略图 404 自愈修复链路
+    created_at: '2026-04-03T06:11:00.000Z'
+    source: webpage
+    version: 2.2.0
+    url: https://github.com/starowo/Odysseia-Forum/releases
+    min_app_version: 2.2.0
+    preview_thread:
+      title: Odysseia Index 2.2.0 更新公告
+      first_message_excerpt: |
+        # Odysseia Index 2.2.0
+
+        本次版本重点是「个人系统一体化」与「导航信息收敛」：
+
+        ## 1) 我的中心统一
+        - `/me` 收拢个人相关功能
+        - 书单支持双 Tab：我的创建 / 我的收藏
+        - 关注、我的帖子、偏好集中管理
+
+        ## 2) 作者主页补齐
+        - 新增 `/u/:userId`
+        - 支持作者帖子浏览与基础统计
+        - 卡片作者点击链路统一为作者页导航
+
+        ## 3) 导航与布局清理
+        - 移除独立关注路由入口
+        - 通知跳转改为 `/me?tab=follows`
+        - 侧边栏底部个人区改为单行紧凑布局
+
+        个人系统重构阶段性完成，后续将继续进行页面内组件拆分与质量优化。
+      tags: [版本更新, 我的中心, 作者主页]
+      virtual_tags: [release, me, profile]
+      author:
+        id: odysseia-web
+        name: Odysseia
+        display_name: Odysseia Web Team
+      thumbnail_urls:
+        - https://cdn.jsdelivr.net/gh/starowo/Odysseia-Forum@main/webpage/src/assets/images/background/winter.png
+
   - id: webpage-2.1.0-plaza-booklist
     title: 索引页 2.1.0 发布：广场与书单系统升级
     message: |

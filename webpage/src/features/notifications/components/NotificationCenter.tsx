@@ -177,7 +177,7 @@ export function NotificationCenter({ open, onClose, onUnreadChange }: Notificati
   }
 
   const handleGoToFollows = () => {
-    navigate('/follows');
+    navigate('/me?tab=follows');
     onClose();
   };
 

@@ -10,22 +10,25 @@ import { AuthorAvatar } from '@/entities/user/AuthorAvatar';
 import { ThreadStatusBadges } from '@/entities/thread/ThreadStatusBadges';
 import { usePretextClampText } from '@/shared/hooks/usePretextClampText';
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 
 interface ThreadCardProps {
   thread: Thread;
   onTagClick?: (tag: string) => void;
   searchQuery?: string;
-  onAuthorClick?: (authorName: string) => void;
+  onAuthorClick?: (author: { id: string; name: string }) => void;
   onPreview?: (thread: Thread) => void;
 }
 
 export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onPreview }: ThreadCardProps) {
+  const navigate = useNavigate();
   const authorName =
     thread.author?.display_name ??
     thread.author?.global_name ??
     thread.author?.name ??
     '未知用户';
+  const authorId = thread.author?.id || '';
   const hasThumbnail = thread.thumbnail_urls && thread.thumbnail_urls.length > 0;
   const initialThumbnail = useMemo(() => thread.thumbnail_urls?.[0] || '', [thread.thumbnail_urls]);
   const [thumbnailSrc, setThumbnailSrc] = useState(initialThumbnail);
@@ -66,6 +69,16 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
       maxLines: 2,
       enabled: hasExcerpt,
     });
+
+  const handleAuthorClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!authorId) return;
+    if (onAuthorClick) {
+      onAuthorClick({ id: authorId, name: authorName });
+      return;
+    }
+    navigate(`/u/${authorId}`);
+  };
 
   return (
     <article
@@ -183,15 +196,16 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
         <div className={`border-t pt-2 text-xs ${hasThumbnail ? 'border-white/10 text-white/80' : 'border-[var(--od-border)] text-[var(--od-text-secondary)]'}`}>
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2">
             <div className="flex min-w-0 items-center gap-2 overflow-hidden">
-              <AuthorAvatar author={thread.author} className="h-6 w-6 md:h-7 md:w-7 ring-1 ring-white/20" />
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (authorName && onAuthorClick) {
-                    onAuthorClick(authorName);
-                  }
-                }}
+                onClick={handleAuthorClick}
+                className="rounded-full"
+              >
+                <AuthorAvatar author={thread.author} className="h-6 w-6 md:h-7 md:w-7 ring-1 ring-white/20" />
+              </button>
+              <button
+                type="button"
+                onClick={handleAuthorClick}
                 className={`truncate font-medium hover:underline ${compactAuthorTextClass} ${hasThumbnail ? 'hover:text-white' : 'hover:text-[var(--od-text-primary)]'}`}
               >
                 {authorName}

@@ -31,7 +31,6 @@ import {
   Search,
   Settings as SettingsIcon,
   SlidersHorizontal,
-  Star,
   User,
   X,
 } from 'lucide-react';
@@ -211,7 +210,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
     setShowFilters(false);
   };
 
-  const needsFilter = isSearchPage || location.pathname === '/follows';
+  const needsFilter = isSearchPage;
 
   const { data: filterMeta } = useQuery({
     queryKey: ['search-filter-meta', params.channel],
@@ -437,8 +436,8 @@ export function TopBar({ onMenuClick }: TopBarProps) {
     if (location.pathname === '/settings') {
       return { icon: SettingsIcon, label: '设置' };
     }
-    if (location.pathname === '/follows') {
-      return { icon: Star, label: '关注' };
+    if (location.pathname === '/me') {
+      return { icon: User, label: '我的' };
     }
     if (location.pathname === '/search') {
       if (activeVirtualTag) {

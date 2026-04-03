@@ -3,11 +3,11 @@ import { LoginPage } from '@/pages/AuthPage/LoginPage';
 import { CallbackPage } from '@/pages/AuthPage/CallbackPage';
 import { SearchPage } from '@/pages/SearchPage';
 import { PlazaPage } from '@/pages/PlazaPage';
-import { FollowsPage } from '@/pages/FollowsPage';
 import { TagsPage } from '@/pages/TagsPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { AboutPage } from '@/pages/AboutPage';
 import { MePage } from '@/pages/MePage';
+import { UserProfilePage } from '@/pages/UserProfilePage';
 import { TestPage } from '@/pages/TestPage';
 import { BooklistsPage } from '@/pages/BooklistsPage';
 import { BooklistDetailPage } from '@/pages/BooklistDetailPage';
@@ -25,10 +25,6 @@ const appChildren = [
   {
     path: 'search',
     element: <SearchPage />,
-  },
-  {
-    path: 'follows',
-    element: <FollowsPage />,
   },
   {
     path: 'tags',
@@ -49,6 +45,10 @@ const appChildren = [
   {
     path: 'me',
     element: <MePage />,
+  },
+  {
+    path: 'u/:userId',
+    element: <UserProfilePage />,
   },
   ...(isDevToolsEnabled
     ? [

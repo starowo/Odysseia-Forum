@@ -1,4 +1,4 @@
-import { Home, Search, Bookmark, User } from 'lucide-react';
+import { Home, Search, User } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
 interface TabItem {
@@ -11,7 +11,6 @@ interface TabItem {
 const TABS: TabItem[] = [
   { id: 'home', path: '/', icon: Home, label: '广场' },
   { id: 'search', path: '/search', icon: Search, label: '搜索' },
-  { id: 'follows', path: '/follows', icon: Bookmark, label: '关注' },
   { id: 'profile', path: '/me', icon: User, label: '我的' },
 ];
 
