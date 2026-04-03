@@ -4,6 +4,17 @@
 
 **基础 URL**: `/v1` (例如本地开发环境: `http://localhost:10810/v1`)
 
+## 前端 API 封装与类型生成
+
+前端的 API 调用基于 `axios` 进行了统一封装，详见 `src/shared/api/client.ts`：
+- **baseURL**: 从环境变量 `VITE_API_URL` 读取，缺省为 `http://localhost:10810/v1`。
+- **拦截器**: 统一处理 `Authorization: Bearer <token>` 的注入，并全局拦截 `401 Unauthorized` 错误。
+
+项目中使用了 `openapi-typescript` 进行 API 类型的自动化维护：
+- 运行 `npm run gen:api`，会自动从后端生成 `openapi.json`，并提取 TypeScript 类型写入 `src/shared/types/openapi.d.ts`。
+- 我们应尽量复用该文件中生成的接口类型规范出入参。
+
+
 ## 认证 (`/auth`)
 
 后端使用 Discord OAuth2 进行身份认证。
