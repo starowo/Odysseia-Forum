@@ -1,4 +1,6 @@
-  <img src="/src/assets/images/background/spring.png" alt="banner" />
+  <div align="center">
+  <img src="/src/assets/images/background/spring.png"  alt="banner" />
+  </div>
 
 
 
