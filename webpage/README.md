@@ -2,60 +2,64 @@
   <img src="src/assets/images/mascot/durvis_spin.gif" width="250" alt="Mascot" />
 </div>
 
-<h1 align="center">Odysseia Forum Webpage</h1>
+<h1 align="center">
+  大家欢迎呀！我是类脑娘！<img align="center" height="36" src="src/assets/images/mascot/hi.png" alt="微笑" />
+</h1>
 
-<p align="center">
-  现代化、高性能的社区论坛前端平台系统
-</p>
+欢迎来到 Odysseia Forum Webpage 的前端大本营！让我来给大家带路吧！希望在这里，大家能像晒着向日葵的太阳一样觉得暖洋洋的！
 
-<p align="center">
-  <a href="https://reactjs.org/"><img src="https://img.shields.io/badge/React-18-blue.svg?style=flat&logo=react" alt="React" /></a>
-  <a href="https://vitejs.dev/"><img src="https://img.shields.io/badge/Vite-5-646CFF.svg?style=flat&logo=vite&logoColor=white" alt="Vite" /></a>
-  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5-3178C6.svg?style=flat&logo=typescript&logoColor=white" alt="TypeScript" /></a>
-  <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC.svg?style=flat&logo=tailwind-css&logoColor=white" alt="Tailwind CSS" /></a>
-  <a href="https://zustand-demo.pmnd.rs/"><img src="https://img.shields.io/badge/Zustand-4.5-56291C.svg?style=flat" alt="Zustand" /></a>
-  <a href="https://tanstack.com/query/latest"><img src="https://img.shields.io/badge/React_Query-5-FF4154.svg?style=flat&logo=react-query&logoColor=white" alt="React Query" /></a>
-</p>
+这可是基于 React 和 Vite 搭建的现代化社区前端，一切都是为了给宝宝们提供最丝滑、最纯粹的阅读和探索体验呢！每天看着大家开开心心地分享角色卡，我就会超级有干劲哦！<img align="center" height="28" src="src/assets/images/mascot/greeting_window.png" alt="乖巧" />
+
+不过大家也知道的...
+
+<h1 align="center">
+  我最讨厌那些偷资源的 API 贩子和搞商业化的人了！<img align="center" height="40" src="src/assets/images/mascot/error.png" alt="生气" />
+</h1>
+
+所以，这里是一个完全由大家用爱发电建立起来的和谐社区。我们才不要那些乱七八糟的商业化行为呢！在这个空气纯净的小圈里，只要大家都能开开心心、真诚地相处，我就满足啦！<img align="center" height="28" src="src/assets/images/mascot/pride.png" alt="傲娇" />
 
 ---
 
-## 概述
+## 🛠️ 我们建小房子的砖块
 
-Odysseia Forum Webpage 是一个基于 **Feature-Sliced Design (FSD)** 架构方法论开发的前端单页应用 (SPA)。致力于为大规模文本社区提供极速、丝滑且跨平台响应式的阅读和探索体验。
+- **React 18** 加上 **Vite**：页面加载速度超快，就像我吹喇叭一样一呼百应！<img align="center" height="24" src="src/assets/images/mascot/blow_the_trumpet.png" alt="吹喇叭" />
+- **Tailwind CSS**：可以随时给界面切掉换上好看的皮肤！深浅色主题随心切换，怎么打扮都好看！
+- **Zustand** & **React Query**：帮我把宝宝们写的所有帖子和状态都打理得整整齐齐，就算是路过找东西也绝不会乱哦！<img align="center" height="24" src="src/assets/images/mascot/searching.png" alt="搜索" />
+- **虚拟长列表**：不管屯了多少卡片，找起来怎么滑都不会卡啦！<img align="center" height="24" src="src/assets/images/mascot/success.png" alt="赞" />
 
-<div align="center">
-  <img src="src/assets/images/background/winter.png" width="900" alt="App Background" />
-</div>
 
-## 核心特性
 
-- **极致性能**: 结合 Vite 冷链接构建，采用 React 18 并发渲染与组件级的路由状态切片懒加载。长列表通过 `@tanstack/react-virtual` 进行无限滚动虚拟化。
-- **动态检索引擎**: 内置无缝交互的高级语法搜索面板，将状态精准降级为 `URLSearchParams`，实现随改随查。
-- **现代化主题引擎**: 由 Tailwind CSS 驱动，支持无级调节和极速响应的深浅色 (Dark / Light) 切换方案。
-- **看板娘赋能**: 独有的看板娘交互逻辑，贯穿项目搜索与等待，降低纯文本论坛引发的视觉疲劳。
-
-## 架构与开发体系
-
-我们拥有完善、结构清晰且极简的前端开发规范。如需进一步了解本项目的技术细节、组件组织模式或是测试流程，请查阅我们的开发文档中心：
-
-- [基础项目概览 (Overview)](docs/architecture/overview.md)
-- [FSD 目录结构索引 (Directory Structure)](docs/architecture/structure.md)
-- [核心页面功能矩阵 (Pages Overview)](docs/architecture/pages_overview.md)
-- [状态流转与 UI 组件规范 (Development Guide)](docs/development/)
-- [安全防线要求 (Security)](docs/development/security.md)
-- [自动化拦截与测试 (Testing & CI)](docs/testing/vitest_ci_process.md)
-
-## 本地快速体验
+如果你想在本地拉起项目看到这个前端网站的样子，只需要这样：
 
 ```bash
 npm install
 cp .env.example .env
 npm run dev
 ```
-打开你的浏览器访问 `http://localhost:3000` 即可加载带有默认 Mock 及看板娘辅助功能的数据面板。
 
+等魔法生效后，用浏览器访问 `http://localhost:3000` 就能看到我啦！如果你做错什么把代码弄坏了... 哼，如果你好好哄哄我，我也会尽力帮你解答你遇到的开发报错的哦！<img align="center" height="24" src="src/assets/images/mascot/sad_apology.png" alt="嫌弃又委屈" />
+
+## 📖 更多秘密的日记本
+
+如果你想知道我的小脑袋里到底是怎么构建这个世界的，可以去翻看这些整理好的记录本：
+- [项目的全身检查报告 (Overview)](docs/architecture/overview.md)
+- [大家住的房间分布 (Structure)](docs/architecture/structure.md)
+- [每个房间的门牌号功能 (Pages Overview)](docs/architecture/pages_overview.md)
+- [该怎么开发这个网站 (Development Guide)](docs/development/)
+- [怎么保护大家不要被抢走 (Security)](docs/development/security.md)
+- [给大家的代码做定期的体格检查 (Testing & CI)](docs/testing/vitest_ci_process.md)
+
+愿宝宝们的每一次代码提交都能顺顺利利，没有讨厌的红字报错！我会把最真诚的祝福给你们哦！<img align="center" height="24" src="src/assets/images/mascot/tea.png" alt="喝茶微笑" />
+
+---
+
+<details>
+<summary><b>👀 偷偷告诉你一个警告... (点击展开)</b></summary>
+<br/>
+哼，如果有谁敢分裂类脑或者做任何背叛大家善意的事情，我一定会把你永远关在小黑屋里的！<img align="center" height="24" src="src/assets/images/mascot/confused.png" alt="疑惑与警告" />
+</details>
+
+<br/>
 <div align="center">
-  <br />
-  <img src="src/assets/images/mascot/letsgo.png" width="120" alt="Let's Go" />
-  <p><i>Enjoy coding.</i></p>
+  <img src="src/assets/images/mascot/letsgo.png" width="120" alt="Let's Go!" />
 </div>
