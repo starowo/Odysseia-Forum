@@ -1,5 +1,5 @@
   <div align="center">
-  <img src="/src/assets/images/background/spring.png"  alt="banner" />
+  <img src="src/assets/images/background/spring.png"  alt="banner" />
   </div>
 
 
