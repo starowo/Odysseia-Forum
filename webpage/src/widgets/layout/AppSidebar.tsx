@@ -82,8 +82,8 @@ export function AppSidebar() {
               to="/"
               className={`group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${
                 isActive('/')
-                  ? 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-primary)]'
-                  : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
+                  ? 'bg-[var(--od-bg-secondary)] text-[var(--od-text-primary)]'
+                  : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
               }`}
             >
               <AnimatedIcon
@@ -99,8 +99,8 @@ export function AppSidebar() {
               to="/search"
               className={`group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${
                 isActive('/search')
-                  ? 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-primary)]'
-                  : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
+                  ? 'bg-[var(--od-bg-secondary)] text-[var(--od-text-primary)]'
+                  : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
               }`}
             >
               <AnimatedIcon
@@ -116,8 +116,8 @@ export function AppSidebar() {
               to="/booklists"
               className={`group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${
                 isActive('/booklists') || location.pathname.startsWith('/booklists/')
-                  ? 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-primary)]'
-                  : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
+                  ? 'bg-[var(--od-bg-secondary)] text-[var(--od-text-primary)]'
+                  : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
               }`}
             >
               <AnimatedIcon
@@ -137,8 +137,8 @@ export function AppSidebar() {
               to="/tags"
               className={`group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${
                 isActive('/tags')
-                  ? 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-primary)]'
-                  : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
+                  ? 'bg-[var(--od-bg-secondary)] text-[var(--od-text-primary)]'
+                  : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
               }`}
             >
               <AnimatedIcon
@@ -154,8 +154,8 @@ export function AppSidebar() {
               to="/settings"
               className={`group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${
                 isActive('/settings')
-                  ? 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-primary)]'
-                  : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
+                  ? 'bg-[var(--od-bg-secondary)] text-[var(--od-text-primary)]'
+                  : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
               }`}
             >
               <AnimatedIcon
@@ -171,8 +171,8 @@ export function AppSidebar() {
               to="/about"
               className={`group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${
                 isActive('/about')
-                  ? 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-primary)]'
-                  : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
+                  ? 'bg-[var(--od-bg-secondary)] text-[var(--od-text-primary)]'
+                  : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
               }`}
             >
               <AnimatedIcon
@@ -189,8 +189,8 @@ export function AppSidebar() {
                 to="/test"
                 className={`group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${
                   isActive('/test')
-                    ? 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-primary)]'
-                    : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
+                    ? 'bg-[var(--od-bg-secondary)] text-[var(--od-text-primary)]'
+                    : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
                 }`}
               >
                 <AnimatedIcon
@@ -211,8 +211,8 @@ export function AppSidebar() {
               onClick={clearChannelAndVirtualTags}
               className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${
                 activeTags.length === 0 && !activeChannelId
-                  ? 'bg-[var(--od-bg-tertiary)] font-medium text-[var(--od-text-primary)]'
-                  : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
+                  ? 'bg-[var(--od-bg-secondary)] font-medium text-[var(--od-text-primary)]'
+                  : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
               }`}
             >
               <span
@@ -241,8 +241,8 @@ export function AppSidebar() {
                         }}
                         className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${
                           active
-                            ? 'bg-[var(--od-bg-tertiary)] font-medium text-[var(--od-text-primary)] shadow-sm'
-                            : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
+                            ? 'bg-[var(--od-bg-secondary)] font-medium text-[var(--od-text-primary)] shadow-sm'
+                            : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
                         }`}
                       >
                         <span
@@ -284,8 +284,8 @@ export function AppSidebar() {
                         }}
                         className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${
                           active
-                            ? 'bg-[var(--od-bg-tertiary)] font-medium text-[var(--od-text-primary)] shadow-sm'
-                            : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]'
+                            ? 'bg-[var(--od-bg-secondary)] font-medium text-[var(--od-text-primary)] shadow-sm'
+                            : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
                         }`}
                       >
                         <span
@@ -306,8 +306,8 @@ export function AppSidebar() {
         </div>
       </div>
 
-      <div className="border-t border-[var(--od-border)] bg-[var(--od-bg-secondary)] p-2">
-        <div className="rounded-xl bg-[var(--od-bg-tertiary)] p-2 shadow-sm transition-all hover:shadow-md">
+      <div className="border-t border-[var(--od-border)] p-2">
+        <div className="od-fluid-panel rounded-xl p-2 shadow-sm transition-all hover:shadow-md">
           <div className="flex items-center gap-1">
             <Link
               to="/me"
@@ -321,9 +321,9 @@ export function AppSidebar() {
                       : 'https://cdn.discordapp.com/embed/avatars/0.png'
                   }
                   alt={user?.username}
-                  className="h-full w-full rounded-full object-cover ring-2 ring-[var(--od-bg-secondary)]"
+                  className="h-full w-full rounded-full object-cover ring-2 ring-white/[0.08]"
                 />
-                <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full border-2 border-[var(--od-bg-secondary)] bg-green-500" />
+                <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full border-2 border-white/[0.08] bg-green-500" />
               </div>
               <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
                 <span className="truncate text-xs font-bold text-[var(--od-text-primary)]">

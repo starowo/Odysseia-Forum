@@ -34,6 +34,12 @@
     --od-text-primary: #f2f3f5;
     --od-text-secondary: #b5bac1;
     --od-text-tertiary: #949ba4;
+    --od-text-heading: #8ea1ff;
+    --od-text-label: #87e8ff;
+    --od-text-meta: #949ba4;
+    --od-text-link: #00c7fc;
+    --od-text-value: #3ddc84;
+    --od-text-emphasis: #ff9c63;
     --od-accent: #5865f2;
     --od-accent-hover: #4752c4;
     --od-accent-secondary: #4752c4;
@@ -48,6 +54,14 @@
     --od-warning: #f0b232;
     --od-error: #f23f42;
     --od-info: #00a8fc;
+    --od-glass-bg: rgba(30, 31, 34, 0.58);
+    --od-glass-border: rgba(242, 243, 245, 0.12);
+    --od-glass-blur: 16px;
+    --od-surface-ghost: transparent;
+    --od-surface-ghost-hover: rgba(242, 243, 245, 0.07);
+    --od-wallpaper-image: none;
+    --od-wallpaper-opacity: 0;
+    --od-wallpaper-dim: 0;
 
     /* 核心排版 (Typography) & 圆角继承 */
     --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -58,6 +72,14 @@
     --od-font-normal: 400;
     --od-font-medium: 500;
     --od-font-bold: 600;
+    --od-type-title: clamp(1rem, 0.9rem + 0.45vw, 1.25rem);
+    --od-type-label: 0.875rem;
+    --od-type-body: 0.95rem;
+    --od-type-meta: 0.75rem;
+    --od-type-code: 0.83rem;
+    --od-weight-strong: 650;
+    --od-weight-medium: 550;
+    --od-weight-regular: 430;
 
     /* UI 密度与间距系统 (Layout Density & Spacing) */
     /* 默认模式 (Default) 对应 16px基准 */
@@ -85,11 +107,259 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    background-color: var(--od-bg);
+    color: var(--od-text-primary);
+    position: relative;
+    font-size: var(--od-type-body);
+    font-weight: var(--od-weight-regular);
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image: var(--od-wallpaper-image);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: var(--od-wallpaper-opacity);
+    filter: saturate(102%);
+    transition: opacity 320ms ease;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background: rgb(0 0 0 / var(--od-wallpaper-dim));
+    transition: background-color 280ms ease;
+  }
+
+  #root {
+    position: relative;
+    z-index: 1;
+  }
+
+  html[data-od-wallpaper='on'] body {
+    background-color: transparent;
+  }
+
+  html[data-od-wallpaper='off'] body::after {
+    background: transparent;
   }
 }
 
 @layer components {
+  .od-text-title {
+    font-size: var(--od-type-title);
+    font-weight: var(--od-weight-strong);
+    color: var(--od-text-heading);
+    line-height: 1.25;
+    letter-spacing: 0.01em;
+  }
+
+  .od-text-label {
+    font-size: var(--od-type-label);
+    font-weight: var(--od-weight-medium);
+    color: var(--od-text-label);
+    line-height: 1.35;
+  }
+
+  .od-text-body {
+    font-size: var(--od-type-body);
+    font-weight: var(--od-weight-regular);
+    color: var(--od-text-primary);
+    line-height: 1.5;
+  }
+
+  .od-text-meta {
+    font-size: var(--od-type-meta);
+    font-weight: var(--od-weight-regular);
+    color: var(--od-text-meta);
+    line-height: 1.4;
+  }
+
+  .od-text-code {
+    font-size: var(--od-type-code);
+    font-weight: var(--od-weight-medium);
+    color: var(--od-text-value);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    line-height: 1.35;
+  }
+
+  .od-fluid-panel {
+    background: var(--od-surface-ghost);
+    border: 1px solid transparent;
+    transition: background-color 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+  }
+
+  html[data-od-wallpaper='on'] .od-fluid-panel {
+    background: color-mix(in srgb, var(--od-bg-secondary), transparent 42%);
+  }
+
+  .od-fluid-panel:hover {
+    background: var(--od-surface-ghost-hover);
+    border-color: transparent;
+  }
+
+  html[data-od-glass='on'] .od-fluid-panel {
+    background: var(--od-glass-bg);
+    border-color: transparent;
+  }
+
+  .od-shell-surface {
+    background: var(--od-bg-secondary);
+    border-color: transparent !important;
+  }
+
+  .od-chrome-layer {
+    background: var(--od-bg-secondary);
+  }
+
+  html[data-od-wallpaper='on'] .od-chrome-layer {
+    background: color-mix(
+      in srgb,
+      var(--od-bg-secondary),
+      transparent var(--od-chrome-transparency, 46%)
+    );
+  }
+
+  html[data-od-glass='on'] .od-chrome-layer {
+    background: color-mix(
+      in srgb,
+      var(--od-bg-secondary),
+      transparent var(--od-chrome-transparency, 46%)
+    );
+  }
+
+  .od-chrome-surface {
+    background: var(--od-bg-tertiary);
+  }
+
+  html[data-od-wallpaper='on'] .od-chrome-surface {
+    background: color-mix(
+      in srgb,
+      var(--od-bg-secondary),
+      transparent var(--od-chrome-surface-transparency, 38%)
+    );
+  }
+
+  html[data-od-glass='on'] .od-chrome-surface {
+    background: color-mix(
+      in srgb,
+      var(--od-bg-secondary),
+      transparent var(--od-chrome-surface-transparency, 38%)
+    );
+  }
+
+  .od-content-surface {
+    background: var(--od-bg-tertiary);
+  }
+
+  html[data-od-wallpaper='on'] .od-content-surface {
+    background: color-mix(
+      in srgb,
+      var(--od-bg-secondary),
+      transparent var(--od-content-transparency, 20%)
+    );
+  }
+
+  html[data-od-glass='on'] .od-content-surface {
+    background: color-mix(
+      in srgb,
+      var(--od-bg-secondary),
+      transparent var(--od-content-transparency, 20%)
+    );
+  }
+
+  html[data-od-wallpaper='on'] .od-shell-surface {
+    background: color-mix(in srgb, var(--od-bg-secondary), transparent 42%);
+  }
+
+  html[data-od-glass='on'] .od-shell-surface {
+    background: color-mix(in srgb, var(--od-bg-secondary), transparent 22%);
+  }
+
+  .od-floating-glass {
+    background: color-mix(in srgb, var(--od-bg-secondary), transparent 26%);
+  }
+
+  html[data-od-glass='on'] .od-floating-glass {
+    backdrop-filter: blur(var(--od-glass-blur)) saturate(122%);
+    -webkit-backdrop-filter: blur(var(--od-glass-blur)) saturate(122%);
+  }
+
+  .od-app-shell {
+    background: var(--od-bg);
+  }
+
+  .od-operation-base {
+    background: var(--od-bg-secondary);
+  }
+
+  html[data-od-wallpaper='on'] .od-operation-base {
+    background: color-mix(
+      in srgb,
+      var(--od-bg-secondary),
+      transparent var(--od-chrome-transparency, 46%)
+    );
+  }
+
+  html[data-od-glass='on'] .od-operation-base {
+    backdrop-filter: blur(calc(var(--od-glass-blur) * 0.62)) saturate(118%);
+    -webkit-backdrop-filter: blur(calc(var(--od-glass-blur) * 0.62)) saturate(118%);
+  }
+
+  html[data-od-wallpaper='on'] .od-app-shell {
+    background: color-mix(in srgb, var(--od-bg), transparent 56%);
+  }
+
+  html[data-od-glass='on'] .od-app-shell {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .od-fluid-section {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .od-fluid-section + .od-fluid-section {
+    border-top: 1px solid color-mix(in srgb, var(--od-border) 70%, transparent);
+    padding-top: 1.05rem;
+    margin-top: 1.05rem;
+  }
+
+  .od-fluid-divider {
+    border-top: 1px solid color-mix(in srgb, var(--od-border) 80%, transparent);
+  }
+
+  .od-ghost-input {
+    border: 0;
+    border-bottom: 1px solid var(--od-border);
+    border-radius: 0;
+    background: transparent;
+    color: var(--od-text-primary);
+    padding: 0.5rem 0;
+    transition: border-color 180ms ease, box-shadow 180ms ease;
+  }
+
+  .od-ghost-input:hover {
+    border-bottom-color: var(--od-border-strong);
+  }
+
+  .od-ghost-input:focus {
+    outline: none;
+    border-bottom-color: var(--od-accent);
+    box-shadow: 0 1px 0 0 var(--od-accent);
+  }
+
   .od-md {
     font-size: 0.875rem;
     line-height: 1.6;

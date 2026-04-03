@@ -240,7 +240,7 @@ export function MePage() {
 
         <UserStatsGrid items={stats} />
 
-        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-[var(--od-border)] bg-[var(--od-card)] p-3">
+        <div className="od-fluid-panel flex flex-wrap items-center gap-2 rounded-2xl p-3">
           {tabOptions.map((item) => {
             const Icon = item.icon;
             const active = tab === item.key;
@@ -249,10 +249,10 @@ export function MePage() {
                 key={item.key}
                 type="button"
                 onClick={() => setTab(item.key)}
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-colors ${
                   active
-                    ? 'bg-[var(--od-accent)] text-white'
-                    : 'bg-[var(--od-bg-secondary)] text-[var(--od-text-secondary)] hover:text-[var(--od-text-primary)]'
+                    ? 'bg-[var(--od-accent)] text-white font-od-bold'
+                    : 'bg-[var(--od-bg-secondary)] text-[var(--od-text-secondary)] hover:text-[var(--od-text-primary)] font-od-medium'
                 }`}
               >
                 <Icon className="h-3.5 w-3.5" />
@@ -273,16 +273,16 @@ export function MePage() {
         </div>
 
         {tab === 'booklists' && (
-          <section className="rounded-2xl border border-[var(--od-border)] bg-[var(--od-card)] p-4 sm:p-5">
+          <section className="od-fluid-section px-1 sm:px-2">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <BookOpen className="h-4 w-4 text-[var(--od-accent)]" />
-                <h2 className="text-lg font-semibold text-[var(--od-text-primary)]">我的书单</h2>
+                <h2 className="od-text-title">我的书单</h2>
               </div>
               <button
                 type="button"
                 onClick={() => setShowCreateBooklist(true)}
-                className="rounded-md bg-[var(--od-accent)] px-3 py-1.5 text-xs font-semibold text-white"
+                className="rounded-md bg-[var(--od-accent)] px-3 py-1.5 text-xs font-od-bold text-white"
               >
                 新建书单
               </button>
@@ -292,10 +292,10 @@ export function MePage() {
               <button
                 type="button"
                 onClick={() => setBooklistSubTab('mine')}
-                className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+                className={`rounded-full px-3 py-1.5 text-xs ${
                   booklistSubTab === 'mine'
-                    ? 'bg-[var(--od-accent)] text-white'
-                    : 'bg-[var(--od-bg-secondary)] text-[var(--od-text-secondary)]'
+                    ? 'bg-[var(--od-accent)] text-white font-od-bold'
+                    : 'bg-[var(--od-bg-secondary)] text-[var(--od-text-secondary)] font-od-medium'
                 }`}
               >
                 我的创建
@@ -303,10 +303,10 @@ export function MePage() {
               <button
                 type="button"
                 onClick={() => setBooklistSubTab('collected')}
-                className={`rounded-full px-3 py-1.5 text-xs font-semibold ${
+                className={`rounded-full px-3 py-1.5 text-xs ${
                   booklistSubTab === 'collected'
-                    ? 'bg-[var(--od-accent)] text-white'
-                    : 'bg-[var(--od-bg-secondary)] text-[var(--od-text-secondary)]'
+                    ? 'bg-[var(--od-accent)] text-white font-od-bold'
+                    : 'bg-[var(--od-bg-secondary)] text-[var(--od-text-secondary)] font-od-medium'
                 }`}
               >
                 我的收藏
@@ -325,9 +325,9 @@ export function MePage() {
             </div>
 
             {(myBooklistsQuery.isLoading || collectedBooklistsQuery.isLoading) ? (
-              <p className="text-sm text-[var(--od-text-secondary)]">加载书单中...</p>
+              <p className="od-text-body">加载书单中...</p>
             ) : activeBooklists.length === 0 ? (
-              <p className="text-sm text-[var(--od-text-secondary)]">当前分组暂无数据。</p>
+              <p className="od-text-body">当前分组暂无数据。</p>
             ) : (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {activeBooklists.map((booklist) => (
@@ -353,11 +353,11 @@ export function MePage() {
         )}
 
         {tab === 'follows' && (
-          <section className="rounded-2xl border border-[var(--od-border)] bg-[var(--od-card)] p-4 sm:p-5">
+          <section className="od-fluid-section px-1 sm:px-2">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <Bookmark className="h-4 w-4 text-[var(--od-accent)]" />
-                <h2 className="text-lg font-semibold text-[var(--od-text-primary)]">我的关注</h2>
+                <h2 className="od-text-title">我的关注</h2>
               </div>
               <button
                 type="button"
@@ -370,11 +370,11 @@ export function MePage() {
             </div>
 
             {followsQuery.isLoading ? (
-              <p className="text-sm text-[var(--od-text-secondary)]">加载关注中...</p>
+              <p className="od-text-body">加载关注中...</p>
             ) : followsQuery.isError ? (
-              <p className="text-sm text-[var(--od-error)]">关注列表加载失败。</p>
+              <p className="od-text-body text-[var(--od-text-emphasis)]">关注列表加载失败。</p>
             ) : (followsQuery.data?.results?.length || 0) === 0 ? (
-              <p className="text-sm text-[var(--od-text-secondary)]">暂无关注内容。</p>
+              <p className="od-text-body">暂无关注内容。</p>
             ) : (
               <div className={settings.layoutMode === 'list' ? 'flex flex-col space-y-od-list-gap' : 'grid grid-cols-2 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}>
                 {(followsQuery.data?.results || []).map((thread) =>
@@ -390,11 +390,11 @@ export function MePage() {
         )}
 
         {tab === 'threads' && (
-          <section className="rounded-2xl border border-[var(--od-border)] bg-[var(--od-card)] p-4 sm:p-5">
+          <section className="od-fluid-section px-1 sm:px-2">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4 text-[var(--od-accent)]" />
-                <h2 className="text-lg font-semibold text-[var(--od-text-primary)]">我的创建</h2>
+                <h2 className="od-text-title">我的创建</h2>
               </div>
               <button
                 type="button"
@@ -406,17 +406,17 @@ export function MePage() {
               </button>
             </div>
 
-            <div className="mb-4 grid grid-cols-2 gap-2 rounded-lg border border-[var(--od-border)] bg-[var(--od-bg-secondary)] p-3 text-xs text-[var(--od-text-secondary)] sm:grid-cols-4">
-              <span>帖子数：{createdThreadsQuery.data?.total || 0}</span>
-              <span>累计点赞：{totalReactions}</span>
-              <span>累计回复：{totalReplies}</span>
-              <span>当前加载：{createdThreads.length}</span>
+            <div className="mb-4 grid grid-cols-2 gap-2 rounded-lg border border-[var(--od-border)] bg-[var(--od-bg-secondary)] p-3 text-xs sm:grid-cols-4">
+              <span className="od-text-meta">帖子数：<span className="od-text-code">{createdThreadsQuery.data?.total || 0}</span></span>
+              <span className="od-text-meta">累计点赞：<span className="od-text-code">{totalReactions}</span></span>
+              <span className="od-text-meta">累计回复：<span className="od-text-code">{totalReplies}</span></span>
+              <span className="od-text-meta">当前加载：<span className="od-text-code">{createdThreads.length}</span></span>
             </div>
 
             {createdThreadsQuery.isLoading ? (
-              <p className="text-sm text-[var(--od-text-secondary)]">加载创建内容中...</p>
+              <p className="od-text-body">加载创建内容中...</p>
             ) : createdThreads.length === 0 ? (
-              <p className="text-sm text-[var(--od-text-secondary)]">还没有检索到你的创建内容。</p>
+              <p className="od-text-body">还没有检索到你的创建内容。</p>
             ) : (
               <div className={settings.layoutMode === 'list' ? 'flex flex-col space-y-od-list-gap' : 'grid grid-cols-2 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}>
                 {createdThreads.map((thread) =>
@@ -432,18 +432,18 @@ export function MePage() {
         )}
 
         {tab === 'preferences' && (
-          <section className="rounded-2xl border border-[var(--od-border)] bg-[var(--od-card)] p-4 sm:p-5">
+          <section className="od-fluid-section px-1 sm:px-2">
             <div className="mb-4 flex items-center gap-2">
               <Search className="h-4 w-4 text-[var(--od-accent)]" />
-              <h2 className="text-lg font-semibold text-[var(--od-text-primary)]">搜索偏好</h2>
+              <h2 className="od-text-title">搜索偏好</h2>
             </div>
 
             {isPrefsLoading ? (
-              <p className="text-sm text-[var(--od-text-secondary)]">加载偏好中...</p>
+              <p className="od-text-body">加载偏好中...</p>
             ) : (
               <div className="space-y-5">
                 <div>
-                  <p className="mb-2 text-sm font-medium text-[var(--od-text-secondary)]">偏好频道</p>
+                  <p className="od-text-label mb-2">偏好频道</p>
                   <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                     {channelOptions.map((channel) => {
                       const active = form.preferredChannelIds.includes(channel.id);
@@ -454,8 +454,8 @@ export function MePage() {
                           onClick={() => toggleChannel(channel.id)}
                           className={`rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
                             active
-                              ? 'border-[var(--od-accent)] bg-[var(--od-accent)]/10 text-[var(--od-text-primary)]'
-                              : 'border-[var(--od-border)] bg-[var(--od-bg-secondary)] text-[var(--od-text-secondary)]'
+                              ? 'border-[var(--od-accent)] bg-[var(--od-accent)]/10 text-[var(--od-text-primary)] font-od-medium'
+                              : 'border-[var(--od-border)] bg-[var(--od-bg-secondary)] text-[var(--od-text-secondary)] font-od-normal'
                           }`}
                         >
                           {channel.name}
@@ -553,14 +553,14 @@ export function MePage() {
                 </div>
 
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--od-border)] bg-[var(--od-bg-secondary)] p-3">
-                  <p className="text-xs text-[var(--od-text-tertiary)]">
+                  <p className="od-text-meta">
                     当前状态：{isPrefsFetching ? '同步中' : isDirty ? '有未保存修改' : '已同步'}
                   </p>
                   <button
                     type="button"
                     onClick={savePreferenceForm}
                     disabled={isSaving}
-                    className="inline-flex items-center gap-2 rounded-lg bg-[var(--od-accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+                    className="inline-flex items-center gap-2 rounded-lg bg-[var(--od-accent)] px-4 py-2 text-sm font-od-bold text-white disabled:opacity-60"
                   >
                     <Save className="h-4 w-4" />
                     {isSaving ? '保存中...' : '保存偏好'}

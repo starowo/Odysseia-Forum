@@ -39,6 +39,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 
 interface TopBarProps {
   onMenuClick: () => void;
+  sidebarCollapsed?: boolean;
 }
 
 function mergeUnique(values: string[]) {
@@ -54,7 +55,7 @@ function tokenSignature(query: string) {
     .join('|');
 }
 
-export function TopBar({ onMenuClick }: TopBarProps) {
+export function TopBar({ onMenuClick, sidebarCollapsed = false }: TopBarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const isSearchPage = location.pathname === '/search';
@@ -454,7 +455,11 @@ export function TopBar({ onMenuClick }: TopBarProps) {
   const breadcrumb = getBreadcrumb();
 
   return (
-    <header className="flex h-[3.25rem] shrink-0 items-center justify-between px-3 sm:h-[4.25rem] sm:px-4">
+    <header
+      className={`fixed left-0 right-0 top-0 z-40 flex h-[3.25rem] shrink-0 items-center justify-between bg-transparent px-3 transition-[left] duration-300 sm:h-[4.25rem] sm:px-4 ${
+        sidebarCollapsed ? 'lg:left-0' : 'lg:left-[170px]'
+      }`}
+    >
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuClick}
@@ -476,7 +481,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
 
       <div className="flex flex-1 items-center justify-end gap-2 md:gap-3" ref={searchContainerRef}>
         <div className="relative min-w-0 flex-1 max-w-[560px]">
-          <div className="flex min-h-[44px] items-center overflow-hidden rounded-[24px] border border-white/[0.06] bg-[var(--od-bg-tertiary)] transition-all duration-200 hover:border-white/20">
+          <div className="od-chrome-surface flex min-h-[44px] items-center overflow-hidden rounded-[24px] border border-white/[0.06] transition-colors duration-200 hover:border-white/20">
             <div className="shrink-0 p-2 text-[var(--od-text-tertiary)]">
               <Search className="h-4 w-4" />
             </div>
@@ -522,7 +527,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -8, scale: 0.98 }}
                 transition={{ type: 'spring', stiffness: 320, damping: 26 }}
-                className="absolute left-1/2 top-full z-50 mt-2 w-[calc(100vw-1.5rem)] max-w-[560px] -translate-x-1/2 overflow-hidden rounded-2xl border border-white/[0.06] bg-[var(--od-bg-secondary)] shadow-2xl sm:left-auto sm:right-0 sm:w-[560px] sm:max-w-none sm:translate-x-0"
+                className="od-floating-glass absolute left-1/2 top-full z-50 mt-2 w-[calc(100vw-1.5rem)] max-w-[560px] -translate-x-1/2 overflow-hidden rounded-2xl border border-white/[0.06] shadow-2xl sm:left-auto sm:right-0 sm:w-[560px] sm:max-w-none sm:translate-x-0"
               >
                 {needsFilter && (
                   <div className="flex items-center gap-2 border-b border-white/[0.06] p-2">
@@ -591,7 +596,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
                           id="topbar-sort"
                           value={params.sortMethod}
                           onChange={(e) => setParams({ sortMethod: e.target.value as any })}
-                          className="w-full rounded-xl border border-white/[0.06] bg-[var(--od-bg-tertiary)] px-3 py-2 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
+                          className="od-chrome-surface w-full rounded-xl border border-white/[0.06] px-3 py-2 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
                         >
                           <option value="last_active_desc">最近活跃</option>
                           <option value="created_desc">最新发布</option>
@@ -609,7 +614,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
                           id="topbar-tagLogic"
                           value={params.tagLogic}
                           onChange={(e) => setParams({ tagLogic: e.target.value as 'and' | 'or' })}
-                          className="w-full rounded-xl border border-white/[0.06] bg-[var(--od-bg-tertiary)] px-3 py-2 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
+                          className="od-chrome-surface w-full rounded-xl border border-white/[0.06] px-3 py-2 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
                         >
                           <option value="and">全部包含 (AND)</option>
                           <option value="or">任一即可 (OR)</option>
@@ -625,7 +630,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
                           type="date"
                           value={params.timeFrom}
                           onChange={(e) => setParams({ timeFrom: e.target.value })}
-                          className="w-full rounded-xl border border-white/[0.06] bg-[var(--od-bg-tertiary)] px-3 py-2 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
+                          className="od-chrome-surface w-full rounded-xl border border-white/[0.06] px-3 py-2 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
                         />
                       </div>
 
@@ -638,7 +643,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
                           type="date"
                           value={params.timeTo}
                           onChange={(e) => setParams({ timeTo: e.target.value })}
-                          className="w-full rounded-xl border border-white/[0.06] bg-[var(--od-bg-tertiary)] px-3 py-2 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
+                          className="od-chrome-surface w-full rounded-xl border border-white/[0.06] px-3 py-2 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
                         />
                       </div>
                     </div>
@@ -653,14 +658,14 @@ export function TopBar({ onMenuClick }: TopBarProps) {
                             点击标签切换包含 / 排除 / 取消，不在这里显示删除按钮
                           </span>
                         </div>
-                        <div className="flex max-h-[180px] flex-wrap gap-2 overflow-y-auto rounded-2xl bg-[var(--od-bg-tertiary)] p-3">
+                        <div className="od-chrome-surface flex max-h-[180px] flex-wrap gap-2 overflow-y-auto rounded-2xl p-3">
                           {availableTags.length > 0 ? (
                             availableTags.map((tag) => {
                               const isIncluded = params.includeTags.includes(tag);
                               const isExcluded = params.excludeTags.includes(tag);
 
                               return (
-                                <div key={tag} className="flex items-center rounded-full bg-[var(--od-bg-secondary)] p-1">
+                                <div key={tag} className="od-content-surface flex items-center rounded-full p-1">
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -710,7 +715,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
                                 }
                               }}
                               placeholder="输入昵称或用户名"
-                              className="w-full rounded-xl border border-white/[0.06] bg-[var(--od-bg-tertiary)] px-3 py-2 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
+                              className="od-chrome-surface w-full rounded-xl border border-white/[0.06] px-3 py-2 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
                             />
                             <button
                               type="button"
@@ -751,7 +756,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
                                 }
                               }}
                               placeholder="输入昵称或用户名"
-                              className="w-full rounded-xl border border-white/[0.06] bg-[var(--od-bg-tertiary)] px-3 py-2 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
+                              className="od-chrome-surface w-full rounded-xl border border-white/[0.06] px-3 py-2 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
                             />
                             <button
                               type="button"
@@ -812,7 +817,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
             className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-colors sm:h-[34px] sm:w-[34px] ${
               notificationOpen
                 ? 'border-[var(--od-accent)]/50 bg-[var(--od-accent)]/10 text-[var(--od-accent)]'
-                : 'border-white/[0.06] bg-[var(--od-bg-tertiary)] text-[var(--od-text-tertiary)] hover:border-white/20 hover:text-[var(--od-text-primary)]'
+                : 'od-chrome-surface border-white/[0.06] text-[var(--od-text-tertiary)] hover:border-white/20 hover:text-[var(--od-text-primary)]'
             }`}
           >
             <AnimatedIcon icon={Bell} className="h-4 w-4" animation="shake" trigger="hover" />

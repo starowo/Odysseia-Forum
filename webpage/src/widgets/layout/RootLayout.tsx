@@ -31,7 +31,11 @@ export function RootLayout() {
   const { settings, updateSettings } = useSettings();
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-[var(--od-bg)] text-[var(--od-text-primary)]">
+    <div className="od-app-shell relative flex h-screen w-full overflow-hidden text-[var(--od-text-primary)]">
+      <div className="pointer-events-none absolute inset-0 z-0 od-shell-surface" />
+
+      <div className="od-operation-base pointer-events-none absolute inset-0 z-[5]" />
+
       {/* ── Sidebar (桌面端固定 / 移动端抽屉) ── */}
       <ResizableSidebar
         isMobileOpen={isMobileOpen}
@@ -42,26 +46,29 @@ export function RootLayout() {
         <AppSidebar />
       </ResizableSidebar>
 
+      {/* TopBar 与 Sidebar 处于同一操作层 */}
+      <TopBar
+        onMenuClick={() => setIsMobileOpen(true)}
+        sidebarCollapsed={settings.sidebarCollapsed}
+      />
+
       {/* ── 主内容列 ── */}
       <div
-        className={`flex min-w-0 flex-1 flex-col transition-all duration-300 ${
+        className={`relative z-10 flex min-w-0 flex-1 flex-col transition-[margin] duration-300 ${
           settings.sidebarCollapsed ? 'lg:ml-0' : 'lg:ml-[170px]'
         }`}
       >
-        {/* TopBar：与侧边栏背景融合，无独立背景和边框 */}
-        <TopBar onMenuClick={() => setIsMobileOpen(true)} />
-
         {/* 主滚动区 — 圆角面板 + 独立背景色，形成视觉层级 */}
-        <main
-          id="main-scroll-container"
-          className="relative flex-1 overflow-y-auto scroll-smooth bg-[var(--od-bg-secondary)] pb-20 sm:rounded-tl-[2.5rem] sm:border-l sm:border-t sm:border-white/[0.06] md:pb-0"
-        >
+        <div className="od-content-surface relative z-10 mt-[3.25rem] flex-1 min-h-0 sm:mt-[4.25rem] sm:rounded-tl-[2.5rem] sm:overflow-hidden">
           {/* 顶部高光渐变装饰 */}
-          <div className="pointer-events-none absolute left-0 right-0 top-0 z-0 hidden h-32 rounded-tl-[2.5rem] bg-gradient-to-b from-white/[0.02] to-transparent sm:block" />
-          <div className="relative z-10">
+          <div className="pointer-events-none absolute left-0 right-0 top-0 z-0 hidden h-24 rounded-tl-[2.5rem] bg-gradient-to-b from-white/[0.02] to-transparent sm:block" />
+          <main
+            id="main-scroll-container"
+            className="relative z-10 h-full overflow-y-auto scroll-smooth pb-20 md:pb-0"
+          >
             <Outlet />
-          </div>
-        </main>
+          </main>
+        </div>
       </div>
 
       {/* ── 移动端底部 Tab 栏 ── */}

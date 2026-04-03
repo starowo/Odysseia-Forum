@@ -5,8 +5,7 @@ import { useTheme } from '@/shared/hooks/useTheme';
 export function ThemeToggle() {
   const { currentTheme, toggleTheme } = useTheme();
 
-  const isDarkTheme =
-    currentTheme === 'discordDark' || currentTheme === 'tweakGrayDark';
+  const isDarkTheme = currentTheme !== 'discordLight';
 
   const handleClick = () => {
     // 仅切换主题，具体亮暗过渡交给全局的 od-theme-transition 控制

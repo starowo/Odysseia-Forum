@@ -23,7 +23,7 @@ export function ResizableSidebar({
       {/* 移动端遮罩 */}
       {isMobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-all duration-300 lg:hidden animate-in fade-in"
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm transition-all duration-300 lg:hidden animate-in fade-in"
           onClick={() => setIsMobileOpen?.(false)}
         />
       )}
@@ -32,7 +32,7 @@ export function ResizableSidebar({
       <aside
         style={{ width: `${sidebarWidth}px` }}
         className={`
-          fixed left-0 top-0 z-50 h-screen bg-[var(--od-bg)] transition-transform duration-300
+          fixed left-0 top-0 z-50 h-screen bg-transparent transition-transform duration-300 lg:z-40
           ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
           ${isCollapsed ? 'lg:-translate-x-full' : 'lg:translate-x-0'}
         `}

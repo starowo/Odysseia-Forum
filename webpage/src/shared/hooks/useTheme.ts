@@ -13,18 +13,25 @@ function mapSettingsThemeToKey(
       return 'discordDark';
     case 'discord-light':
       return 'discordLight';
-    case 'tweak-gray-dark':
-      return 'tweakGrayDark';
-    case 'tweak-gray-light':
-      return 'tweakGrayLight';
-    case 'paper-dark':
-      return 'paperDark';
-    case 'paper-light':
-      return 'paperLight';
+    case 'claude-dark':
+      return 'claudeDark';
+    case 'tokyo-night':
+      return 'tokyoNight';
+    case 'catppuccin':
+      return 'catppuccin';
+    case 'nord':
+      return 'nord';
+    case 'everforest':
+      return 'everforest';
+    case 'sakura-day':
+      return 'sakuraDay';
+    case 'yozakura-night':
+      return 'yozakuraNight';
     case 'auto':
     default:
-      // 自动模式下，跟随系统：深色用 Discord Dark，浅色用 Discord Light
-      return systemPrefersDark ? 'discordDark' : 'discordLight';
+      // 自动模式下，跟随系统：深色用 Claude Dark，浅色用 Discord Light
+      // 统一把默认暗色升级到新主题体系
+      return systemPrefersDark ? 'claudeDark' : 'discordLight';
   }
 }
 
@@ -35,16 +42,22 @@ function mapThemeNameToSettings(themeName: ThemeName): UserSettings['theme'] {
       return 'discord-dark';
     case 'discordLight':
       return 'discord-light';
-    case 'tweakGrayDark':
-      return 'tweak-gray-dark';
-    case 'tweakGrayLight':
-      return 'tweak-gray-light';
-    case 'paperDark':
-      return 'paper-dark';
-    case 'paperLight':
-      return 'paper-light';
+    case 'claudeDark':
+      return 'claude-dark';
+    case 'tokyoNight':
+      return 'tokyo-night';
+    case 'catppuccin':
+      return 'catppuccin';
+    case 'nord':
+      return 'nord';
+    case 'everforest':
+      return 'everforest';
+    case 'sakuraDay':
+      return 'sakura-day';
+    case 'yozakuraNight':
+      return 'yozakura-night';
     default:
-      return 'discord-dark';
+      return 'claude-dark';
   }
 }
 
@@ -87,15 +100,19 @@ export function useTheme() {
         ? 'discord-light'
         : currentThemeName === 'discordLight'
         ? 'discord-dark'
-        : currentThemeName === 'tweakGrayDark'
-        ? 'tweak-gray-light'
-        : currentThemeName === 'tweakGrayLight'
-        ? 'tweak-gray-dark'
-        : currentThemeName === 'paperDark'
-        ? 'paper-light'
-        : currentThemeName === 'paperLight'
-        ? 'paper-dark'
-        : 'discord-dark';
+        : currentThemeName === 'claudeDark'
+        ? 'catppuccin'
+        : currentThemeName === 'catppuccin'
+        ? 'tokyo-night'
+        : currentThemeName === 'tokyoNight'
+        ? 'nord'
+        : currentThemeName === 'nord'
+        ? 'everforest'
+        : currentThemeName === 'everforest'
+        ? 'sakura-day'
+        : currentThemeName === 'sakuraDay'
+        ? 'yozakura-night'
+        : 'claude-dark';
 
     updateSettings({ theme: nextSettingsTheme });
   };

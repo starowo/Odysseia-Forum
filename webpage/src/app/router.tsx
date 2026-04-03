@@ -58,16 +58,16 @@ const appChildren = [
       },
     ]
     : []),
-  {
-    path: 'about',
-    element: <AboutPage />,
-  },
 ];
 
 export const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
+  },
+  {
+    path: '/about',
+    element: <AboutPage />,
   },
   {
     path: '/auth/callback',

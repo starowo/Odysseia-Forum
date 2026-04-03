@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { DiscordIcon } from '@/shared/ui/icons/DiscordIcon';
@@ -7,7 +7,7 @@ import { apiClient } from '@/shared/api/client';
 import { toast } from 'sonner';
 import forumIcon from '@/assets/images/icon/A90C044F8DDF1959B2E9078CB629C239.png';
 import { WordLogoStatic } from '@/shared/ui/loaders/WordLogoStatic';
-import backgroundImage from '@/assets/images/background/winter.png';
+import backgroundImage from '@/assets/images/background/spring2.png';
 import { WordLoader } from '@/shared/ui/loaders/WordLoader';
 
 export function LoginPage() {
@@ -15,6 +15,9 @@ export function LoginPage() {
   const { isAuthenticated } = useAuth();
   const refreshAuth = useRefreshAuth();
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const loadingWordStyle: CSSProperties & { '--od-text-primary': string } = {
+    '--od-text-primary': 'color-mix(in oklab, var(--od-accent) 78%, white 22%)',
+  };
 
   // 如果已经登录，自动跳转到首页
   useEffect(() => {
@@ -56,22 +59,26 @@ export function LoginPage() {
 
   return (
     <div
-      className="relative flex min-h-screen items-center justify-center px-4 bg-cover bg-center bg-no-repeat overflow-hidden"
+      className="relative flex min-h-screen items-center overflow-hidden bg-cover bg-center bg-no-repeat px-4"
       style={{ backgroundImage: `url(${backgroundImage})` }}
     >
-      {/* 渐变遮罩层，在登录等待时加深/模糊背景，联动主题底色凸显 SVG 动画 */}
+      {/* 登录等待时轻度压暗背景，保证动画可读性 */}
       <AnimatePresence>
         {isRedirecting && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8 }}
-            className="absolute inset-0 z-0 bg-[var(--od-bg)]/85 backdrop-blur-md"
+            className="absolute inset-0 z-0 bg-black/58 backdrop-blur-sm"
           />
         )}
       </AnimatePresence>
 
-      <div className="relative z-10 flex w-full justify-center">
+      <div
+        className={`relative z-10 mx-auto flex w-full max-w-7xl ${
+          isRedirecting ? 'justify-center' : 'justify-center md:justify-start md:pl-[8%] lg:pl-[10%]'
+        }`}
+      >
         <AnimatePresence mode="wait">
           {!isRedirecting ? (
             <motion.div
@@ -80,7 +87,7 @@ export function LoginPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, filter: 'blur(8px)' }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
-            className="w-full max-w-sm text-center bg-[color-mix(in_oklab,var(--od-bg-tertiary)_85%,transparent)] backdrop-blur-lg rounded-3xl p-8 shadow-2xl"
+            className="w-full max-w-sm rounded-3xl bg-[color-mix(in_oklab,var(--od-bg-tertiary)_85%,transparent)] p-8 text-center shadow-2xl backdrop-blur-lg"
           >
             {/* Logo */}
             <div className="mb-8 flex justify-center">
@@ -125,15 +132,16 @@ export function LoginPage() {
             exit={{ opacity: 0, scale: 1.1 }}
             transition={{ duration: 0.8, ease: 'easeOut' }}
             className="flex flex-col items-center justify-center"
+            style={loadingWordStyle}
           >
-            <div className="scale-75 sm:scale-100 flex items-center justify-center">
+            <div className="flex scale-100 items-center justify-center sm:scale-110 md:scale-125 drop-shadow-[0_0_20px_rgba(255,255,255,0.25)]">
               <WordLoader />
             </div>
             <motion.p 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5, duration: 0.5 }}
-              className="mt-12 text-[var(--od-text-primary)] text-sm font-semibold tracking-widest animate-pulse"
+              className="mt-12 animate-pulse text-base font-semibold tracking-[0.2em] text-[var(--od-text-primary)]"
             >
               INITIALIZING CONNECTION...
             </motion.p>

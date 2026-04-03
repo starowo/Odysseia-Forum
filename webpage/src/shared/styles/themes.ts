@@ -1,282 +1,474 @@
-// 主题配置文件 - 为多主题支持做准备
+// Theme token catalog (Engram-aligned)
 
 export interface Theme {
   name: string;
   colors: {
-    // 背景色
+    // Core surfaces
     background: string;
     backgroundSecondary: string;
     backgroundTertiary: string;
-    
-    // 卡片色
     card: string;
     cardHover: string;
-    
-    // 文本色
+
+    // Text
     textPrimary: string;
     textSecondary: string;
     textTertiary: string;
-    
-    // 强调色
+    textHeading: string;
+    textLabel: string;
+    textMeta: string;
+    textLink: string;
+    textValue: string;
+    textEmphasis: string;
+
+    // Accent / semantic
     accent: string;
     accentHover: string;
-    
-    // 链接色
     link: string;
     linkHover: string;
-    
-    // 边框色
     border: string;
     borderStrong: string;
-    
-    // 状态色
     success: string;
     warning: string;
     error: string;
     info: string;
+
+    // Borderless fluid / glass
+    glassBg: string;
+    glassBorder: string;
+    glassBlur: string;
+    surfaceGhost: string;
+    surfaceGhostHover: string;
+  };
+  typography: {
+    typeScaleTitle: string;
+    typeScaleLabel: string;
+    typeScaleBody: string;
+    typeScaleMeta: string;
+    typeScaleCode: string;
+    fontWeightStrong: string;
+    fontWeightMedium: string;
+    fontWeightRegular: string;
   };
 }
 
-// Discord 深色主题（当前使用）
 export const discordDarkTheme: Theme = {
   name: 'Discord Dark',
   colors: {
-    // 背景色
     background: '#282a2e',
     backgroundSecondary: '#2b2d31',
     backgroundTertiary: '#1e1f22',
-    
-    // 卡片色
     card: '#1e1f22',
     cardHover: '#232428',
-    
-    // 文本色
     textPrimary: '#f2f3f5',
     textSecondary: '#b5bac1',
     textTertiary: '#949ba4',
-    
-    // 强调色
+    textHeading: '#8ea1ff',
+    textLabel: '#87e8ff',
+    textMeta: '#949ba4',
+    textLink: '#00c7fc',
+    textValue: '#3ddc84',
+    textEmphasis: '#ff9c63',
     accent: '#5865f2',
     accentHover: '#4752c4',
-    
-    // 链接色
     link: '#00a8fc',
     linkHover: '#00c7fc',
-    
-    // 边框色
     border: '#2b2d31',
     borderStrong: '#3f4147',
-    
-    // 状态色
     success: '#23a55a',
     warning: '#f0b232',
     error: '#f23f42',
     info: '#00a8fc',
+    glassBg: 'rgba(30, 31, 34, 0.58)',
+    glassBorder: 'rgba(242, 243, 245, 0.12)',
+    glassBlur: '16px',
+    surfaceGhost: 'transparent',
+    surfaceGhostHover: 'rgba(242, 243, 245, 0.07)',
+  },
+  typography: {
+    typeScaleTitle: 'clamp(1rem, 0.9rem + 0.45vw, 1.25rem)',
+    typeScaleLabel: '0.875rem',
+    typeScaleBody: '0.95rem',
+    typeScaleMeta: '0.75rem',
+    typeScaleCode: '0.83rem',
+    fontWeightStrong: '650',
+    fontWeightMedium: '550',
+    fontWeightRegular: '430',
   },
 };
 
- // Discord 浅色主题（预留）
 export const discordLightTheme: Theme = {
   name: 'Discord Light',
   colors: {
-    background: '#ffffff',
-    backgroundSecondary: '#f2f3f5',
-    backgroundTertiary: '#e3e5e8',
-    
+    background: '#f7f8fb',
+    backgroundSecondary: '#eef1f6',
+    backgroundTertiary: '#ffffff',
     card: '#ffffff',
-    cardHover: '#f2f3f5',
-    
-    textPrimary: '#060607',
-    textSecondary: '#4e5058',
-    textTertiary: '#80848e',
-    
+    cardHover: '#f5f7fb',
+    textPrimary: '#111827',
+    textSecondary: '#4b5563',
+    textTertiary: '#6b7280',
+    textHeading: '#3147d4',
+    textLabel: '#0f766e',
+    textMeta: '#6b7280',
+    textLink: '#2563eb',
+    textValue: '#15803d',
+    textEmphasis: '#c2410c',
     accent: '#5865f2',
     accentHover: '#4752c4',
-    
-    link: '#00a8fc',
-    linkHover: '#0087d1',
-    
-    border: '#e3e5e8',
-    borderStrong: '#d4d7dc',
-    
-    success: '#23a55a',
-    warning: '#f0b232',
-    error: '#f23f42',
-    info: '#00a8fc',
+    link: '#2563eb',
+    linkHover: '#1d4ed8',
+    border: '#dce1ea',
+    borderStrong: '#c8d0de',
+    success: '#16a34a',
+    warning: '#d97706',
+    error: '#dc2626',
+    info: '#2563eb',
+    glassBg: 'rgba(255, 255, 255, 0.62)',
+    glassBorder: 'rgba(17, 24, 39, 0.12)',
+    glassBlur: '14px',
+    surfaceGhost: 'transparent',
+    surfaceGhostHover: 'rgba(17, 24, 39, 0.06)',
+  },
+  typography: {
+    typeScaleTitle: 'clamp(1rem, 0.88rem + 0.35vw, 1.2rem)',
+    typeScaleLabel: '0.875rem',
+    typeScaleBody: '0.95rem',
+    typeScaleMeta: '0.75rem',
+    typeScaleCode: '0.83rem',
+    fontWeightStrong: '640',
+    fontWeightMedium: '540',
+    fontWeightRegular: '430',
   },
 };
 
-/**
- * Tweak 灰调主题（原有一深一浅）
- */
-export const tweakGrayDarkTheme: Theme = {
-  name: 'Tweak Gray Dark',
+export const claudeDarkTheme: Theme = {
+  name: 'Claude Dark',
   colors: {
-    // 背景色（整体偏灰的深色）
-    background: 'oklch(0.2046 0 0)',            // --background
-    backgroundSecondary: 'oklch(0.2393 0 0)',    // --muted
-    backgroundTertiary: 'oklch(0.2686 0 0)',     // --secondary
-
-    // 卡片
-    card: 'oklch(0.2686 0 0)',                  // --card
-    cardHover: 'oklch(0.3715 0 0)',             // --border 作为 hover 提升
-
-    // 文本
-    textPrimary: 'oklch(0.9219 0 0)',           // --foreground
-    textSecondary: 'oklch(0.7155 0 0)',         // --muted-foreground
-    textTertiary: 'oklch(0.5510 0.0234 264.3637)', // 取接近的中灰
-
-    // 强调色（偏紫色，和 Discord 蓝拉开差异）
-    accent: 'oklch(0.60 0.23 300)',             // 紫色主色
-    accentHover: 'oklch(0.55 0.23 300)',        // 略暗的紫色 hover
-
-    // 链接（同一紫色系，略亮一点）
-    link: 'oklch(0.70 0.20 300)',
-    linkHover: 'oklch(0.65 0.20 300)',
-
-    // 边框
-    border: 'oklch(0.3715 0 0)',                // --border
-    borderStrong: 'oklch(0.2686 0 0)',          // 再深一点
-
-    // 状态色
-    success: 'oklch(0.7137 0.1434 254.6240)',   // 使用 chart-1 作为信息/成功色
-    warning: 'oklch(0.8823 0.0571 254.1284)',   // accent-foreground 近似
-    error: 'oklch(0.6368 0.2078 25.3313)',      // --destructive
-    info: 'oklch(0.6231 0.1880 259.8145)',      // primary 作为信息色
+    background: 'oklch(0.2679 0.0036 106.6427)',
+    backgroundSecondary: 'oklch(0.2357 0.0024 67.7077)',
+    backgroundTertiary: 'oklch(0.2213 0.0038 106.7070)',
+    card: 'oklch(0.2679 0.0036 106.6427)',
+    cardHover: 'oklch(0.3085 0.0035 106.6039)',
+    textPrimary: 'oklch(0.8074 0.0142 93.0137)',
+    textSecondary: 'oklch(0.7713 0.0169 99.0657)',
+    textTertiary: 'oklch(0.625 0.012 95)',
+    textHeading: 'oklch(0.6724 0.1308 38.7559)',
+    textLabel: 'oklch(0.6898 0.1581 290.4107)',
+    textMeta: 'oklch(0.55 0.01 96)',
+    textLink: 'oklch(0.8816 0.0276 93.1280)',
+    textValue: 'oklch(0.6907 0.1554 160.3454)',
+    textEmphasis: 'oklch(0.7066 0.1500 48.0000)',
+    accent: 'oklch(0.6724 0.1308 38.7559)',
+    accentHover: 'oklch(0.5583 0.1276 42.9956)',
+    link: 'oklch(0.6898 0.1581 290.4107)',
+    linkHover: 'oklch(0.747 0.145 292)',
+    border: 'oklch(0.8074 0.0142 93.0137 / 0.15)',
+    borderStrong: 'oklch(0.8074 0.0142 93.0137 / 0.26)',
+    success: 'oklch(0.6907 0.1554 160.3454)',
+    warning: 'oklch(0.8816 0.0276 93.1280)',
+    error: 'oklch(0.6368 0.2078 25.3313)',
+    info: 'oklch(0.6898 0.1581 290.4107)',
+    glassBg: 'oklch(0.2679 0.0036 106.6427 / 0.55)',
+    glassBorder: 'oklch(0.8074 0.0142 93.0137 / 0.18)',
+    glassBlur: '18px',
+    surfaceGhost: 'transparent',
+    surfaceGhostHover: 'oklch(0.8074 0.0142 93.0137 / 0.08)',
+  },
+  typography: {
+    typeScaleTitle: 'clamp(1.03rem, 0.9rem + 0.42vw, 1.25rem)',
+    typeScaleLabel: '0.89rem',
+    typeScaleBody: '0.96rem',
+    typeScaleMeta: '0.76rem',
+    typeScaleCode: '0.835rem',
+    fontWeightStrong: '640',
+    fontWeightMedium: '540',
+    fontWeightRegular: '420',
   },
 };
 
-// Tweak 灰调浅色主题（来自 tweakcn :root 配色）
-export const tweakGrayLightTheme: Theme = {
-  name: 'Tweak Gray Light',
+export const tokyoNightTheme: Theme = {
+  name: 'Tokyo Night',
   colors: {
-    // 背景色
-    background: 'oklch(1.0000 0 0)',            // --background
-    backgroundSecondary: 'oklch(0.9846 0.0017 247.8389)', // --muted
-    backgroundTertiary: 'oklch(0.9670 0.0029 264.5419)',  // --secondary
-
-    // 卡片
-    card: 'oklch(1.0000 0 0)',                  // --card
-    cardHover: 'oklch(0.9514 0.0250 236.8242)', // --accent
-
-    // 文本
-    textPrimary: 'oklch(0.3211 0 0)',           // --foreground
-    textSecondary: 'oklch(0.5510 0.0234 264.3637)', // --muted-foreground
-    textTertiary: 'oklch(0.4461 0.0263 256.8018)',   // secondary-foreground
-
-    // 强调色（绿松石青色）
-    accent: 'oklch(0.70 0.12 210)',             // 青色主色（类似绿松石）
-    accentHover: 'oklch(0.65 0.14 210)',        // 略深一点的 hover
-
-    // 链接（同一青色系）
-    link: 'oklch(0.75 0.11 210)',
-    linkHover: 'oklch(0.70 0.13 210)',
-
-    // 边框
-    border: 'oklch(0.9276 0.0058 264.5313)',    // --border
-    borderStrong: 'oklch(0.8840 0.0100 260)',   // 稍微加深一点（手动估计）
-
-    // 状态色
-    success: 'oklch(0.6231 0.1880 259.8145)',   // primary 复用
-    warning: 'oklch(0.6368 0.2078 25.3313)',    // destructive 作为警示色
-    error: 'oklch(0.6368 0.2078 25.3313)',      // 同上
-    info: 'oklch(0.3791 0.1378 265.5222)',      // chart-5
+    background: '#1a1b26',
+    backgroundSecondary: '#16161e',
+    backgroundTertiary: '#24283b',
+    card: '#24283b',
+    cardHover: '#2e3248',
+    textPrimary: '#a9b1d6',
+    textSecondary: '#8b93b8',
+    textTertiary: '#6b7399',
+    textHeading: '#bb9af7',
+    textLabel: '#7dcfff',
+    textMeta: '#565f89',
+    textLink: '#e0af68',
+    textValue: '#9ece6a',
+    textEmphasis: '#f7768e',
+    accent: '#7aa2f7',
+    accentHover: '#6b8fe3',
+    link: '#7dcfff',
+    linkHover: '#9ddcff',
+    border: '#414868',
+    borderStrong: '#4f5880',
+    success: '#9ece6a',
+    warning: '#e0af68',
+    error: '#f7768e',
+    info: '#7dcfff',
+    glassBg: 'rgba(26, 27, 38, 0.6)',
+    glassBorder: 'rgba(169, 177, 214, 0.16)',
+    glassBlur: '18px',
+    surfaceGhost: 'transparent',
+    surfaceGhostHover: 'rgba(169, 177, 214, 0.08)',
+  },
+  typography: {
+    typeScaleTitle: 'clamp(1.03rem, 0.92rem + 0.42vw, 1.24rem)',
+    typeScaleLabel: '0.89rem',
+    typeScaleBody: '0.96rem',
+    typeScaleMeta: '0.76rem',
+    typeScaleCode: '0.835rem',
+    fontWeightStrong: '640',
+    fontWeightMedium: '540',
+    fontWeightRegular: '420',
   },
 };
 
-/**
- * Paper 纸感主题（淡黄色纸张风格）
- * 复用了你给的 :root / .dark 配色，映射到现有 Theme 结构。
- */
-
-// 深色纸感主题（对应 .dark）
-export const paperDarkTheme: Theme = {
-  name: 'Paper Dark',
+export const catppuccinTheme: Theme = {
+  name: 'Catppuccin Mocha',
   colors: {
-    // 背景：整体偏深的暖灰
-    background: 'oklch(0.2679 0.0036 106.6427)',              // --background
-    backgroundSecondary: 'oklch(0.2357 0.0024 67.7077)',      // --sidebar
-    backgroundTertiary: 'oklch(0.2213 0.0038 106.7070)',      // --muted
-
-    // 卡片
-    card: 'oklch(0.2679 0.0036 106.6427)',                    // --card
-    cardHover: 'oklch(0.3085 0.0035 106.6039)',               // --popover
-
-    // 文本
-    textPrimary: 'oklch(0.8074 0.0142 93.0137)',              // --foreground
-    textSecondary: 'oklch(0.7713 0.0169 99.0657)',            // --muted-foreground
-    textTertiary: 'oklch(0.8074 0.0142 93.0137)',             // 轻微变化不大，可后续微调
-
-    // 强调色（主按钮、选中状态）
-    accent: 'oklch(0.6724 0.1308 38.7559)',                   // --primary
-    accentHover: 'oklch(0.5583 0.1276 42.9956)',              // --chart-1 略深
-
-    // 链接颜色（偏冷一点）
-    link: 'oklch(0.6898 0.1581 290.4107)',                    // --chart-2
-    linkHover: 'oklch(0.3074 0.0516 289.3230)',               // --chart-4
-
-    // 边框
-    border: 'oklch(0.3618 0.0101 106.8928)',                  // --border
-    borderStrong: 'oklch(0.4336 0.0113 100.2195)',            // --input 稍亮一点
-
-    // 状态色（先用主色系占位，后面你可以慢慢打磨）
-    success: 'oklch(0.6898 0.1581 290.4107)',                 // 冷色成功
-    warning: 'oklch(0.8816 0.0276 93.1280)',                  // --chart-3
-    error: 'oklch(0.6368 0.2078 25.3313)',                    // --destructive
-    info: 'oklch(0.6724 0.1308 38.7559)',                     // primary 作为信息色
+    background: '#1e1e2e',
+    backgroundSecondary: '#181825',
+    backgroundTertiary: '#313244',
+    card: '#313244',
+    cardHover: '#3a3b52',
+    textPrimary: '#cdd6f4',
+    textSecondary: '#bac2de',
+    textTertiary: '#9399b2',
+    textHeading: '#cba6f7',
+    textLabel: '#89b4fa',
+    textMeta: '#6c7086',
+    textLink: '#f9e2af',
+    textValue: '#a6e3a1',
+    textEmphasis: '#fab387',
+    accent: '#89b4fa',
+    accentHover: '#74a2f7',
+    link: '#89dceb',
+    linkHover: '#b4f0ff',
+    border: '#45475a',
+    borderStrong: '#585b70',
+    success: '#a6e3a1',
+    warning: '#f9e2af',
+    error: '#f38ba8',
+    info: '#89b4fa',
+    glassBg: 'rgba(30, 30, 46, 0.58)',
+    glassBorder: 'rgba(205, 214, 244, 0.15)',
+    glassBlur: '18px',
+    surfaceGhost: 'transparent',
+    surfaceGhostHover: 'rgba(205, 214, 244, 0.08)',
+  },
+  typography: {
+    typeScaleTitle: 'clamp(1.03rem, 0.92rem + 0.42vw, 1.24rem)',
+    typeScaleLabel: '0.89rem',
+    typeScaleBody: '0.96rem',
+    typeScaleMeta: '0.76rem',
+    typeScaleCode: '0.835rem',
+    fontWeightStrong: '640',
+    fontWeightMedium: '540',
+    fontWeightRegular: '420',
   },
 };
 
-// 浅色纸感主题（对应 :root）
-export const paperLightTheme: Theme = {
-  name: 'Paper Light',
+export const nordTheme: Theme = {
+  name: 'Nord',
   colors: {
-    // 背景：淡黄色纸张
-    background: 'oklch(0.9818 0.0054 95.0986)',               // --background
-    backgroundSecondary: 'oklch(0.9663 0.0080 98.8792)',      // --sidebar
-    backgroundTertiary: 'oklch(0.9341 0.0153 90.2390)',       // --muted
-
-    // 卡片
-    card: 'oklch(0.9818 0.0054 95.0986)',                     // --card
-    cardHover: 'oklch(0.9245 0.0138 92.9892)',                // --secondary
-
-    // 文本
-    textPrimary: 'oklch(0.3438 0.0269 95.7226)',              // --foreground
-    textSecondary: 'oklch(0.6059 0.0075 97.4233)',            // --muted-foreground
-    textTertiary: 'oklch(0.4334 0.0177 98.6048)',             // --secondary-foreground
-
-    // 强调色（暖橙主色）
-    accent: 'oklch(0.6171 0.1375 39.0427)',                   // --primary
-    accentHover: 'oklch(0.5583 0.1276 42.9956)',              // --chart-1 略深
-
-    // 链接颜色（稍冷一点，便于区分）
-    link: 'oklch(0.6898 0.1581 290.4107)',                    // --chart-2
-    linkHover: 'oklch(0.8822 0.0403 298.1792)',               // --chart-4
-
-    // 边框
-    border: 'oklch(0.8847 0.0069 97.3627)',                   // --border
-    borderStrong: 'oklch(0.7621 0.0156 98.3528)',             // --input 稍深
-
-    // 状态色
-    success: 'oklch(0.6171 0.1375 39.0427)',                  // primary 复用
-    warning: 'oklch(0.8816 0.0276 93.1280)',                  // --chart-3
-    error: 'oklch(0.6368 0.2078 25.3313)',                    // --destructive
-    info: 'oklch(0.6898 0.1581 290.4107)',                    // 冷色信息
+    background: '#2e3440',
+    backgroundSecondary: '#242933',
+    backgroundTertiary: '#3b4252',
+    card: '#3b4252',
+    cardHover: '#434c5e',
+    textPrimary: '#d8dee9',
+    textSecondary: '#c5ccda',
+    textTertiary: '#9aa6bf',
+    textHeading: '#88c0d0',
+    textLabel: '#81a1c1',
+    textMeta: '#7e8ba2',
+    textLink: '#ebcb8b',
+    textValue: '#a3be8c',
+    textEmphasis: '#d08770',
+    accent: '#88c0d0',
+    accentHover: '#7ab0c1',
+    link: '#81a1c1',
+    linkHover: '#9ab5d2',
+    border: '#4c566a',
+    borderStrong: '#5b667d',
+    success: '#a3be8c',
+    warning: '#ebcb8b',
+    error: '#bf616a',
+    info: '#88c0d0',
+    glassBg: 'rgba(46, 52, 64, 0.58)',
+    glassBorder: 'rgba(216, 222, 233, 0.14)',
+    glassBlur: '16px',
+    surfaceGhost: 'transparent',
+    surfaceGhostHover: 'rgba(216, 222, 233, 0.08)',
+  },
+  typography: {
+    typeScaleTitle: 'clamp(1.03rem, 0.92rem + 0.42vw, 1.22rem)',
+    typeScaleLabel: '0.89rem',
+    typeScaleBody: '0.95rem',
+    typeScaleMeta: '0.76rem',
+    typeScaleCode: '0.83rem',
+    fontWeightStrong: '640',
+    fontWeightMedium: '540',
+    fontWeightRegular: '420',
   },
 };
 
-// 默认主题
+export const everforestTheme: Theme = {
+  name: 'Everforest',
+  colors: {
+    background: '#2d353b',
+    backgroundSecondary: '#232a2e',
+    backgroundTertiary: '#343f44',
+    card: '#343f44',
+    cardHover: '#3d484d',
+    textPrimary: '#d3c6aa',
+    textSecondary: '#b8ad94',
+    textTertiary: '#9fa48d',
+    textHeading: '#a7c080',
+    textLabel: '#7fbbb3',
+    textMeta: '#859289',
+    textLink: '#dbbc7f',
+    textValue: '#83c092',
+    textEmphasis: '#e69875',
+    accent: '#a7c080',
+    accentHover: '#95af71',
+    link: '#7fbbb3',
+    linkHover: '#9fd0c8',
+    border: '#4f585e',
+    borderStrong: '#5d676e',
+    success: '#83c092',
+    warning: '#dbbc7f',
+    error: '#e67e80',
+    info: '#7fbbb3',
+    glassBg: 'rgba(45, 53, 59, 0.58)',
+    glassBorder: 'rgba(211, 198, 170, 0.14)',
+    glassBlur: '16px',
+    surfaceGhost: 'transparent',
+    surfaceGhostHover: 'rgba(211, 198, 170, 0.08)',
+  },
+  typography: {
+    typeScaleTitle: 'clamp(1.03rem, 0.92rem + 0.42vw, 1.22rem)',
+    typeScaleLabel: '0.89rem',
+    typeScaleBody: '0.95rem',
+    typeScaleMeta: '0.76rem',
+    typeScaleCode: '0.83rem',
+    fontWeightStrong: '640',
+    fontWeightMedium: '540',
+    fontWeightRegular: '420',
+  },
+};
+
+export const sakuraDayTheme: Theme = {
+  name: 'Sakura Day',
+  colors: {
+    background: '#fcf0f4',
+    backgroundSecondary: '#f5e4e9',
+    backgroundTertiary: '#fff7f9',
+    card: '#fff7f9',
+    cardHover: '#fcedf1',
+    textPrimary: '#543b42',
+    textSecondary: '#85666f',
+    textTertiary: '#b3959e',
+    textHeading: '#d65c80',
+    textLabel: '#94ad18',
+    textMeta: '#a38c93',
+    textLink: '#3976dc',
+    textValue: '#94ad18',
+    textEmphasis: '#d65c80',
+    accent: '#e66a8f',
+    accentHover: '#cc5a7b',
+    link: '#3976dc',
+    linkHover: '#2a5ab3',
+    border: '#e8ced5',
+    borderStrong: '#d6b2bc',
+    success: '#94ad18',
+    warning: '#d99e52',
+    error: '#d9545c',
+    info: '#3976dc',
+    glassBg: 'rgba(252, 240, 244, 0.65)',
+    glassBorder: 'rgba(230, 106, 143, 0.15)',
+    glassBlur: '16px',
+    surfaceGhost: 'transparent',
+    surfaceGhostHover: 'rgba(230, 106, 143, 0.06)',
+  },
+  typography: {
+    typeScaleTitle: 'clamp(1.2rem, 1rem + 0.5vw, 1.5rem)',
+    typeScaleLabel: '0.95rem',
+    typeScaleBody: '0.95rem',
+    typeScaleMeta: '0.8rem',
+    typeScaleCode: '0.85rem',
+    fontWeightStrong: '700',
+    fontWeightMedium: '600',
+    fontWeightRegular: '400',
+  },
+};
+
+export const yozakuraNightTheme: Theme = {
+  name: 'Yozakura Night',
+  colors: {
+    background: '#14101f',
+    backgroundSecondary: '#1b152b',
+    backgroundTertiary: '#231b36',
+    card: '#1e172e',
+    cardHover: '#271e3b',
+    textPrimary: '#f0f4f8',
+    textSecondary: '#b4c0d1',
+    textTertiary: '#7d8a9e',
+    textHeading: '#e699ff',
+    textLabel: '#7ae0d2',
+    textMeta: '#5f576b',
+    textLink: '#6bc4ff',
+    textValue: '#e699ff',
+    textEmphasis: '#ff7be8',
+    accent: '#db7cf0',
+    accentHover: '#eb9dfa',
+    link: '#6bc4ff',
+    linkHover: '#96d8ff',
+    border: '#322747',
+    borderStrong: '#44375c',
+    success: '#5ce0aa',
+    warning: '#ebe378',
+    error: '#fa558a',
+    info: '#6bc4ff',
+    glassBg: 'rgba(20, 16, 31, 0.65)',
+    glassBorder: 'rgba(219, 124, 240, 0.15)',
+    glassBlur: '18px',
+    surfaceGhost: 'transparent',
+    surfaceGhostHover: 'rgba(219, 124, 240, 0.08)',
+  },
+  typography: {
+    typeScaleTitle: 'clamp(1.2rem, 1rem + 0.5vw, 1.5rem)',
+    typeScaleLabel: '0.95rem',
+    typeScaleBody: '0.95rem',
+    typeScaleMeta: '0.8rem',
+    typeScaleCode: '0.85rem',
+    fontWeightStrong: '700',
+    fontWeightMedium: '600',
+    fontWeightRegular: '400',
+  },
+};
+
 export const defaultTheme = discordDarkTheme;
 
- // 主题列表（6 套主题）
 export const themes = {
   discordDark: discordDarkTheme,
   discordLight: discordLightTheme,
-  tweakGrayDark: tweakGrayDarkTheme,
-  tweakGrayLight: tweakGrayLightTheme,
-  paperDark: paperDarkTheme,
-  paperLight: paperLightTheme,
+  claudeDark: claudeDarkTheme,
+  tokyoNight: tokyoNightTheme,
+  catppuccin: catppuccinTheme,
+  nord: nordTheme,
+  everforest: everforestTheme,
+  sakuraDay: sakuraDayTheme,
+  yozakuraNight: yozakuraNightTheme,
 } as const;
 
-// 主题类型
 export type ThemeName = keyof typeof themes;
