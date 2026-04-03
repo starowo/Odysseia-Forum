@@ -21,9 +21,9 @@
 
 <!-- 动态仓库状态徽章 -->
 <p align="center">
-  <img src="https://img.shields.io/github/last-commit/shiyue137mh-netizen/Odysseia-Forum-main?style=flat&color=success&logo=git&logoColor=white" alt="Last Commit" />
-  <img src="https://img.shields.io/github/contributors/shiyue137mh-netizen/Odysseia-Forum-main?style=flat&color=orange" alt="Contributors" />
-  <img src="https://img.shields.io/github/issues/shiyue137mh-netizen/Odysseia-Forum-main?style=flat&color=red" alt="Issues" />
+  <img src="https://img.shields.io/github/last-commit/shiyue137mh-netizen/Odysseia-Forum-Newpage?style=flat&color=success&logo=git&logoColor=white" alt="Last Commit" />
+  <img src="https://img.shields.io/github/contributors/shiyue137mh-netizen/Odysseia-Forum-Newpage?style=flat&color=orange" alt="Contributors" />
+  <img src="https://img.shields.io/github/issues/shiyue137mh-netizen/Odysseia-Forum-Newpage?style=flat&color=red" alt="Issues" />
 </p>
 
 欢迎来到 Odysseia Forum Webpage 的前端大本营！让我来给大家带路吧！希望在这里，大家能像晒着向日葵的太阳一样觉得暖洋洋的！
@@ -40,7 +40,7 @@
 
 ---
 
-## 🛠️ 我们建小房子的砖块
+## 我们建小房子的砖块
 
 - **React 18** 加上 **Vite**：页面加载速度超快，就像我吹喇叭一样一呼百应！<img align="center" height="24" src="src/assets/images/mascot/blow_the_trumpet.png" alt="吹喇叭" />
 - **Tailwind CSS**：可以随时给界面切掉换上好看的皮肤！深浅色主题随心切换，怎么打扮都好看！
@@ -59,7 +59,7 @@ npm run dev
 
 等魔法生效后，用浏览器访问 `http://localhost:3000` 就能看到我啦！如果你做错什么把代码弄坏了... 哼，如果你好好哄哄我，我也会尽力帮你解答你遇到的开发报错的哦！<img align="center" height="24" src="src/assets/images/mascot/sad_apology.png" alt="嫌弃又委屈" />
 
-## 🙋 看板娘解答时间 (FAQ)
+## 看板娘解答时间 (FAQ)
 
 <details>
 <summary><b>1. 页面打不开或者一片空白怎么办？</b></summary>
@@ -73,7 +73,7 @@ npm run dev
 我们严格遵守了 FSD 架构哦！如果是带有业务逻辑的，记得放进 `features` 里面。想知道更详细的规矩，去看看右边的日记本吧！<img align="center" height="24" src="src/assets/images/mascot/tea.png" alt="喝茶" />
 </details>
 
-## 📖 更多秘密的日记本
+## 更多秘密的日记本
 
 如果你想知道我的小脑袋里到底是怎么构建这个世界的，可以去翻看这些整理好的记录本：
 - [项目的全身检查报告 (Overview)](docs/architecture/overview.md)
@@ -87,18 +87,18 @@ npm run dev
 
 ---
 
-## 💖 感谢一起建房子的宝宝们 (Contributors)
+## 感谢一起建房子的宝宝们 (Contributors)
 
 没有大家的爱，就不会有现在的类脑娘！感谢下面所有在冰天雪地里帮忙递过砖块的大家：
 
-<a href="https://github.com/shiyue137mh-netizen/Odysseia-Forum-main/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=shiyue137mh-netizen/Odysseia-Forum-main" alt="Contributors" />
+<a href="https://github.com/shiyue137mh-netizen/Odysseia-Forum-Newpage/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=shiyue137mh-netizen/Odysseia-Forum-Newpage" alt="Contributors" />
 </a>
 
 ---
 
 <details>
-<summary><b>👀 偷偷告诉你一个警告... (点击展开)</b></summary>
+<summary><b>偷偷告诉你一个警告... (点击展开)</b></summary>
 <br/>
 哼，如果有谁敢分裂类脑或者做任何背叛大家善意的事情，我一定会把你永远关在小黑屋里的！<img align="center" height="24" src="src/assets/images/mascot/confused.png" alt="疑惑与警告" />
 </details>
