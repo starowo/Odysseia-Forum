@@ -23,6 +23,12 @@ export interface PlazaRailConfig {
   subtitle: string;
 }
 
+export interface PlazaPreferenceFilter {
+  channel_ids?: string[];
+  include_tags?: string[];
+  exclude_tags?: string[];
+}
+
 export const PLAZA_RAILS: PlazaRailConfig[] = [
   {
     key: 'latest',
@@ -67,28 +73,37 @@ export const plazaApi = {
     }));
   },
 
-  getRail: async (key: PlazaRailKey): Promise<Thread[]> => {
+  getRail: async (key: PlazaRailKey, preferenceFilter?: PlazaPreferenceFilter): Promise<Thread[]> => {
     let response: SearchResponse;
+    const baseFilter = {
+      channel_ids: preferenceFilter?.channel_ids,
+      include_tags: preferenceFilter?.include_tags,
+      exclude_tags: preferenceFilter?.exclude_tags,
+    };
 
     if (key === 'latest') {
       response = await searchApi.search({
+        ...baseFilter,
         sort_method: 'created_desc',
         limit: 12,
       });
     } else if (key === 'reaction_surge') {
       response = await searchApi.search({
+        ...baseFilter,
         sort_method: 'reaction_desc',
         created_after: '-7d',
         limit: 12,
       });
     } else if (key === 'discussion_surge') {
       response = await searchApi.search({
+        ...baseFilter,
         sort_method: 'reply_desc',
         active_after: '-7d',
         limit: 12,
       });
     } else {
       response = await searchApi.search({
+        ...baseFilter,
         sort_method: 'relevance',
         limit: 12,
       });

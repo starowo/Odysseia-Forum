@@ -64,7 +64,7 @@ export function BannerApplicationModal({ isOpen, onClose }: BannerApplicationMod
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
             <div
-                className="w-full max-w-md overflow-hidden rounded-xl border border-[var(--od-border)] bg-[var(--od-bg)] shadow-2xl animate-in zoom-in-95 duration-200"
+                className="od-floating-panel-solid w-full max-w-md overflow-hidden rounded-xl border border-[var(--od-border)] shadow-2xl animate-in zoom-in-95 duration-200"
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}

@@ -2,6 +2,8 @@ import { ReactNode, useEffect, useRef } from 'react';
 import { useTheme } from '@/shared/hooks/useTheme';
 import { useSettings } from '@/shared/hooks/useSettings';
 
+const loadedFontLinks = new Map<string, HTMLLinkElement>();
+
 interface ThemeProviderProps {
   children: ReactNode;
 }
@@ -16,6 +18,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
 
     const root = document.documentElement;
     const colors = theme.colors;
+    const fontFamily = settings.fontMode === 'theme' ? theme.font?.family : null;
     const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
     const mixWithTransparency = (color: string, transparencyPercent: number) =>
       `color-mix(in srgb, ${color}, transparent ${clamp(transparencyPercent, 0, 100)}%)`;
@@ -55,6 +58,8 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     root.style.setProperty('--od-glass-blur', `${blurPx}px`);
 
     root.style.setProperty('--od-type-title', theme.typography.typeScaleTitle);
+    root.style.setProperty('--od-type-section', 'clamp(1.2rem, 1.05rem + 0.55vw, 1.65rem)');
+    root.style.setProperty('--od-type-hero', 'clamp(2rem, 1.4rem + 2vw, 3.5rem)');
     root.style.setProperty('--od-type-label', theme.typography.typeScaleLabel);
     root.style.setProperty('--od-type-body', theme.typography.typeScaleBody);
     root.style.setProperty('--od-type-meta', theme.typography.typeScaleMeta);
@@ -62,6 +67,26 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     root.style.setProperty('--od-weight-strong', theme.typography.fontWeightStrong);
     root.style.setProperty('--od-weight-medium', theme.typography.fontWeightMedium);
     root.style.setProperty('--od-weight-regular', theme.typography.fontWeightRegular);
+    root.style.setProperty(
+      '--font-sans',
+      fontFamily
+        ? `'${fontFamily}', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif`
+        : "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+    );
+
+    if (typeof document !== 'undefined') {
+      const head = document.head;
+      if (fontFamily && theme.font?.url) {
+        if (!loadedFontLinks.has(theme.font.url)) {
+          const link = document.createElement('link');
+          link.rel = 'stylesheet';
+          link.href = theme.font.url;
+          link.setAttribute('data-od-font', fontFamily);
+          head.appendChild(link);
+          loadedFontLinks.set(theme.font.url, link);
+        }
+      }
+    }
 
     const wallpaperUrl = settings.backgroundImageBase64?.trim() || settings.backgroundImageUrl.trim();
     const hasWallpaperSource = wallpaperUrl.length > 0;
@@ -101,6 +126,17 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
       root.style.setProperty('--od-glass-border', mixWithTransparency(colors.borderStrong, Math.max(borderTransparency - 4, 3)));
       root.style.setProperty('--od-surface-ghost', mixWithTransparency(colors.backgroundSecondary, ghostTransparency));
       root.style.setProperty('--od-surface-ghost-hover', mixWithTransparency(colors.backgroundSecondary, Math.max(ghostTransparency - 12, 28)));
+      root.style.setProperty('--od-surface-shell', mixWithTransparency(colors.backgroundSecondary, Math.max(chromeTransparency - 10, 12)));
+      root.style.setProperty('--od-surface-content', mixWithTransparency(colors.background, Math.max(contentTransparency - 6, 10)));
+      root.style.setProperty('--od-surface-raised', mixWithTransparency(colors.backgroundTertiary, Math.max(contentTransparency - 3, 8)));
+      root.style.setProperty('--od-surface-floating', mixWithTransparency(colors.background, Math.max(contentTransparency - 12, 6)));
+      root.style.setProperty('--od-surface-input', mixWithTransparency(colors.backgroundSecondary, Math.max(contentTransparency - 2, 12)));
+      root.style.setProperty('--od-surface-soft', mixWithTransparency(colors.accent, 86));
+      root.style.setProperty('--od-interactive-hover', mixWithTransparency(colors.textPrimary, 92));
+      root.style.setProperty('--od-interactive-strong', mixWithTransparency(colors.accent, 82));
+      root.style.setProperty('--od-shell-line', mixWithTransparency(colors.border, Math.max(borderTransparency + 8, 10)));
+      root.style.setProperty('--od-divider', mixWithTransparency(colors.textSecondary, 72));
+      root.style.setProperty('--od-divider-strong', mixWithTransparency(colors.textPrimary, 62));
       root.style.setProperty('--od-chrome-transparency', `${chromeTransparency}%`);
       root.style.setProperty('--od-chrome-surface-transparency', `${chromeSurfaceTransparency}%`);
       root.style.setProperty('--od-content-transparency', `${contentTransparency}%`);
@@ -115,14 +151,50 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
       root.style.setProperty('--od-glass-border', colors.glassBorder);
       root.style.setProperty('--od-surface-ghost', colors.surfaceGhost);
       root.style.setProperty('--od-surface-ghost-hover', colors.surfaceGhostHover);
+      root.style.setProperty('--od-surface-shell', `color-mix(in srgb, ${colors.backgroundSecondary} 92%, black 8%)`);
+      root.style.setProperty('--od-surface-content', `color-mix(in srgb, ${colors.background} 80%, ${colors.backgroundSecondary} 20%)`);
+      root.style.setProperty('--od-surface-raised', `color-mix(in srgb, ${colors.backgroundTertiary} 76%, ${colors.background} 24%)`);
+      root.style.setProperty('--od-surface-floating', `color-mix(in srgb, ${colors.background} 88%, black 12%)`);
+      root.style.setProperty('--od-surface-input', `color-mix(in srgb, ${colors.backgroundSecondary} 74%, transparent 26%)`);
+      root.style.setProperty('--od-surface-soft', `color-mix(in srgb, ${colors.accent} 8%, transparent 92%)`);
+      root.style.setProperty('--od-interactive-hover', `color-mix(in srgb, ${colors.textPrimary} 8%, transparent 92%)`);
+      root.style.setProperty('--od-interactive-strong', `color-mix(in srgb, ${colors.accent} 14%, transparent 86%)`);
+      root.style.setProperty('--od-shell-line', `color-mix(in srgb, ${colors.border} 76%, transparent)`);
+      root.style.setProperty('--od-divider', `color-mix(in srgb, ${colors.textSecondary} 28%, transparent)`);
+      root.style.setProperty('--od-divider-strong', `color-mix(in srgb, ${colors.textPrimary} 38%, transparent)`);
       root.style.setProperty('--od-chrome-transparency', '46%');
       root.style.setProperty('--od-chrome-surface-transparency', '38%');
       root.style.setProperty('--od-content-transparency', '20%');
       root.style.setProperty('--od-wallpaper-dim', '0');
     }
 
+    if (settings.backgroundlessMode) {
+      const visible = clamp(settings.backgroundImageOpacity, 0, 1);
+      const backgroundlessDim = hasWallpaper ? clamp(0.82 - visible * 0.78, 0, 0.82) : 0;
+
+      root.style.setProperty('--od-bg', 'transparent');
+      root.style.setProperty('--od-bg-secondary', 'transparent');
+      root.style.setProperty('--od-bg-tertiary', 'transparent');
+      root.style.setProperty('--od-card', 'transparent');
+      root.style.setProperty('--od-card-hover', 'transparent');
+      root.style.setProperty('--od-surface-ghost', 'transparent');
+      root.style.setProperty('--od-surface-ghost-hover', 'transparent');
+      root.style.setProperty('--od-surface-shell', 'transparent');
+      root.style.setProperty('--od-surface-content', 'transparent');
+      root.style.setProperty('--od-surface-raised', 'transparent');
+      root.style.setProperty('--od-surface-input', 'transparent');
+      root.style.setProperty('--od-surface-soft', 'transparent');
+      root.style.setProperty('--od-interactive-hover', 'color-mix(in srgb, var(--od-text-primary) 10%, transparent 90%)');
+      root.style.setProperty('--od-interactive-strong', 'color-mix(in srgb, var(--od-accent) 12%, transparent 88%)');
+      root.style.setProperty('--od-shell-line', 'color-mix(in srgb, var(--od-border) 42%, transparent)');
+      root.style.setProperty('--od-divider', 'color-mix(in srgb, var(--od-text-secondary) 24%, transparent)');
+      root.style.setProperty('--od-divider-strong', 'color-mix(in srgb, var(--od-text-primary) 30%, transparent)');
+      root.style.setProperty('--od-wallpaper-dim', String(backgroundlessDim));
+    }
+
     root.setAttribute('data-od-glass', glassEnabled ? 'on' : 'off');
     root.setAttribute('data-od-wallpaper', hasWallpaper ? 'on' : 'off');
+    root.setAttribute('data-od-backgroundless', settings.backgroundlessMode ? 'on' : 'off');
 
     if (hasWallpaper) {
       const escapedUrl = wallpaperUrl.replace(/"/g, '\\"');
@@ -254,7 +326,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
       root.classList.remove('od-theme-transition');
       window.clearTimeout(timeoutId);
     };
-  }, [theme, currentTheme, settings.backgroundImageEnabled, settings.backgroundImageOpacity, settings.backgroundImageUrl, settings.backgroundImageBase64, settings.glassMode, settings.glassBlur]);
+  }, [theme, currentTheme, settings.fontMode, settings.backgroundImageEnabled, settings.backgroundImageOpacity, settings.backgroundImageUrl, settings.backgroundImageBase64, settings.glassMode, settings.glassBlur, settings.backgroundlessMode]);
 
   return <>{children}</>;
 }

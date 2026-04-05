@@ -29,51 +29,60 @@ export function BooklistCard({
 
   return (
     <article
-      className="group flex cursor-pointer flex-col overflow-hidden rounded-xl border border-[var(--od-border)] bg-[var(--od-card)] shadow-sm transition-all hover:border-[var(--od-accent)]/40 hover:shadow-lg"
+      className="group flex cursor-pointer flex-col gap-4 border-b border-[color-mix(in_srgb,var(--od-text-secondary)_14%,transparent)] pb-5 transition-colors"
       onClick={() => onOpen(booklist.id)}
     >
-      <div className="relative h-36 w-full overflow-hidden bg-[var(--od-bg-tertiary)]">
-        {booklist.cover_image_url ? (
-          <img
-            src={booklist.cover_image_url}
-            alt={booklist.title}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <BookOpen className="h-8 w-8 text-[var(--od-text-tertiary)]" />
+      <div className="flex gap-4">
+        <div className="relative h-28 w-24 shrink-0 overflow-hidden rounded-[1.35rem] bg-[color-mix(in_srgb,var(--od-surface-content)_64%,transparent)] sm:h-32 sm:w-28">
+          {booklist.cover_image_url ? (
+            <img
+              src={booklist.cover_image_url}
+              alt={booklist.title}
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center">
+              <BookOpen className="h-8 w-8 text-[var(--od-text-tertiary)]" />
+            </div>
+          )}
+        </div>
+
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div className="flex flex-wrap items-center gap-2 text-[11px]">
+            <span className="inline-flex items-center gap-1 text-[var(--od-text-tertiary)]">
+              {booklist.is_public ? <Globe className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
+              <span>{booklist.is_public ? '公开' : '私有'}</span>
+            </span>
+            <span className="text-[var(--od-text-tertiary)]/55">•</span>
+            <span className="text-[var(--od-text-tertiary)]">更新于 {updatedText}</span>
           </div>
-        )}
-        <div className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-black/45 px-2 py-0.5 text-[10px] text-white backdrop-blur-sm">
-          {booklist.is_public ? <Globe className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
-          <span>{booklist.is_public ? '公开' : '私有'}</span>
-        </div>
-      </div>
 
-      <div className="flex flex-1 flex-col p-3">
-        <h3 className="line-clamp-2 text-sm font-bold text-[var(--od-text-primary)]">{booklist.title}</h3>
-        <p className="mt-1 line-clamp-2 min-h-[2.5rem] text-xs text-[var(--od-text-secondary)]">
-          {booklist.description || '暂无简介'}
-        </p>
+          <h3 className="mt-2 line-clamp-2 text-base font-semibold tracking-tight text-[var(--od-text-primary)] transition-colors group-hover:text-[var(--od-accent)]">
+            {booklist.title}
+          </h3>
+          <p className="mt-2 line-clamp-3 text-sm leading-6 text-[var(--od-text-secondary)]">
+            {booklist.description || '暂无简介'}
+          </p>
 
-        <div className="mt-2 grid grid-cols-3 gap-2 text-[11px] text-[var(--od-text-tertiary)]">
-          <span className="inline-flex items-center gap-1">
-            <BookOpen className="h-3.5 w-3.5" />
-            {booklist.item_count}
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <Star className="h-3.5 w-3.5" />
-            {booklist.collection_count}
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <Eye className="h-3.5 w-3.5" />
-            {booklist.view_count}
-          </span>
-        </div>
+          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[12px] text-[var(--od-text-secondary)]">
+            <span className="inline-flex items-center gap-1.5">
+              <BookOpen className="h-3.5 w-3.5 text-[var(--od-text-tertiary)]" />
+              <span className="text-[var(--od-accent)]">{booklist.item_count}</span>
+              <span>帖子</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Star className="h-3.5 w-3.5 text-[var(--od-text-tertiary)]" />
+              <span className="text-[var(--od-accent)]">{booklist.collection_count}</span>
+              <span>收藏</span>
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <Eye className="h-3.5 w-3.5 text-[var(--od-text-tertiary)]" />
+              <span className="text-[var(--od-accent)]">{booklist.view_count}</span>
+              <span>浏览</span>
+            </span>
+          </div>
 
-        <p className="mt-2 text-[11px] text-[var(--od-text-tertiary)]">更新于 {updatedText}</p>
-
-        <div className="mt-3 flex items-center justify-between gap-2 border-t border-[var(--od-border)] pt-3">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-[color-mix(in_srgb,var(--od-text-secondary)_12%,transparent)] pt-4">
           <button
             type="button"
             disabled={collectLoading}
@@ -81,10 +90,10 @@ export function BooklistCard({
               e.stopPropagation();
               onToggleCollect(booklist);
             }}
-            className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
+            className={`od-inline-action ${
               booklist.collected_flag
-                ? 'bg-[var(--od-accent)]/15 text-[var(--od-accent)] hover:bg-[var(--od-accent)]/20'
-                : 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-secondary)] hover:text-[var(--od-text-primary)]'
+                ? 'bg-[var(--od-accent)]/12 text-[var(--od-accent)] hover:bg-[var(--od-accent)]/16'
+                : 'od-inline-action-ghost text-[var(--od-text-secondary)] hover:text-[var(--od-text-primary)]'
             }`}
           >
             {booklist.collected_flag ? '已收藏' : '收藏'}
@@ -98,7 +107,7 @@ export function BooklistCard({
                   e.stopPropagation();
                   onEdit(booklist);
                 }}
-                className="rounded p-1 text-[var(--od-text-tertiary)] transition-colors hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)]"
+                className="od-inline-action od-inline-action-ghost px-2.5 text-[var(--od-text-tertiary)] hover:text-[var(--od-text-primary)]"
               >
                 <Pencil className="h-4 w-4" />
               </button>
@@ -108,13 +117,14 @@ export function BooklistCard({
                   e.stopPropagation();
                   onDelete(booklist);
                 }}
-                className="rounded p-1 text-[var(--od-text-tertiary)] transition-colors hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-error)]"
+                className="od-inline-action od-inline-action-ghost px-2.5 text-[var(--od-text-tertiary)] hover:text-[var(--od-error)]"
               >
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>
           )}
         </div>
+      </div>
       </div>
     </article>
   );

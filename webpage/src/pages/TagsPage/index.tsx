@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { searchApi } from '@/features/search/api/searchApi';
 import { addToken } from '@/shared/lib/searchTokenizer';
 import { useSettings } from '@/shared/hooks/useSettings';
+import { FluidDivider } from '@/shared/ui/FluidDivider';
 
 interface TagWithCount {
   key: string;
@@ -178,83 +179,99 @@ export function TagsPage() {
   const totalTags = new Set(scopedTagEntries.map((tag) => tag.name)).size;
   const totalThreads = Number(scopedSearchData?.total || 0);
   const isPageLoading = isCatalogLoading || isScopedSearchLoading;
+  const maxTagCount = Math.max(...filteredTags.map((tag) => tag.count), 1);
 
   return (
-    <>
-      <div className="bg-[var(--od-bg)] text-[var(--od-text-primary)]">
-        {/* 标题栏 */}
-        <div className="border-b border-[var(--od-border)] bg-[var(--od-bg-secondary)] px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <TagIcon className="h-6 w-6 text-[var(--od-accent)]" />
-              <div>
-                <h1 className="text-xl font-bold text-[var(--od-text-primary)]">标签总览</h1>
-                <p className="text-sm text-[var(--od-text-secondary)]">
-                  探索所有可用标签，发现感兴趣的内容
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => navigate('/search')}
-              className="hidden rounded-lg border border-[var(--od-border)] bg-[var(--od-bg-secondary)] px-3 py-1.5 text-xs font-medium text-[var(--od-text-secondary)] transition-all duration-200 hover:border-[var(--od-accent)] hover:text-[var(--od-text-primary)] sm:inline-flex"
-            >
-              返回搜索
-            </button>
-          </div>
-        </div>
-
-        {/* 内容区域 */}
-        <div className="p-4 sm:p-6 lg:p-8">
-          <div className="mx-auto max-w-7xl">
-            {/* 统计卡片 */}
-            <div
-              className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 animate-in fade-in slide-in-from-top-4 duration-500"
-              style={{ animationDelay: '100ms' }}
-            >
-              <div className="rounded-xl border border-[var(--od-border)] bg-[var(--od-card)] p-5 shadow-sm transition-all duration-200 hover:shadow-md">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-[var(--od-text-secondary)]">标签总数</p>
-                    <p className="mt-1 text-3xl font-bold text-[var(--od-text-primary)]">{totalTags}</p>
-                  </div>
-                  <Hash className="h-10 w-10 text-[var(--od-accent)]/20" />
+    <div className="flex min-h-screen flex-col overflow-x-hidden text-[var(--od-text-primary)]">
+      <div className="animate-in fade-in duration-500 flex-1 p-4 sm:p-6 lg:p-8">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-10 lg:gap-14">
+          <div>
+            <FluidDivider label="Tags" tone="strong" className="mb-8 lg:mb-10" />
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--od-surface-soft)] text-[var(--od-accent)]">
+                  <TagIcon className="h-5 w-5" />
                 </div>
-              </div>
-
-              <div className="rounded-xl border border-[var(--od-border)] bg-[var(--od-card)] p-5 shadow-sm transition-all duration-200 hover:shadow-md">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-[var(--od-text-secondary)]">相关帖子</p>
-                    <p className="mt-1 text-3xl font-bold text-[var(--od-text-primary)]">{totalThreads}</p>
-                  </div>
-                  <TrendingUp className="h-10 w-10 text-green-500/20" />
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-[var(--od-border)] bg-[var(--od-card)] p-5 shadow-sm transition-all duration-200 hover:shadow-md sm:col-span-2 lg:col-span-1">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-[var(--od-text-secondary)]">平均帖子/每标签</p>
-                    <p className="mt-1 text-3xl font-bold text-[var(--od-text-primary)]">
-                      {totalTags > 0 ? Math.round(totalThreads / totalTags) : 0}
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--od-text-tertiary)]">
+                    标签索引
+                  </p>
+                  <div className="space-y-1.5">
+                    <h1 className="od-section-title">标签总览</h1>
+                    <p className="max-w-2xl text-sm leading-6 text-[var(--od-text-secondary)]">
+                      浏览当前社区里已经形成讨论的标签脉络，先从主题分布里找到方向，再进入搜索查看具体帖子。
                     </p>
                   </div>
-                  <TagIcon className="h-10 w-10 text-blue-500/20" />
                 </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate('/search')}
+                className="od-inline-action od-inline-action-ghost hidden sm:inline-flex"
+              >
+                返回搜索
+              </button>
+            </div>
+
+            <div
+              className="mt-8 grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2 lg:mt-10 lg:grid-cols-3 animate-in fade-in slide-in-from-top-4 duration-500"
+              style={{ animationDelay: '100ms' }}
+            >
+              <div className="flex items-start justify-between gap-4 py-2">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-[var(--od-text-secondary)]">标签总数</p>
+                  <p className="text-[2rem] font-semibold tracking-tight text-[var(--od-text-value)]">{totalTags}</p>
+                  <p className="text-xs leading-5 text-[var(--od-text-tertiary)]">当前筛选范围内可浏览的独立标签。</p>
+                </div>
+                <Hash className="mt-1 h-8 w-8 text-[var(--od-text-secondary)]/26" />
+              </div>
+
+              <div className="flex items-start justify-between gap-4 py-2">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-[var(--od-text-secondary)]">相关帖子</p>
+                  <p className="text-[2rem] font-semibold tracking-tight text-[var(--od-text-value)]">{totalThreads}</p>
+                  <p className="text-xs leading-5 text-[var(--od-text-tertiary)]">所有命中帖子总量，用来判断主题是否已经成形。</p>
+                </div>
+                <TrendingUp className="mt-1 h-8 w-8 text-[var(--od-text-secondary)]/26" />
+              </div>
+
+              <div className="flex items-start justify-between gap-4 py-2 sm:col-span-2 lg:col-span-1">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-[var(--od-text-secondary)]">平均帖子 / 每标签</p>
+                  <p className="text-[2rem] font-semibold tracking-tight text-[var(--od-text-value)]">
+                    {totalTags > 0 ? Math.round(totalThreads / totalTags) : 0}
+                  </p>
+                  <p className="text-xs leading-5 text-[var(--od-text-tertiary)]">粗略感受讨论密度，不作为绝对热度判断。</p>
+                </div>
+                <TagIcon className="mt-1 h-8 w-8 text-[var(--od-text-secondary)]/26" />
+              </div>
+            </div>
+          </div>
+
+          <section className="px-1">
+            <FluidDivider label="Tag Browser" className="mb-8 lg:mb-10" />
+            <div className="mb-8 flex items-start gap-4 lg:mb-10">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--od-surface-soft)] text-[var(--od-accent)]">
+                <Search className="h-5 w-5" />
+              </div>
+              <div className="space-y-1.5">
+                <h2 className="od-section-title">筛选标签范围</h2>
+                <p className="max-w-3xl text-sm leading-6 text-[var(--od-text-secondary)]">
+                  先缩小频道范围，再按名称检索，会更容易找到真正有内容沉淀的标签。
+                </p>
               </div>
             </div>
 
             {/* 搜索框 */}
             <div
-              className="mb-6 animate-in fade-in slide-in-from-top-4 duration-500"
+              className="animate-in fade-in slide-in-from-top-4 duration-500"
               style={{ animationDelay: '200ms' }}
             >
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-[220px_minmax(0,1fr)]">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-[240px_minmax(0,1fr)]">
                 <select
                   value={selectedChannelId}
                   onChange={(e) => setSelectedChannelId(e.target.value)}
-                  className="rounded-lg border border-[var(--od-border)] bg-[var(--od-card)] px-3 py-3 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
+                  className="rounded-2xl border border-[var(--od-shell-line)] bg-[color-mix(in_srgb,var(--od-surface-input)_70%,transparent)] px-4 py-3.5 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
                 >
                   <option value={ALL_CHANNELS_VALUE}>全部频道</option>
                   {channelOptions.map((channel) => (
@@ -270,43 +287,41 @@ export function TagsPage() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="搜索标签..."
-                    className="w-full rounded-lg border border-[var(--od-border)] bg-[var(--od-card)] py-3 pl-12 pr-4 text-[var(--od-text-primary)] placeholder:text-[var(--od-text-tertiary)] focus:border-[var(--od-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--od-accent)]/20"
+                    className="w-full rounded-2xl border border-[var(--od-shell-line)] bg-[color-mix(in_srgb,var(--od-surface-input)_70%,transparent)] py-3.5 pl-12 pr-4 text-[var(--od-text-primary)] placeholder:text-[var(--od-text-tertiary)] focus:border-[var(--od-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--od-accent)]/16"
                   />
                 </div>
               </div>
             </div>
+          </section>
 
             {/* 标签网格 */}
-            {isPageLoading ? (
-              <div className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${settings.sidebarCollapsed ? 'lg:grid-cols-4 xl:grid-cols-5' : 'lg:grid-cols-3 xl:grid-cols-4'}`}>
+          {isPageLoading ? (
+            <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 lg:gap-5 ${settings.sidebarCollapsed ? 'lg:grid-cols-4 xl:grid-cols-5' : 'lg:grid-cols-3 xl:grid-cols-4'}`}>
                 {Array.from({ length: 12 }).map((_, i) => (
                   <div
                     key={i}
-                    className="h-24 animate-pulse rounded-lg border border-[var(--od-border)] bg-[var(--od-card)]"
+                    className="h-24 animate-pulse"
                   />
                 ))}
               </div>
             ) : filteredTags.length > 0 ? (
               <div
-                className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${settings.sidebarCollapsed ? 'lg:grid-cols-4 xl:grid-cols-5' : 'lg:grid-cols-3 xl:grid-cols-4'} animate-in fade-in duration-500`}
+                className={`grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2 lg:gap-x-10 lg:gap-y-3 ${settings.sidebarCollapsed ? 'lg:grid-cols-4 xl:grid-cols-5' : 'lg:grid-cols-3 xl:grid-cols-4'} animate-in fade-in duration-500`}
                 style={{ animationDelay: '300ms' }}
               >
                 {filteredTags.map((tag, index) => (
                   <button
                     key={tag.key}
                     onClick={() => handleTagClick(tag)}
-                    className="group relative overflow-hidden rounded-lg border border-[var(--od-border)] bg-[var(--od-card)] p-4 text-left shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[var(--od-accent)] hover:shadow-md"
+                    className="group relative py-4 text-left transition-colors duration-200"
                     style={{
                       animationDelay: `${300 + index * 30}ms`,
                     }}
                   >
-                    {/* 背景渐变效果 */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-[var(--od-accent)]/0 to-[var(--od-accent)]/0 transition-all duration-300 group-hover:from-[var(--od-accent)]/5 group-hover:to-[var(--od-accent)]/10" />
-
-                    <div className="relative flex items-start justify-between">
+                    <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 overflow-hidden">
-                        <div className="mb-2 flex items-center gap-2">
-                          <h3 className="truncate font-semibold text-[var(--od-text-primary)] transition-colors group-hover:text-[var(--od-accent)]">
+                        <div className="mb-2 flex items-center gap-2.5">
+                          <h3 className="truncate text-[1.02rem] font-semibold tracking-tight text-[var(--od-text-primary)] transition-colors group-hover:text-[var(--od-accent)]">
                             {tag.name}
                           </h3>
                           {tag.isVirtual && (
@@ -315,29 +330,26 @@ export function TagsPage() {
                             </span>
                           )}
                         </div>
-                        <p className="truncate text-xs text-[var(--od-text-tertiary)]">
-                          频道：{tag.channelName}
+                        <p className="truncate text-xs tracking-[0.02em] text-[var(--od-text-tertiary)]">
+                          频道 <span className="text-[var(--od-text-secondary)]">{tag.channelName}</span>
                         </p>
-                        <p className="mt-1 text-sm text-[var(--od-text-secondary)]">
+                        <p className="mt-2 text-sm text-[var(--od-text-secondary)] transition-colors group-hover:text-[var(--od-text-primary)]">
                           {tag.count} 个帖子
                         </p>
                       </div>
 
-                      {/* 数量徽章 */}
-                      <div className="ml-2 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[var(--od-accent)]/10 text-sm font-bold text-[var(--od-accent)] transition-all duration-200 group-hover:bg-[var(--od-accent)] group-hover:text-white">
-                        {tag.count}
+                      <div className="flex min-w-[2.75rem] flex-shrink-0 items-baseline justify-end text-right">
+                        <span className="text-lg font-semibold tracking-tight text-[var(--od-accent)] transition-colors group-hover:text-[var(--od-accent)]">
+                          {tag.count}
+                        </span>
                       </div>
                     </div>
 
-                    {/* 热度指示条 */}
-                    <div className="relative mt-3 h-1 overflow-hidden rounded-full bg-[var(--od-bg-tertiary)]">
+                    <div className="relative mt-4 h-[2px] overflow-hidden rounded-full bg-[color-mix(in_srgb,var(--od-text-secondary)_10%,transparent)]">
                       <div
                         className="h-full bg-gradient-to-r from-[var(--od-accent)]/50 to-[var(--od-accent)] transition-all duration-500"
                         style={{
-                          width: `${Math.min(
-                            (tag.count / Math.max(...filteredTags.map((t) => t.count), 1)) * 100,
-                            100
-                          )}%`,
+                          width: `${Math.min((tag.count / maxTagCount) * 100, 100)}%`,
                         }}
                       />
                     </div>
@@ -345,7 +357,7 @@ export function TagsPage() {
                 ))}
               </div>
             ) : (
-              <div className="flex min-h-[400px] items-center justify-center rounded-lg border border-[var(--od-border)] bg-[var(--od-card)] p-8">
+              <div className="flex min-h-[420px] items-center justify-center p-10">
                 <div className="text-center">
                   <Search className="mx-auto mb-4 h-16 w-16 text-[var(--od-text-tertiary)]" />
                   <h3 className="mb-2 text-xl font-bold text-[var(--od-text-primary)]">
@@ -357,9 +369,8 @@ export function TagsPage() {
                 </div>
               </div>
             )}
-          </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }

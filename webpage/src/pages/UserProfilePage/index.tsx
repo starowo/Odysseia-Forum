@@ -8,7 +8,9 @@ import { useSettings } from '@/shared/hooks/useSettings';
 import { ThreadCard } from '@/entities/thread/ThreadCard';
 import { ThreadListItem } from '@/entities/thread/ThreadListItem';
 import type { Thread } from '@/entities/thread/types';
+import { UserHeaderCard } from '@/entities/user/UserHeaderCard';
 import { UserStatsGrid } from '@/entities/user/UserStatsGrid';
+import { FluidDivider } from '@/shared/ui/FluidDivider';
 import { ThreadPreviewOverlay } from '@/widgets/thread-preview/ThreadPreviewOverlay';
 
 export function UserProfilePage() {
@@ -38,47 +40,64 @@ export function UserProfilePage() {
   const totalReplies = threads.reduce((sum, item) => sum + (Number(item.reply_count) || 0), 0);
 
   const stats = [
-    { label: '帖子数量', value: threadsQuery.data?.total || 0 },
-    { label: '累计点赞', value: totalReactions },
-    { label: '累计回复', value: totalReplies },
-    { label: '当前加载', value: threads.length },
+    {
+      label: '帖子数量',
+      value: threadsQuery.data?.total || 0,
+      icon: FileText,
+    },
+    {
+      label: '累计点赞',
+      value: totalReactions,
+      icon: Heart,
+    },
+    {
+      label: '累计回复',
+      value: totalReplies,
+      icon: MessageCircle,
+    },
+    {
+      label: '当前加载',
+      value: threads.length,
+      icon: RefreshCw,
+    },
   ];
 
   return (
     <>
-      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
-        <div className="rounded-2xl border border-[var(--od-border)] bg-[var(--od-card)] p-5">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 overflow-hidden rounded-full bg-[var(--od-bg-tertiary)]">
-                <img
-                  src={author?.avatar_url || 'https://cdn.discordapp.com/embed/avatars/0.png'}
-                  alt={authorName}
-                  className="h-full w-full object-cover"
-                />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight text-[var(--od-text-primary)]">{authorName}</h1>
-                <p className="text-sm text-[var(--od-text-secondary)]">作者主页（轻量版）</p>
-                {author?.id && <p className="text-xs text-[var(--od-text-tertiary)]">ID: {author.id}</p>}
-              </div>
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 flex flex-col gap-10 p-4 sm:p-6 lg:gap-14 lg:p-8">
+        <section>
+          <FluidDivider label="Author" tone="strong" className="mb-8 lg:mb-10" />
+          <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+            <div className="flex flex-col items-center gap-4">
+              <UserHeaderCard
+                user={{
+                  id: author?.id || userId || 'unknown',
+                  username: author?.name || authorName,
+                  global_name: authorName,
+                  avatar: undefined,
+                }}
+                avatarUrl={author?.avatar_url || null}
+                subtitle={`作者主页 · ${author?.id ? `ID: ${author.id}` : '尚未加载作者标识'}`}
+              />
+
+              <button
+                type="button"
+                onClick={() => void threadsQuery.refetch()}
+                className="od-inline-action od-inline-action-ghost w-full justify-center sm:w-auto"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                刷新
+              </button>
             </div>
 
-            <button
-              type="button"
-              onClick={() => void threadsQuery.refetch()}
-              className="inline-flex items-center gap-1 rounded-md border border-[var(--od-border)] px-2.5 py-1 text-xs text-[var(--od-text-secondary)]"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-              刷新
-            </button>
+            <div className="mx-auto h-px w-16 bg-[color-mix(in_srgb,var(--od-text-secondary)_12%,transparent)]" />
+            <UserStatsGrid items={stats} />
           </div>
-        </div>
+        </section>
 
-        <UserStatsGrid items={stats} />
-
-        <section className="rounded-2xl border border-[var(--od-border)] bg-[var(--od-card)] p-4 sm:p-5">
-          <div className="mb-4 flex items-center gap-2 text-sm text-[var(--od-text-secondary)]">
+        <section className="px-1">
+          <FluidDivider label="Threads" className="mb-8" />
+          <div className="mb-6 flex flex-wrap items-center gap-2 text-sm text-[var(--od-text-secondary)]">
             <FileText className="h-4 w-4 text-[var(--od-accent)]" />
             <span>作者帖子列表</span>
             <span className="mx-1 text-[var(--od-text-tertiary)]">·</span>

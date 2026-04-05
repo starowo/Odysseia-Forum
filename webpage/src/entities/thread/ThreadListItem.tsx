@@ -65,7 +65,7 @@ export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick,
 
   return (
     <article
-      className="group relative flex min-h-[8rem] w-full max-w-full gap-0 overflow-hidden rounded-xl bg-[var(--od-card)] shadow-md transition-all duration-300 hover:bg-[var(--od-card-hover)] hover:shadow-xl cursor-pointer md:h-48"
+      className="group relative flex min-h-[8rem] w-full max-w-full cursor-pointer gap-0 overflow-hidden rounded-[1.35rem] bg-[var(--od-surface-input)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[var(--od-interactive-hover)] md:h-48"
       onClick={() => onPreview?.(thread)}
     >
         {/* 左侧内容区 - 占据更多空间 */}
@@ -132,7 +132,7 @@ export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick,
                     e.stopPropagation();
                     onTagClick?.(tag);
                   }}
-                  className="rounded-md bg-[var(--od-bg-secondary)] px-2 py-0.5 text-[10px] font-medium text-[var(--od-text-secondary)] transition-colors duration-200 hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)] md:px-2.5 md:py-1 md:text-xs"
+                  className="rounded-full bg-[var(--od-surface-shell)] px-2 py-0.5 text-[10px] font-medium text-[var(--od-text-secondary)] transition-colors duration-200 hover:text-[var(--od-text-primary)] md:px-2.5 md:py-1 md:text-xs"
                 >
                   {tag}
                 </button>
@@ -143,7 +143,7 @@ export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick,
               {virtualOnlyTags.slice(0, 2).map((tag) => (
                 <span
                   key={`vt-${tag}`}
-                  className="rounded-md border border-[var(--od-accent)]/20 bg-[var(--od-accent)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--od-accent)] md:text-xs"
+                  className="rounded-full border border-[var(--od-accent)]/16 bg-[var(--od-accent)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--od-accent)] md:text-xs"
                 >
                   ~{tag}
                 </span>
@@ -180,7 +180,7 @@ export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick,
         </div>
 
         {/* 右侧图片区 - 带渐变遮罩，防止溢出 */}
-        <div className="relative w-32 flex-shrink-0 overflow-hidden bg-[var(--od-bg-secondary)] md:w-80">
+        <div className="relative w-32 flex-shrink-0 overflow-hidden bg-[var(--od-surface-shell)] md:w-80">
           {thread.thumbnail_urls && thread.thumbnail_urls.length > 0 ? (
             <>
               <LazyImage

@@ -9,6 +9,7 @@ import { BooklistCard } from '@/entities/booklist/BooklistCard';
 import type { Booklist, BooklistFormInput } from '@/entities/booklist/types';
 import { booklistsApi } from '@/features/booklists/api/booklistsApi';
 import { BooklistFormModal } from '@/features/booklists/components/BooklistFormModal';
+import { FluidDivider } from '@/shared/ui/FluidDivider';
 
 type BooklistScope = 'public' | 'mine' | 'collected';
 
@@ -129,104 +130,122 @@ export function BooklistsPage() {
   );
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-col gap-3 border-b border-[var(--od-border)] pb-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--od-accent)]/10 text-[var(--od-accent)] shadow-inner">
-              <BookOpen className="h-6 w-6" />
+    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 flex flex-col gap-10 p-4 sm:p-6 lg:gap-14 lg:p-8">
+      <section>
+        <FluidDivider label="Booklists" tone="strong" className="mb-8 lg:mb-10" />
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--od-surface-soft)] text-[var(--od-accent)]">
+                <BookOpen className="h-6 w-6" />
+              </div>
+              <div className="space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--od-text-tertiary)]">
+                  内容整理
+                </p>
+                <div className="space-y-1.5">
+                  <h1 className="od-section-title">书单</h1>
+                  <p className="max-w-2xl text-sm leading-6 text-[var(--od-text-secondary)]">
+                    把帖子整理成可持续维护的阅读索引，公开分享、自己归档，或者收藏别人的精选合集。
+                  </p>
+                </div>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight text-[var(--od-text-primary)]">书单</h1>
-              <p className="text-sm text-[var(--od-text-secondary)]">管理、收藏、维护你的帖子索引合集</p>
-            </div>
-          </div>
 
-          <button
-            type="button"
-            onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-[var(--od-accent)] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[var(--od-accent-hover)]"
-          >
-            <Plus className="h-4 w-4" />
-            新建书单
-          </button>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {scopeOptions.map((option) => (
             <button
-              key={option.key}
               type="button"
-              onClick={() => {
-                setScope(option.key);
-                setPageIndex(0);
-              }}
-              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                scope === option.key
-                  ? 'bg-[var(--od-accent)] text-white'
-                  : 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-secondary)] hover:text-[var(--od-text-primary)]'
-              }`}
+              onClick={() => setShowCreate(true)}
+              className="od-inline-action od-inline-action-primary w-full justify-center sm:w-auto sm:self-start"
             >
-              {option.label}
+              <Plus className="h-4 w-4" />
+              新建书单
             </button>
-          ))}
-        </div>
-
-        <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto]">
-          <div className="flex items-center gap-2 rounded-lg border border-[var(--od-border)] bg-[var(--od-bg-secondary)] px-3">
-            <Search className="h-4 w-4 text-[var(--od-text-tertiary)]" />
-            <input
-              value={keywords}
-              onChange={(e) => {
-                setKeywords(e.target.value);
-                setPageIndex(0);
-              }}
-              placeholder="搜索书单标题或简介"
-              className="h-10 w-full bg-transparent text-sm text-[var(--od-text-primary)] outline-none placeholder:text-[var(--od-text-tertiary)]"
-            />
           </div>
 
-          <div className="flex items-center gap-2 rounded-lg border border-[var(--od-border)] bg-[var(--od-bg-secondary)] px-3">
-            <SlidersHorizontal className="h-4 w-4 text-[var(--od-text-tertiary)]" />
-            <select
-              value={sortMethod}
-              onChange={(e) => {
-                setSortMethod(Number.parseInt(e.target.value, 10));
-                setPageIndex(0);
-              }}
-              className="h-10 bg-transparent text-sm text-[var(--od-text-primary)] outline-none"
-            >
-              {sortOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(18rem,0.8fr)] lg:items-start">
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-2">
+                {scopeOptions.map((option) => (
+                  <button
+                    key={option.key}
+                    type="button"
+                    onClick={() => {
+                      setScope(option.key);
+                      setPageIndex(0);
+                    }}
+                    className={`od-pill-chip ${
+                      scope === option.key
+                        ? 'bg-[var(--od-accent)] text-white'
+                        : 'text-[var(--od-text-secondary)] hover:text-[var(--od-text-primary)]'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
 
-          <button
-            type="button"
-            onClick={() => listQuery.refetch()}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[var(--od-border)] bg-[var(--od-bg-secondary)] px-3 text-sm text-[var(--od-text-secondary)] transition-colors hover:text-[var(--od-text-primary)]"
-          >
-            <RefreshCw className="h-4 w-4" />
-            刷新
-          </button>
+              <p className="text-sm leading-6 text-[var(--od-text-secondary)]">
+                按公开书单、自己的整理结果或已收藏合集切换视角，再通过关键词和排序方式缩小范围。
+              </p>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] lg:grid-cols-1">
+              <div className="flex items-center gap-2 rounded-2xl border border-[var(--od-shell-line)] bg-[color-mix(in_srgb,var(--od-surface-input)_72%,transparent)] px-4">
+                <Search className="h-4 w-4 text-[var(--od-text-tertiary)]" />
+                <input
+                  value={keywords}
+                  onChange={(e) => {
+                    setKeywords(e.target.value);
+                    setPageIndex(0);
+                  }}
+                  placeholder="搜索书单标题或简介"
+                  className="h-11 w-full bg-transparent text-sm text-[var(--od-text-primary)] outline-none placeholder:text-[var(--od-text-tertiary)]"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 rounded-2xl border border-[var(--od-shell-line)] bg-[color-mix(in_srgb,var(--od-surface-input)_72%,transparent)] px-4">
+                <SlidersHorizontal className="h-4 w-4 text-[var(--od-text-tertiary)]" />
+                <select
+                  value={sortMethod}
+                  onChange={(e) => {
+                    setSortMethod(Number.parseInt(e.target.value, 10));
+                    setPageIndex(0);
+                  }}
+                  className="h-11 w-full bg-transparent text-sm text-[var(--od-text-primary)] outline-none"
+                >
+                  {sortOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => listQuery.refetch()}
+                className="od-inline-action od-inline-action-ghost justify-center"
+              >
+                <RefreshCw className="h-4 w-4" />
+                刷新
+              </button>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
       {listQuery.isLoading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 6 }).map((_, idx) => (
-            <div key={idx} className="h-72 animate-pulse rounded-xl bg-[var(--od-bg-tertiary)]" />
+            <div key={idx} className="h-72 animate-pulse rounded-[1.35rem] bg-[color-mix(in_srgb,var(--od-surface-content)_62%,transparent)]" />
           ))}
         </div>
       ) : listQuery.isError ? (
-        <div className="rounded-xl border border-[var(--od-border)] bg-[var(--od-card)] p-8 text-center text-sm text-[var(--od-text-secondary)]">
+        <div className="py-12 text-center text-sm text-[var(--od-text-secondary)]">
           书单加载失败，请稍后重试。
         </div>
       ) : results.length === 0 ? (
-        <div className="rounded-xl border border-[var(--od-border)] bg-[var(--od-card)] p-10 text-center">
+        <div className="py-14 text-center">
           <p className="text-base font-semibold text-[var(--od-text-primary)]">暂无书单</p>
           <p className="mt-1 text-sm text-[var(--od-text-secondary)]">
             {scope === 'public' ? '还没有可见的公开书单。' : '你还没有对应书单，先创建一个吧。'}
@@ -254,7 +273,7 @@ export function BooklistsPage() {
             ))}
           </div>
 
-          <div className="flex items-center justify-between rounded-lg border border-[var(--od-border)] bg-[var(--od-card)] px-4 py-3 text-sm">
+          <div className="flex items-center justify-between border-t border-[color-mix(in_srgb,var(--od-text-secondary)_14%,transparent)] pt-5 text-sm">
             <span className="text-[var(--od-text-secondary)]">
               第 {pageIndex + 1} / {totalPages} 页，共 {total} 条
             </span>
@@ -263,7 +282,7 @@ export function BooklistsPage() {
                 type="button"
                 onClick={() => setPageIndex((prev) => Math.max(0, prev - 1))}
                 disabled={pageIndex === 0}
-                className="rounded border border-[var(--od-border)] px-3 py-1 text-[var(--od-text-secondary)] disabled:opacity-40"
+                className="od-inline-action od-inline-action-ghost disabled:opacity-40"
               >
                 上一页
               </button>
@@ -271,7 +290,7 @@ export function BooklistsPage() {
                 type="button"
                 onClick={() => setPageIndex((prev) => (prev + 1 < totalPages ? prev + 1 : prev))}
                 disabled={pageIndex + 1 >= totalPages}
-                className="rounded border border-[var(--od-border)] px-3 py-1 text-[var(--od-text-secondary)] disabled:opacity-40"
+                className="od-inline-action od-inline-action-ghost disabled:opacity-40"
               >
                 下一页
               </button>

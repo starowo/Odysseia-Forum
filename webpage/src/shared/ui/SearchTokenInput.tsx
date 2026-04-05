@@ -1,6 +1,6 @@
 import { parseSearchQuery, removeToken, SearchToken, tokensToQuery } from '@/shared/lib/searchTokenizer';
 import { Tag as TagIcon, User, X } from 'lucide-react';
-import { KeyboardEvent, type MutableRefObject, useEffect, useRef, useState } from 'react';
+import { ChangeEvent, CompositionEvent, KeyboardEvent, type MutableRefObject, useEffect, useRef, useState } from 'react';
 
 interface SearchTokenInputProps {
   value: string;
@@ -31,6 +31,8 @@ export function SearchTokenInput({
   const inputRef = useRef<HTMLInputElement | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const editInputRefs = useRef<Map<number, HTMLInputElement>>(new Map());
+  const isComposingRef = useRef(false);
+  const compositionValueRef = useRef('');
 
   // 解析 value 到 tokens
   useEffect(() => {
@@ -106,20 +108,47 @@ export function SearchTokenInput({
     setEditingValue('');
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setInputValue(newValue);
+  const commitInputValue = (nextValue: string) => {
+    setInputValue(nextValue);
 
-    // 更新完整查询
     const nonTextTokens = tokens.filter(t => t.type !== 'text');
     const newQuery = nonTextTokens.length > 0
-      ? `${tokensToQuery(nonTextTokens)} ${newValue}`.trim()
-      : newValue;
+      ? `${tokensToQuery(nonTextTokens)} ${nextValue}`.trim()
+      : nextValue;
 
     onChange(newQuery);
   };
 
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    const nativeEvent = e.nativeEvent as InputEvent & { isComposing?: boolean };
+
+    if (isComposingRef.current || nativeEvent.isComposing) {
+      setInputValue(newValue);
+      compositionValueRef.current = newValue;
+      return;
+    }
+
+    compositionValueRef.current = '';
+    commitInputValue(newValue);
+  };
+
+  const handleCompositionStart = () => {
+    isComposingRef.current = true;
+  };
+
+  const handleCompositionEnd = (e: CompositionEvent<HTMLInputElement>) => {
+    isComposingRef.current = false;
+    const finalizedValue = e.currentTarget.value;
+    compositionValueRef.current = '';
+    commitInputValue(finalizedValue);
+  };
+
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (isComposingRef.current || e.nativeEvent.isComposing) {
+      return;
+    }
+
     // Enter 键触发搜索
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -242,6 +271,8 @@ export function SearchTokenInput({
         value={inputValue}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
+        onCompositionStart={handleCompositionStart}
+        onCompositionEnd={handleCompositionEnd}
         onFocus={onFocus}
         onBlur={onBlur}
         placeholder={tokens.length === 0 ? placeholder : ''}

@@ -37,7 +37,7 @@ export function AddThreadsToBooklistModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm" onClick={onClose}>
       <div
-        className="w-full max-w-lg rounded-xl border border-[var(--od-border)] bg-[var(--od-bg)] shadow-2xl"
+        className="od-floating-panel-solid w-full max-w-lg rounded-xl border border-[var(--od-border)] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-[var(--od-border)] px-5 py-4">

@@ -3,6 +3,7 @@ import { LoginPage } from '@/pages/AuthPage/LoginPage';
 import { CallbackPage } from '@/pages/AuthPage/CallbackPage';
 import { SearchPage } from '@/pages/SearchPage';
 import { PlazaPage } from '@/pages/PlazaPage';
+import { DrawPage } from '@/pages/DrawPage';
 import { TagsPage } from '@/pages/TagsPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { AboutPage } from '@/pages/AboutPage';
@@ -25,6 +26,10 @@ const appChildren = [
   {
     path: 'search',
     element: <SearchPage />,
+  },
+  {
+    path: 'draw',
+    element: <DrawPage />,
   },
   {
     path: 'tags',

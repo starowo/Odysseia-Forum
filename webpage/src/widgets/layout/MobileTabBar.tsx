@@ -1,4 +1,4 @@
-import { Home, Search, User } from 'lucide-react';
+import { Dices, Home, Search, User } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
 interface TabItem {
@@ -11,6 +11,7 @@ interface TabItem {
 const TABS: TabItem[] = [
   { id: 'home', path: '/', icon: Home, label: '广场' },
   { id: 'search', path: '/search', icon: Search, label: '搜索' },
+  { id: 'draw', path: '/draw', icon: Dices, label: '抽卡' },
   { id: 'profile', path: '/me', icon: User, label: '我的' },
 ];
 
@@ -27,6 +28,7 @@ export function MobileTabBar() {
   const isActive = (path: string) => {
     if (path === '/') return location.pathname === '/';
     if (path === '/search') return location.pathname === '/search';
+    if (path === '/draw') return location.pathname === '/draw';
     return location.pathname === path;
   };
 

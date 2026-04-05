@@ -9,6 +9,7 @@ import { WordLogoStatic } from '@/shared/ui/loaders/WordLogoStatic';
 import {
   BookOpen,
   Compass,
+  Dices,
   Info,
   LogOut,
   Search as SearchIcon,
@@ -16,11 +17,12 @@ import {
   Tag as TagIcon,
   TestTube,
 } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 export function AppSidebar() {
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const { params, setParams } = useSearchURLParams();
   const searchInput = params.query || '';
 
@@ -52,7 +54,25 @@ export function AppSidebar() {
       .join(' ')
       .trim();
 
+    if (location.pathname !== '/search') {
+      const nextParams = new URLSearchParams();
+      if (nextQuery) nextParams.set('q', nextQuery);
+      navigate(`/search${nextParams.toString() ? `?${nextParams.toString()}` : ''}`);
+      return;
+    }
+
     setParams({ query: nextQuery, channel: null });
+  };
+
+  const navigateToSearchWithParams = (updates: { channel?: string | null; query?: string }) => {
+    const nextParams = new URLSearchParams();
+    const nextQuery = updates.query ?? params.query ?? '';
+    const nextChannel = updates.channel === undefined ? params.channel : updates.channel;
+
+    if (nextQuery.trim()) nextParams.set('q', nextQuery.trim());
+    if (nextChannel) nextParams.set('channel', nextChannel);
+
+    navigate(`/search${nextParams.toString() ? `?${nextParams.toString()}` : ''}`);
   };
 
   return (
@@ -110,6 +130,23 @@ export function AppSidebar() {
                 trigger="hover"
               />
               <span className="truncate">搜索</span>
+            </Link>
+
+            <Link
+              to="/draw"
+              className={`group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${
+                isActive('/draw')
+                  ? 'bg-[var(--od-bg-secondary)] text-[var(--od-text-primary)]'
+                  : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
+              }`}
+            >
+              <AnimatedIcon
+                icon={Dices}
+                className={`h-4 w-4 flex-shrink-0 ${isActive('/draw') ? 'text-[var(--od-accent)]' : ''}`}
+                animation="pulse"
+                trigger="hover"
+              />
+              <span className="truncate">随机抽卡</span>
             </Link>
 
             <Link
@@ -237,7 +274,14 @@ export function AppSidebar() {
                       <button
                         key={channel.id}
                         onClick={() => {
-                          setParams({ channel: active ? null : channel.id });
+                          const nextChannel = active ? null : channel.id;
+
+                          if (location.pathname !== '/search') {
+                            navigateToSearchWithParams({ channel: nextChannel });
+                            return;
+                          }
+
+                          setParams({ channel: nextChannel });
                         }}
                         className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${
                           active
@@ -279,6 +323,11 @@ export function AppSidebar() {
                           const nextQuery = existing
                             ? removeToken(searchInput, existing)
                             : addToken(searchInput, 'tag', tag.name, 'include');
+
+                          if (location.pathname !== '/search') {
+                            navigateToSearchWithParams({ query: nextQuery.trim() });
+                            return;
+                          }
 
                           setParams({ query: nextQuery.trim() });
                         }}

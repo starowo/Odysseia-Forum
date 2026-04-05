@@ -26,6 +26,7 @@ interface SearchSuggestionsProps {
   onClearHistory?: () => void;
   inputRef?: React.RefObject<HTMLInputElement>;
   embedded?: boolean;
+  preferenceAware?: boolean;
 }
 
 export function SearchSuggestions({
@@ -42,6 +43,7 @@ export function SearchSuggestions({
   onClearHistory,
   inputRef,
   embedded = false,
+  preferenceAware = false,
 }: SearchSuggestionsProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -364,7 +366,7 @@ export function SearchSuggestions({
       )}
 
       <div className="flex items-center justify-between border-t border-[var(--od-border)] bg-[var(--od-bg-tertiary)]/50 p-od-sm text-od-xs text-[var(--od-text-tertiary)]">
-        <div>智能搜索导航</div>
+        <div>{preferenceAware ? '智能搜索导航 · 建议已按偏好收束' : '智能搜索导航'}</div>
         <div className="flex items-center gap-od-sm">
           <span className="flex items-center gap-1">
             <kbd className="rounded bg-[var(--od-border)] px-1 font-mono">↑</kbd>
@@ -393,7 +395,7 @@ export function SearchSuggestions({
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -10, scale: 0.95 }}
       transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-      className="absolute right-0 top-full z-50 mt-od-sm w-full sm:w-[560px] overflow-hidden rounded-lg border border-[var(--od-border-strong)] bg-[var(--od-bg-secondary)] shadow-2xl origin-top"
+      className="od-floating-panel-solid absolute right-0 top-full z-50 mt-od-sm w-full origin-top overflow-hidden rounded-lg border border-[var(--od-border-strong)] shadow-2xl sm:w-[560px]"
     >
       {content}
     </motion.div>

@@ -182,7 +182,7 @@ export function NotificationCenter({ open, onClose, onUnreadChange }: Notificati
   };
 
   return (
-    <div className="od-floating-glass fixed inset-x-3 items-stretch top-20 z-50 mx-auto flex max-h-[70vh] w-auto max-w-md flex-col rounded-xl border border-[var(--od-border-strong)] bg-[var(--od-bg-secondary)] shadow-2xl shadow-black/50 animate-in fade-in slide-in-from-top-2 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-3 sm:max-h-[600px] sm:w-[360px]">
+    <div className="od-floating-glass fixed inset-x-3 top-20 z-50 mx-auto flex max-h-[70vh] w-auto max-w-md flex-col items-stretch rounded-xl border border-[var(--od-border-strong)] shadow-2xl shadow-black/50 animate-in fade-in slide-in-from-top-2 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-3 sm:max-h-[600px] sm:w-[360px]">
       <div className="flex items-start justify-between border-b border-[var(--od-border-strong)] px-4 py-3">
         <div>
           <div className="flex items-center gap-2">

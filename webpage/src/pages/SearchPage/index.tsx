@@ -8,13 +8,17 @@ import { searchApi } from '@/features/search/api/searchApi';
 import { useSearchURLParams } from '@/features/search/hooks/useSearchParams';
 import { useSearchStore } from '@/features/search/store/searchStore';
 import { useUserPreferences } from '@/features/preferences/hooks/useUserPreferences';
-import { toPreferencesFormValue } from '@/features/preferences/lib/preferencesMapper';
+import {
+  getDiscoveryPreferenceContext,
+  resolveDiscoveryPreferencePatch,
+} from '@/features/preferences/lib/discoveryPreferences';
 import { GUILD_ID } from '@/shared/config/channelCategories.private';
 import { useSettings } from '@/shared/hooks/useSettings';
-import { addToken, parseSearchQuery } from '@/shared/lib/searchTokenizer';
+import { addToken } from '@/shared/lib/searchTokenizer';
+import { FluidDivider } from '@/shared/ui/FluidDivider';
 import { ThreadPreviewOverlay } from '@/widgets/thread-preview/ThreadPreviewOverlay';
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { Compass, Search, SlidersHorizontal } from 'lucide-react';
+import { Compass, Dices, Search, SlidersHorizontal } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -58,12 +62,59 @@ export function SearchPage() {
   const [showOnboarding, setShowOnboarding] = useState(() => {
     return !localStorage.getItem('od_onboarding_shown');
   });
+  const [ignoreDiscoveryPreferences, setIgnoreDiscoveryPreferences] = useState(false);
 
   const { preferences } = useUserPreferences({ guildId: GUILD_ID });
+
+  const hasExplicitFilters =
+    includeTags.length > 0 ||
+    excludeTags.length > 0 ||
+    includeAuthors.length > 0 ||
+    excludeAuthors.length > 0 ||
+    !!timeFrom ||
+    !!timeTo ||
+    (sortMethod && sortMethod !== 'last_active_desc') ||
+    (tagLogic && tagLogic !== 'and');
+
+  const discoveryPreferenceContext = useMemo(
+    () => getDiscoveryPreferenceContext(preferences),
+    [preferences],
+  );
+
+  const discoveryPreferencePatch = useMemo(
+    () => (ignoreDiscoveryPreferences
+      ? null
+      : resolveDiscoveryPreferencePatch({
+        preferences,
+        mode: 'browse-empty',
+        query,
+        selectedChannel,
+        hasExplicitFilters,
+      })),
+    [preferences, query, selectedChannel, hasExplicitFilters, ignoreDiscoveryPreferences],
+  );
+
+  const effectiveSortMethod = discoveryPreferencePatch?.sort_method || sortMethod;
+  const effectivePerPage = discoveryPreferencePatch?.limit || perPage;
+  const effectiveChannelIds = selectedChannel
+    ? [selectedChannel]
+    : discoveryPreferencePatch?.channel_ids;
+  const effectiveIncludeTags = includeTags.length > 0
+    ? includeTags
+    : (discoveryPreferencePatch?.include_tags || []);
+  const effectiveExcludeTags = excludeTags.length > 0
+    ? excludeTags
+    : (discoveryPreferencePatch?.exclude_tags || []);
 
   const { setBannerList } = useSearchStore();
   const { settings } = useSettings();
   const [previewThread, setPreviewThread] = useState<Thread | null>(null);
+
+  useEffect(() => {
+    if (query.trim() || selectedChannel || hasExplicitFilters) {
+      setIgnoreDiscoveryPreferences(false);
+    }
+  }, [query, selectedChannel, hasExplicitFilters]);
 
   const handleCloseOnboarding = () => {
     setShowOnboarding(false);
@@ -76,30 +127,17 @@ export function SearchPage() {
       return;
     }
 
-    const mapped = toPreferencesFormValue(preferences);
-
-    let nextQuery = '';
-    for (const tag of mapped.includeTagsText.split(',').map((t) => t.trim()).filter(Boolean)) {
-      nextQuery = addToken(nextQuery, 'tag', tag, 'include');
-    }
-    for (const tag of mapped.excludeTagsText.split(',').map((t) => t.trim()).filter(Boolean)) {
-      nextQuery = addToken(nextQuery, 'tag', tag, 'exclude');
-    }
-
-    if (mapped.includeKeywordsText.trim()) {
-      const hasKeywordText = parseSearchQuery(nextQuery).some((token) => token.type === 'text');
-      nextQuery = hasKeywordText
-        ? `${nextQuery} ${mapped.includeKeywordsText.trim()}`.trim()
-        : mapped.includeKeywordsText.trim();
-    }
-
+    setIgnoreDiscoveryPreferences(false);
     setParams({
-      query: nextQuery,
-      channel: mapped.preferredChannelIds[0] || null,
-      sortMethod: mapped.sortMethod,
+      query: '',
+      channel: null,
+      sortMethod: 'last_active_desc',
+      timeFrom: '',
+      timeTo: '',
+      tagLogic: 'and',
     });
 
-    toast.success('已应用你的默认搜索偏好');
+    toast.success('已切换到按偏好展示的探索模式');
     handleCloseOnboarding();
   };
 
@@ -114,28 +152,30 @@ export function SearchPage() {
   } = useInfiniteQuery<any, Error, any, any, number>({
     queryKey: [
       'search',
-      query,
-      selectedChannel,
-      includeTags,
-      excludeTags,
-      includeAuthors,
-      excludeAuthors,
-      tagLogic,
-      sortMethod,
-      perPage,
-      timeFrom,
-      timeTo,
-    ],
+        query,
+        selectedChannel,
+        effectiveChannelIds?.join(',') || '',
+        effectiveIncludeTags.join(','),
+        effectiveExcludeTags.join(','),
+        includeAuthors,
+        excludeAuthors,
+        tagLogic,
+        effectiveSortMethod,
+        effectivePerPage,
+        timeFrom,
+        timeTo,
+        discoveryPreferenceContext?.signature || 'no-preferences',
+      ],
     initialPageParam: 0,
     queryFn: ({ pageParam }) =>
       searchApi.search({
         query: query || undefined,
-        channel_ids: selectedChannel ? [selectedChannel] : undefined,
-        include_tags: includeTags,
-        exclude_tags: excludeTags,
+        channel_ids: effectiveChannelIds,
+        include_tags: effectiveIncludeTags,
+        exclude_tags: effectiveExcludeTags,
         tag_logic: tagLogic,
-        sort_method: sortMethod,
-        limit: perPage,
+        sort_method: effectiveSortMethod,
+        limit: effectivePerPage,
         offset: Number(pageParam) || 0,
         created_after: timeFrom || undefined,
         created_before: timeTo || undefined,
@@ -205,25 +245,23 @@ export function SearchPage() {
     setParams({ query: nextQuery });
   };
 
-  const hasSearchFilters =
-    !!query ||
-    includeTags.length > 0 ||
-    excludeTags.length > 0 ||
-    includeAuthors.length > 0 ||
-    excludeAuthors.length > 0 ||
-    !!timeFrom ||
-    !!timeTo ||
-    (sortMethod && sortMethod !== 'last_active_desc') ||
-    (tagLogic && tagLogic !== 'and');
+  const hasSearchFilters = !!query || hasExplicitFilters;
+
+  const isPreferenceFilteredBrowse =
+    !query.trim() &&
+    !selectedChannel &&
+    !hasExplicitFilters &&
+    Boolean(discoveryPreferencePatch);
 
   const gridClass = 'grid grid-cols-2 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
 
   return (
     <div className="flex min-h-screen flex-col overflow-x-hidden">
       <div className="animate-in fade-in duration-500 flex-1 p-4 sm:p-6 lg:p-8">
-        <div className="mb-6 flex flex-col gap-4 border-b border-[var(--od-border)] pb-6 sm:flex-row sm:items-center sm:justify-between">
+        <FluidDivider label="Search" tone="strong" className="mb-6" />
+        <div className="mb-6 flex flex-col gap-4 pb-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--od-accent)]/10 text-[var(--od-accent)] shadow-inner">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--od-surface-soft)] text-[var(--od-accent)]">
               <Compass className="h-6 w-6" />
             </div>
             <div>
@@ -238,11 +276,26 @@ export function SearchPage() {
                     <span>已加载 {results.length} 条</span>
                   </>
                 )}
+                {isPreferenceFilteredBrowse && (
+                  <>
+                    <span className="opacity-30">•</span>
+                    <span>已按偏好展示</span>
+                  </>
+                )}
               </div>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {ignoreDiscoveryPreferences && discoveryPreferenceContext && !query.trim() && !selectedChannel && !hasExplicitFilters && (
+              <button
+                type="button"
+                onClick={() => setIgnoreDiscoveryPreferences(false)}
+                className="od-inline-action od-inline-action-ghost"
+              >
+                恢复偏好展示
+              </button>
+            )}
             {hasSearchFilters && (
               <button
                 onClick={() => {
@@ -254,13 +307,80 @@ export function SearchPage() {
                     tagLogic: 'and',
                   });
                 }}
-                className="flex items-center gap-2 rounded-full bg-[var(--od-bg-tertiary)] px-4 py-2 text-xs font-semibold text-[var(--od-accent)] transition-all hover:bg-[var(--od-accent)] hover:text-white"
+                className="od-inline-action od-inline-action-soft"
               >
                 清除所有筛选
               </button>
             )}
           </div>
         </div>
+
+        {isPreferenceFilteredBrowse && discoveryPreferenceContext && (
+          <div className="mb-6 flex flex-col gap-3 rounded-[1.4rem] border border-[color-mix(in_srgb,var(--od-accent)_18%,transparent)] bg-[color-mix(in_srgb,var(--od-accent)_7%,transparent)] px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-5">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-[var(--od-text-primary)]">当前探索结果已按你的发现偏好收束</p>
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs leading-5 text-[var(--od-text-secondary)]">
+                {discoveryPreferenceContext.preferredChannelIds.length > 0 && (
+                  <span>频道 {discoveryPreferenceContext.preferredChannelIds.length} 个</span>
+                )}
+                {discoveryPreferenceContext.includeTags.length > 0 && (
+                  <span>包含标签 {discoveryPreferenceContext.includeTags.length} 个</span>
+                )}
+                {discoveryPreferenceContext.excludeTags.length > 0 && (
+                  <span>排除标签 {discoveryPreferenceContext.excludeTags.length} 个</span>
+                )}
+                {discoveryPreferenceContext.sortMethod && (
+                  <span>默认排序已生效</span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIgnoreDiscoveryPreferences(true)}
+                className="od-inline-action od-inline-action-ghost"
+              >
+                暂时忽略偏好
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/me?tab=preferences')}
+                className="od-inline-action od-inline-action-soft"
+              >
+                去调整偏好
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!hasSearchFilters && !isLoading && !isError && (
+          <div className="mb-6 overflow-hidden rounded-[1.5rem] border border-[color-mix(in_srgb,var(--od-accent)_14%,transparent)] bg-[linear-gradient(145deg,color-mix(in_srgb,var(--od-accent)_8%,transparent),color-mix(in_srgb,var(--od-surface-raised)_92%,black_8%))] p-5 sm:p-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="max-w-2xl">
+                <div className="inline-flex items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--od-accent)_18%,transparent)] bg-[color-mix(in_srgb,var(--od-accent)_10%,transparent)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--od-accent)]">
+                  <Dices className="h-3.5 w-3.5" />
+                  Surprise Discovery
+                </div>
+                <h2 className="mt-4 text-xl font-bold tracking-tight text-[var(--od-text-primary)]">想逛，但暂时没有明确关键词？</h2>
+                <p className="mt-2 text-sm leading-6 text-[var(--od-text-secondary)]">
+                  去随机抽卡页，把当前偏好当作安全池来抽一张或十连。它不会改写你的搜索框，只是给你一个更有趣的发现入口。
+                </p>
+              </div>
+
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => navigate('/draw')}
+                  className="od-inline-action od-inline-action-primary"
+                >
+                  <Dices className="h-4 w-4" />
+                  去抽卡
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {isLoading ? (
           <div className={settings.layoutMode === 'list' ? 'flex flex-col space-y-od-list-gap' : gridClass}>
@@ -273,7 +393,7 @@ export function SearchPage() {
             )}
           </div>
         ) : isError ? (
-          <div className="flex min-h-[400px] flex-col items-center justify-center rounded-2xl bg-[var(--od-card)] p-12 text-center">
+          <div className="flex min-h-[400px] flex-col items-center justify-center rounded-[1.5rem] bg-[var(--od-surface-input)] p-12 text-center">
             <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-red-500/10 text-red-500">
               <SlidersHorizontal className="h-10 w-10" />
             </div>
@@ -281,7 +401,7 @@ export function SearchPage() {
             <p className="mb-6 text-[var(--od-text-secondary)]">暂时无法获取搜索结果，请稍后再试。</p>
             <button
               onClick={() => refetch()}
-              className="rounded-full bg-[var(--od-accent)] px-8 py-3 font-bold text-white transition-all hover:scale-105"
+              className="od-inline-action od-inline-action-primary px-6 py-3 text-sm"
             >
               重试搜索
             </button>
@@ -323,7 +443,7 @@ export function SearchPage() {
             </div>
           </div>
         ) : (
-          <div className="animate-in fade-in zoom-in-95 duration-500 flex min-h-[400px] flex-col items-center justify-center rounded-2xl bg-[var(--od-card)] p-12 text-center">
+          <div className="animate-in fade-in zoom-in-95 duration-500 flex min-h-[400px] flex-col items-center justify-center rounded-[1.5rem] bg-[var(--od-surface-input)] p-12 text-center">
             <div className="mb-4 text-[var(--od-text-tertiary)] opacity-20">
               <Search className="mx-auto h-24 w-24" />
             </div>

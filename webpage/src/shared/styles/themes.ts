@@ -2,6 +2,10 @@
 
 export interface Theme {
   name: string;
+  font?: {
+    family: string;
+    url?: string;
+  };
   colors: {
     // Core surfaces
     background: string;
@@ -54,6 +58,10 @@ export interface Theme {
 
 export const discordDarkTheme: Theme = {
   name: 'Discord Dark',
+  font: {
+    family: 'Inter',
+    url: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap',
+  },
   colors: {
     background: '#282a2e',
     backgroundSecondary: '#2b2d31',
@@ -99,6 +107,10 @@ export const discordDarkTheme: Theme = {
 
 export const discordLightTheme: Theme = {
   name: 'Discord Light',
+  font: {
+    family: 'Inter',
+    url: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap',
+  },
   colors: {
     background: '#f7f8fb',
     backgroundSecondary: '#eef1f6',
@@ -144,6 +156,10 @@ export const discordLightTheme: Theme = {
 
 export const claudeDarkTheme: Theme = {
   name: 'Claude Dark',
+  font: {
+    family: 'Newsreader',
+    url: 'https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&display=swap',
+  },
   colors: {
     background: 'oklch(0.2679 0.0036 106.6427)',
     backgroundSecondary: 'oklch(0.2357 0.0024 67.7077)',
@@ -189,6 +205,10 @@ export const claudeDarkTheme: Theme = {
 
 export const tokyoNightTheme: Theme = {
   name: 'Tokyo Night',
+  font: {
+    family: 'IBM Plex Sans',
+    url: 'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap',
+  },
   colors: {
     background: '#1a1b26',
     backgroundSecondary: '#16161e',
@@ -234,6 +254,10 @@ export const tokyoNightTheme: Theme = {
 
 export const catppuccinTheme: Theme = {
   name: 'Catppuccin Mocha',
+  font: {
+    family: 'Nunito',
+    url: 'https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap',
+  },
   colors: {
     background: '#1e1e2e',
     backgroundSecondary: '#181825',
@@ -279,6 +303,10 @@ export const catppuccinTheme: Theme = {
 
 export const nordTheme: Theme = {
   name: 'Nord',
+  font: {
+    family: 'Manrope',
+    url: 'https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap',
+  },
   colors: {
     background: '#2e3440',
     backgroundSecondary: '#242933',
@@ -324,6 +352,10 @@ export const nordTheme: Theme = {
 
 export const everforestTheme: Theme = {
   name: 'Everforest',
+  font: {
+    family: 'Noto Sans',
+    url: 'https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap',
+  },
   colors: {
     background: '#2d353b',
     backgroundSecondary: '#232a2e',
@@ -369,6 +401,10 @@ export const everforestTheme: Theme = {
 
 export const sakuraDayTheme: Theme = {
   name: 'Sakura Day',
+  font: {
+    family: 'Noto Serif SC',
+    url: 'https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&display=swap',
+  },
   colors: {
     background: '#fcf0f4',
     backgroundSecondary: '#f5e4e9',
@@ -414,6 +450,10 @@ export const sakuraDayTheme: Theme = {
 
 export const yozakuraNightTheme: Theme = {
   name: 'Yozakura Night',
+  font: {
+    family: 'Marcellus',
+    url: 'https://fonts.googleapis.com/css2?family=Marcellus&display=swap',
+  },
   colors: {
     background: '#14101f',
     backgroundSecondary: '#1b152b',

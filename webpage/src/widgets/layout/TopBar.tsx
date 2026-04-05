@@ -6,7 +6,15 @@ import {
 } from '@/features/search/components/SearchSuggestions';
 import { useSearchURLParams } from '@/features/search/hooks/useSearchParams';
 import { usePreviewStore } from '@/features/search/store/previewStore';
+import {
+  getDiscoveryPreferenceContext,
+  getPreferenceTagState,
+  mergePreferenceTagsWithManual,
+  resolveDiscoveryPreferencePatch,
+} from '@/features/preferences/lib/discoveryPreferences';
+import { useUserPreferences } from '@/features/preferences/hooks/useUserPreferences';
 import { ALL_VIRTUAL_TAGS } from '@/shared/config/navigation';
+import { GUILD_ID } from '@/shared/config/channelCategories.private';
 import {
   addSearchHistory,
   clearSearchHistory,
@@ -61,6 +69,7 @@ export function TopBar({ onMenuClick, sidebarCollapsed = false }: TopBarProps) {
   const isSearchPage = location.pathname === '/search';
   const { params, setParams } = useSearchURLParams();
   const { setPreviewThread, setPreviewThreadId } = usePreviewStore();
+  const { preferences } = useUserPreferences({ guildId: GUILD_ID });
 
   const [searchInput, setSearchInput] = useState(params.query);
   const [debouncedQuery, setDebouncedQuery] = useState(params.query.trim());
@@ -71,6 +80,8 @@ export function TopBar({ onMenuClick, sidebarCollapsed = false }: TopBarProps) {
   const [includeAuthorDraft, setIncludeAuthorDraft] = useState('');
   const [excludeAuthorDraft, setExcludeAuthorDraft] = useState('');
   const [historyItems, setHistoryItems] = useState(() => getSearchHistory());
+  const [syncPreferenceTags, setSyncPreferenceTags] = useState(false);
+  const manualTagSnapshotRef = useRef<{ includeTags: string[]; excludeTags: string[] } | null>(null);
 
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -266,12 +277,76 @@ export function TopBar({ onMenuClick, sidebarCollapsed = false }: TopBarProps) {
     ]);
   }, [filterMeta?.available_tags, filterMeta?.virtual_tags, globalAvailableTags, params.includeTags, params.excludeTags]);
 
+  const discoveryPreferenceContext = useMemo(
+    () => getDiscoveryPreferenceContext(preferences),
+    [preferences],
+  );
+  const preferenceTagState = useMemo(
+    () => getPreferenceTagState(preferences),
+    [preferences],
+  );
+  const mergedTagState = useMemo(
+    () => mergePreferenceTagsWithManual({
+      manualIncludeTags: params.includeTags,
+      manualExcludeTags: params.excludeTags,
+      preferenceIncludeTags: preferenceTagState.includeTags,
+      preferenceExcludeTags: preferenceTagState.excludeTags,
+      syncPreferenceTags,
+    }),
+    [params.includeTags, params.excludeTags, preferenceTagState.includeTags, preferenceTagState.excludeTags, syncPreferenceTags],
+  );
+  const preferenceSuggestedTags = useMemo(() => {
+    const preferredChannels = new Set(discoveryPreferenceContext?.preferredChannelIds || []);
+    const includeTags = preferenceTagState.includeTags;
+    const excludeTags = new Set(preferenceTagState.excludeTags);
+
+    const scopedCatalog = preferredChannels.size > 0
+      ? channelTagCatalog.filter((channel) => preferredChannels.has(channel.channel_id))
+      : channelTagCatalog;
+
+    const collected = new Set<string>();
+
+    for (const tag of includeTags) {
+      if (!excludeTags.has(tag)) collected.add(tag);
+    }
+
+    for (const channel of scopedCatalog) {
+      for (const tag of [...(channel.virtual_tags || []), ...(channel.available_tags || [])]) {
+        const normalized = tag.trim();
+        if (!normalized || excludeTags.has(normalized)) continue;
+        collected.add(normalized);
+      }
+    }
+
+    return Array.from(collected).slice(0, 8);
+  }, [channelTagCatalog, discoveryPreferenceContext?.preferredChannelIds, preferenceTagState.excludeTags, preferenceTagState.includeTags]);
+
+  const suggestionPreferencePatch = useMemo(
+    () => resolveDiscoveryPreferencePatch({
+      preferences,
+      mode: 'suggestion',
+      query: searchInput,
+      selectedChannel: params.channel,
+    }),
+    [preferences, searchInput, params.channel],
+  );
+
   const { data: suggestionSearchData } = useQuery({
-    queryKey: ['search-suggestions', debouncedQuery, params.channel],
+    queryKey: [
+      'search-suggestions',
+      debouncedQuery,
+      params.channel,
+      (suggestionPreferencePatch?.channel_ids || []).join(','),
+      (suggestionPreferencePatch?.include_tags || []).join(','),
+      (suggestionPreferencePatch?.exclude_tags || []).join(','),
+      discoveryPreferenceContext?.signature || 'no-preferences',
+    ],
     queryFn: () =>
       searchApi.search({
         query: debouncedQuery,
-        channel_ids: params.channel ? [params.channel] : undefined,
+        channel_ids: params.channel ? [params.channel] : suggestionPreferencePatch?.channel_ids,
+        include_tags: suggestionPreferencePatch?.include_tags,
+        exclude_tags: suggestionPreferencePatch?.exclude_tags,
         limit: 5,
         sort_method: 'relevance',
       }),
@@ -345,6 +420,60 @@ export function TopBar({ onMenuClick, sidebarCollapsed = false }: TopBarProps) {
 
   const hasPanelFilters = hasActiveFilters;
   const isPanelOpen = showSuggestions || showFilters;
+
+  useEffect(() => {
+    if (!params.includeTags.length && !params.excludeTags.length) {
+      setSyncPreferenceTags(false);
+    }
+  }, [params.includeTags.length, params.excludeTags.length]);
+
+  const applyTagStateToQuery = useCallback((nextIncludeTags: string[], nextExcludeTags: string[]) => {
+    const currentTokens = parseSearchQuery(params.query || '');
+    let nextQuery = params.query || '';
+
+    for (const token of currentTokens) {
+      if (token.type !== 'tag') continue;
+      nextQuery = removeToken(nextQuery, token);
+    }
+
+    for (const tag of nextIncludeTags) {
+      nextQuery = addToken(nextQuery, 'tag', tag, 'include');
+    }
+
+    for (const tag of nextExcludeTags) {
+      nextQuery = addToken(nextQuery, 'tag', tag, 'exclude');
+    }
+
+    const trimmed = nextQuery.trim();
+    setSearchInput(trimmed);
+    setParams({ query: trimmed });
+  }, [params.query, setParams]);
+
+  const handlePreferenceTagSyncToggle = useCallback(() => {
+    const nextEnabled = !syncPreferenceTags;
+    setSyncPreferenceTags(nextEnabled);
+
+    if (nextEnabled) {
+      manualTagSnapshotRef.current = {
+        includeTags: [...params.includeTags],
+        excludeTags: [...params.excludeTags],
+      };
+
+      const merged = mergePreferenceTagsWithManual({
+        manualIncludeTags: params.includeTags,
+        manualExcludeTags: params.excludeTags,
+        preferenceIncludeTags: preferenceTagState.includeTags,
+        preferenceExcludeTags: preferenceTagState.excludeTags,
+        syncPreferenceTags: true,
+      });
+      applyTagStateToQuery(merged.includeTags, merged.excludeTags);
+      return;
+    }
+
+    const snapshot = manualTagSnapshotRef.current;
+    manualTagSnapshotRef.current = null;
+    applyTagStateToQuery(snapshot?.includeTags || [], snapshot?.excludeTags || []);
+  }, [applyTagStateToQuery, params.excludeTags, params.includeTags, preferenceTagState.excludeTags, preferenceTagState.includeTags, syncPreferenceTags]);
 
   const updateQueryFromTokenMutation = useCallback(
     (mutator: (tokens: SearchToken[]) => string) => {
@@ -527,7 +656,7 @@ export function TopBar({ onMenuClick, sidebarCollapsed = false }: TopBarProps) {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -8, scale: 0.98 }}
                 transition={{ type: 'spring', stiffness: 320, damping: 26 }}
-                className="od-floating-glass absolute left-1/2 top-full z-50 mt-2 w-[calc(100vw-1.5rem)] max-w-[560px] -translate-x-1/2 overflow-hidden rounded-2xl border border-white/[0.06] shadow-2xl sm:left-auto sm:right-0 sm:w-[560px] sm:max-w-none sm:translate-x-0"
+                className="od-floating-glass absolute left-1/2 top-full z-50 mt-2 w-[calc(100vw-1.5rem)] max-w-[560px] -translate-x-1/2 overflow-hidden rounded-2xl border border-[var(--od-border-strong)] shadow-2xl sm:left-auto sm:right-0 sm:w-[560px] sm:max-w-none sm:translate-x-0"
               >
                 {needsFilter && (
                   <div className="flex items-center gap-2 border-b border-white/[0.06] p-2">
@@ -650,19 +779,53 @@ export function TopBar({ onMenuClick, sidebarCollapsed = false }: TopBarProps) {
 
                     <div className="mt-4 space-y-4">
                       <div>
-                        <div className="mb-2 flex items-center justify-between">
+                        <div className="mb-2 flex items-center justify-between gap-3">
                           <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--od-text-tertiary)]">
                             标签筛选
                           </h4>
-                          <span className="text-[11px] text-[var(--od-text-tertiary)]">
-                            点击标签切换包含 / 排除 / 取消，不在这里显示删除按钮
-                          </span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-[11px] text-[var(--od-text-tertiary)] text-right">
+                              点击标签切换包含 / 排除 / 取消，不在这里显示删除按钮
+                            </span>
+                            <div className={`flex shrink-0 items-center gap-2 rounded-full border px-2.5 py-1.5 ${
+                              preferenceTagState.includeTags.length + preferenceTagState.excludeTags.length > 0
+                                ? 'border-[var(--od-shell-line)] bg-[color-mix(in_srgb,var(--od-surface-input)_72%,transparent)]'
+                                : 'border-[color-mix(in_srgb,var(--od-text-secondary)_10%,transparent)] bg-[color-mix(in_srgb,var(--od-surface-input)_42%,transparent)] opacity-60'
+                            }`}>
+                              <span className="text-[11px] font-semibold text-[var(--od-text-secondary)]">同步偏好标签</span>
+                              <button
+                                type="button"
+                                onClick={handlePreferenceTagSyncToggle}
+                                data-checked={syncPreferenceTags}
+                                disabled={preferenceTagState.includeTags.length + preferenceTagState.excludeTags.length === 0}
+                                className="od-toggle scale-[0.88] disabled:cursor-not-allowed disabled:opacity-50"
+                                title={preferenceTagState.includeTags.length + preferenceTagState.excludeTags.length > 0 ? '同步偏好标签' : '先在偏好页设置标签'}
+                              >
+                                <div className="od-toggle-thumb" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px] text-[var(--od-text-tertiary)]">
+                          <span>发现偏好标签</span>
+                          {preferenceTagState.includeTags.length + preferenceTagState.excludeTags.length > 0 ? (
+                            <>
+                              {preferenceTagState.includeTags.map((tag) => (
+                                <span key={`pref-include-${tag}`} className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-emerald-300">+ {tag}</span>
+                              ))}
+                              {preferenceTagState.excludeTags.map((tag) => (
+                                <span key={`pref-exclude-${tag}`} className="rounded-full bg-rose-500/10 px-2.5 py-1 text-rose-300">- {tag}</span>
+                              ))}
+                            </>
+                          ) : (
+                            <span>当前还没有保存偏好标签</span>
+                          )}
                         </div>
                         <div className="od-chrome-surface flex max-h-[180px] flex-wrap gap-2 overflow-y-auto rounded-2xl p-3">
                           {availableTags.length > 0 ? (
                             availableTags.map((tag) => {
-                              const isIncluded = params.includeTags.includes(tag);
-                              const isExcluded = params.excludeTags.includes(tag);
+                               const isIncluded = mergedTagState.includeTags.includes(tag);
+                               const isExcluded = mergedTagState.excludeTags.includes(tag);
 
                               return (
                                 <div key={tag} className="od-content-surface flex items-center rounded-full p-1">
@@ -790,7 +953,7 @@ export function TopBar({ onMenuClick, sidebarCollapsed = false }: TopBarProps) {
                     channels={[]}
                     authors={suggestionAuthors}
                     threads={suggestionThreads}
-                    suggestedTags={suggestionTags}
+                      suggestedTags={searchInput.trim() ? suggestionTags : preferenceSuggestedTags}
                     history={historyItems}
                     onSelect={handleSuggestionSelect}
                     onRemoveHistory={(item) => {
@@ -804,6 +967,7 @@ export function TopBar({ onMenuClick, sidebarCollapsed = false }: TopBarProps) {
                     onClose={closePanels}
                     inputRef={searchInputRef}
                     embedded
+                    preferenceAware={Boolean(suggestionPreferencePatch)}
                   />
                 )}
               </motion.div>

@@ -82,18 +82,16 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
 
   return (
     <article
-      className="group relative flex aspect-[3/5] w-full flex-col overflow-hidden rounded-xl bg-[var(--od-card)] shadow-md cursor-pointer md:aspect-[3/4]"
+      className="group relative flex aspect-[3/5] w-full cursor-pointer flex-col overflow-hidden rounded-[1.4rem] border border-[var(--od-shell-line)] bg-[var(--od-surface-raised)] shadow-[var(--od-shadow-soft)] transition-all duration-300 hover:-translate-y-1 hover:border-[color-mix(in_srgb,var(--od-accent)_28%,var(--od-border))] md:aspect-[3/4]"
       onClick={() => onPreview?.(thread)}
     >
       {/* Background Image Layer */}
-      <div
-        className="absolute inset-0 z-0 bg-[var(--od-bg-tertiary)]"
-      >
+      <div className="absolute inset-0 z-0 bg-[var(--od-surface-shell)]">
         {thumbnailSrc ? (
           <img
             src={thumbnailSrc}
             alt={thread.title}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
             onError={() => {
               reportBrokenThreadThumbnail({
                 threadId: thread.thread_id,
@@ -102,19 +100,21 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
             }}
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-[var(--od-bg-secondary)]">
-            <ImageIcon className="h-12 w-12 text-[var(--od-bg-tertiary)] opacity-50" />
+          <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(160deg,var(--od-surface-shell),var(--od-surface-raised))]">
+            <ImageIcon className="h-12 w-12 text-[var(--od-text-tertiary)] opacity-40" />
           </div>
         )}
       </div>
 
       {/* Gradient Overlay - Only show for threads with images to ensure text readability */}
       {hasThumbnail && (
-        <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />
+        <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(180deg,rgba(7,10,18,0.06),rgba(7,10,18,0.4)_48%,rgba(7,10,18,0.88))]" />
       )}
 
+      {!hasThumbnail && <div className="absolute inset-0 z-10 bg-[linear-gradient(180deg,transparent,rgba(7,10,18,0.16)_56%,rgba(7,10,18,0.26))]" />}
+
       {/* Top Right Actions */}
-      <div className="absolute right-2 top-2 z-20 opacity-100 transition-opacity duration-200 md:opacity-0 md:group-hover:opacity-100">
+      <div className="absolute right-3 top-3 z-20 opacity-100 transition-opacity duration-200 md:opacity-0 md:group-hover:opacity-100">
         <ThreadActions
           threadId={thread.thread_id}
           guildId={thread.guild_id}
@@ -130,45 +130,45 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
       />
 
       {/* Bottom Content Area */}
-      <div className={`absolute bottom-0 left-0 right-0 z-20 flex flex-col p-3 ${hasThumbnail ? 'text-white' : 'text-[var(--od-text-primary)]'}`}>
+      <div className={`absolute bottom-0 left-0 right-0 z-20 flex flex-col p-4 ${hasThumbnail ? 'text-white' : 'text-[var(--od-text-primary)]'}`}>
 
         {/* Tags */}
         {thread.tags && thread.tags.length > 0 && (
-          <div className="mb-2 flex flex-wrap gap-1.5">
-            {thread.tags.slice(0, 3).map((tag) => (
-              <button
+            <div className="mb-2.5 flex flex-wrap gap-1.5">
+              {thread.tags.slice(0, 3).map((tag) => (
+                <button
                 key={tag}
                 onClick={(e) => {
                   e.stopPropagation();
                   onTagClick?.(tag);
                 }}
-                className={`rounded-md px-2 py-0.5 text-[10px] font-medium backdrop-blur-sm transition-colors border ${hasThumbnail
-                  ? 'bg-white/20 text-white hover:bg-white/30 border-white/10'
-                  : 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-secondary)] border-[var(--od-border)]'
-                  }`}
-              >
-                {tag}
+                  className={`rounded-full px-2.5 py-1 text-[10px] font-semibold transition-colors border ${hasThumbnail
+                  ? 'border-white/10 bg-white/12 text-white/88 hover:bg-white/18'
+                  : 'border-[var(--od-border)] bg-[var(--od-surface-input)] text-[var(--od-text-secondary)] hover:bg-[var(--od-interactive-hover)] hover:text-[var(--od-text-primary)]'
+                   }`}
+                >
+                  {tag}
               </button>
             ))}
             {/* Show +N for explicit tags */}
             {thread.tags.length > 3 && (
-              <span className={`rounded-md px-2 py-0.5 text-[10px] backdrop-blur-sm border ${hasThumbnail
-                ? 'bg-white/20 text-white border-white/10'
-                : 'bg-[var(--od-bg-tertiary)] text-[var(--od-text-secondary)] border-[var(--od-border)]'
-                }`}>
+              <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold border ${hasThumbnail
+                ? 'border-white/10 bg-white/12 text-white/82'
+                : 'border-[var(--od-border)] bg-[var(--od-surface-input)] text-[var(--od-text-secondary)]'
+                 }`}>
                 +{thread.tags.length - 3}
               </span>
             )}
           </div>
         )}
         {virtualOnlyTags.length > 0 && (
-          <div className="mb-2 flex flex-wrap gap-1.5">
+          <div className="mb-2.5 flex flex-wrap gap-1.5">
             {virtualOnlyTags.slice(0, 2).map((tag) => (
               <span
                 key={`vt-${tag}`}
-                className={`rounded-md px-2 py-0.5 text-[10px] backdrop-blur-sm border ${hasThumbnail
-                  ? 'bg-cyan-400/25 text-white border-cyan-200/30'
-                  : 'bg-[var(--od-accent)]/10 text-[var(--od-accent)] border-[var(--od-accent)]/20'
+                className={`rounded-full px-2.5 py-1 text-[10px] font-semibold border ${hasThumbnail
+                  ? 'border-cyan-200/22 bg-cyan-300/16 text-white'
+                  : 'border-[var(--od-accent)]/18 bg-[var(--od-accent)]/10 text-[var(--od-accent)]'
                   }`}
               >
                 ~{tag}
@@ -180,20 +180,20 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
         {/* Title */}
         <h3
           ref={titleMeasureRef}
-          className={`mb-2 line-clamp-2 text-sm font-bold leading-snug drop-shadow-md md:text-base ${hasThumbnail ? 'text-white' : 'text-[var(--od-text-primary)]'}`}
+          className={`mb-2 line-clamp-2 text-base font-extrabold leading-snug tracking-[-0.02em] md:text-[1.05rem] ${hasThumbnail ? 'text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.38)]' : 'text-[var(--od-text-primary)]'}`}
         >
           <HighlightText text={clampedTitle} highlight={searchQuery} className={hasThumbnail ? 'text-white' : 'text-[var(--od-text-primary)]'} />
         </h3>
         {hasExcerpt && (
           <p
             ref={excerptMeasureRef}
-            className={`mb-2 line-clamp-2 text-xs ${hasThumbnail ? 'text-white/80' : 'text-[var(--od-text-secondary)]'}`}
+            className={`mb-3 line-clamp-2 text-xs leading-5 ${hasThumbnail ? 'text-white/76' : 'text-[var(--od-text-secondary)]'}`}
           >
             {clampedExcerpt}
           </p>
         )}
         {/* Footer: Author + Time + Stats */}
-        <div className={`border-t pt-2 text-xs ${hasThumbnail ? 'border-white/10 text-white/80' : 'border-[var(--od-border)] text-[var(--od-text-secondary)]'}`}>
+        <div className={`border-t pt-3 text-xs ${hasThumbnail ? 'border-white/10 text-white/80' : 'border-[var(--od-shell-line)] text-[var(--od-text-secondary)]'}`}>
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2">
             <div className="flex min-w-0 items-center gap-2 overflow-hidden">
               <button
@@ -201,17 +201,17 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
                 onClick={handleAuthorClick}
                 className="rounded-full"
               >
-                <AuthorAvatar author={thread.author} className="h-6 w-6 md:h-7 md:w-7 ring-1 ring-white/20" />
+                <AuthorAvatar author={thread.author} className={`h-6 w-6 md:h-7 md:w-7 ${hasThumbnail ? 'ring-1 ring-white/20' : 'ring-1 ring-[var(--od-border)]'}`} />
               </button>
               <button
                 type="button"
                 onClick={handleAuthorClick}
-                className={`truncate font-medium hover:underline ${compactAuthorTextClass} ${hasThumbnail ? 'hover:text-white' : 'hover:text-[var(--od-text-primary)]'}`}
+                className={`truncate font-semibold hover:underline ${compactAuthorTextClass} ${hasThumbnail ? 'hover:text-white' : 'hover:text-[var(--od-text-primary)]'}`}
               >
                 {authorName}
               </button>
             </div>
-            <div className={`flex flex-col items-end gap-1 text-[10px] ${hasThumbnail ? 'text-white/90' : 'text-[var(--od-text-tertiary)]'}`}>
+            <div className={`flex flex-col items-end gap-1.5 text-[10px] ${hasThumbnail ? 'text-white/88' : 'text-[var(--od-text-tertiary)]'}`}>
               <div className="flex items-center gap-2 whitespace-nowrap">
                 <span className="inline-flex items-center gap-1 shrink-0">
                   <Calendar className="h-3 w-3 shrink-0" />
