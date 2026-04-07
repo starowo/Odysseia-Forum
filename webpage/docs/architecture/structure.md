@@ -25,7 +25,7 @@ Odysseia-Forum-Main/
 │   │   │   └── thread-preview/     # 面向全局的帖子预览浮层组合
 │   │   │
 │   │   ├── features/               # [Features 面向行为层] 带有明确业务闭环和网络读写的特性操作
-│   │   │   ├── search/             # 搜搜中枢 (URL解析、API桥接、UI过滤逻辑)
+│   │   │   ├── search/             # 搜搜中枢 (分词器、URL状态同步、API桥接)
 │   │   │   ├── threads/            # 帖子行为总成 (点赞，转发等动作钩子)
 │   │   │   └── mascot/             # 吉祥物面板
 │   │   │
@@ -53,7 +53,8 @@ Odysseia-Forum-Main/
 
 在日常开发中，如果你需要修改某一个特定的功能，可以通过如下规律快速定界：
 
-- **搜索与列表展现**: 主要被汇聚在了 `src/features/search/`。其中 `store` 控制搜索面板的展开与折叠，`hooks` 提取并且监听 URL query 参数同步给拉取逻辑。
+- **搜索与列表展现**: 主要被汇聚在了 `src/features/search/`。通过 `searchTokenizer` 提供分词功能，利用 `useSearchParams` 提取并监听 URL query 参数作为唯一数据源。而 `store` 被细分为控制 UI 的 `searchStore` 与独立处理帖子浮层数据的 `previewStore`。
+- **全局预览浮层**: `src/widgets/thread-preview/`，响应 `previewStore` 的状态从而在任意页面顶部展示帖子快照阅读流。
 - **主框架皮肤与顶栏**: 放置在 `src/widgets/layout/` 中。这些区块天然包裹在页面周围，属于高度复用的骨架级挂件。
 - **论坛内容的承接者**: `src/entities/thread/`，任何跟帖子这三个字本身有关的数据形态、卡片样式、Tag 样式，全都被内聚在此处。
 
