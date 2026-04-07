@@ -83,13 +83,17 @@
   - 排序顺序：`"asc"` 或 `"desc"`，默认 `"desc"`。
 - `limit: int`
   - 每页返回数量，范围 1–100，默认 10。
+- `exclude_thread_ids: Optional[List[int]]`
+  - 已在前端展示的帖子 ID 列表，用于去重或无缝滚动。
+- `search_by_collection: Optional[bool]`
+  - 是否仅搜索当前用户已收藏的帖子。
 - `offset: int`
   - 偏移量，从 0 开始。
 
 > 生产环境中，`search.py` 还会通过 `KeywordParser` 对 `keywords` 做二次解析，抽取作者名、精确关键词与排除词，组合成实际用于检索的 `final_keywords` 和 `final_exclude_keywords`。
 
 ### 2.2 前端参数装配机制 (Tokenization & Mapping)
-虽然最终的网络传输体符合 `SearchRequest` 模型，但前端在组装数据时引入了**中间态分词层 (`searchTokenizer`)**：
+虽然最终的网络传输体符合 `SearchRequest` 模型，但前端在组装数据时引入了**全局中间态分词层 (`src/shared/lib/searchTokenizer.ts`)**：
 - 前端界面的源字符串 `query`（如 `"关键词 $tag:音乐$ -$author:张三$"`）会被解析出不同的 Token。
 - `searchApi.ts` 会将打散的 Token 字段拼装到请求体中：
   - `$tag:` 提取后追加到 `include_tags`。
