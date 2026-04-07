@@ -43,3 +43,15 @@ const ProfilePage = lazy(() => import('@/pages/UserProfilePage'));
 - 优先读取 `localStorage` 中记录的用户偏好（如 `theme: dark`）。
 - 否则读取浏览器系统的时区或 `prefers-color-scheme`。
 我们将 class `dark` 动态注入至 `HTML` 根节点上控制整个 Tailwind 变量生效。
+
+## 5. 搜索系统与 URL 状态驱动
+
+搜索系统目前完全依靠 **URL Search Params** 进行状态同步，以保障用户可以自由分享其搜索或过滤状态，并避免状态管理的冗余与数据不一致。
+
+### 5.1 分词器驱动 (searchTokenizer)
+搜索词输入支持高级语法的精确匹配与条件剥离，前端使用 `src/shared/lib/searchTokenizer.ts` 作为统一解释器：
+- **可用语法**: `$tag:xxx$`, `-$tag:xxx$`, `$author:xxx$`, `-$author:xxx$`, `$channel:xxx$`。
+- **协议转换**: 当用户在 `TopBar` 键入字符或点击特定面板（如 `SearchFilterPanel`）按钮时，工具函数（如 `addToken`, `removeToken`）会改变全局查询字符串，随后 `tokenizeSearchPayload` 会将长字符串打散为 API 可接受的数据结构（`includeTags`, `excludeTags`, `channels` 等）。
+
+### 5.2 参数层 (`useSearchParams`)
+`src/features/search/hooks/useSearchParams.ts` 钩子解析并暴露经过封装合并后的过滤状态，组件使用该钩子修改参数会自动触发 React Router 的导航方法，进而引发整个订阅此 Hooks 的查询模块重刷。

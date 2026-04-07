@@ -36,19 +36,25 @@
 import { create } from 'zustand';
 
 // 1. 定义状态和动作的接口
-interface SearchStore {
-  keyword: string;
-  isDrawerOpen: boolean;
-  setKeyword: (kw: string) => void;
-  toggleDrawer: () => void;
+interface SearchUIState {
+  isMainBannerVisible: boolean;
+  activeBannerId: string | null;
+  setMainBannerVisible: (visible: boolean) => void;
+  setActiveBannerId: (bannerId: string | null) => void;
 }
 
 // 2. 创建 store
-export const useSearchStore = create<SearchStore>((set) => ({
-  keyword: '',
-  isDrawerOpen: false,
-  setKeyword: (kw) => set({ keyword: kw }),
-  toggleDrawer: () => set((state) => ({ isDrawerOpen: !state.isDrawerOpen })),
+export const useSearchStore = create<SearchUIState>((set, get) => ({
+  isMainBannerVisible: true,
+  activeBannerId: null,
+  setMainBannerVisible: (visible) => {
+    if (get().isMainBannerVisible === visible) return;
+    set({ isMainBannerVisible: visible });
+  },
+  setActiveBannerId: (bannerId) => {
+    if (get().activeBannerId === bannerId) return;
+    set({ activeBannerId: bannerId });
+  },
 }));
 ```
 
@@ -56,16 +62,21 @@ export const useSearchStore = create<SearchStore>((set) => ({
 
 由于 Zustand 是外部 store，在组件中使用时请**仅提取当前组件真正需要的字段**。这样可以避免不相关的状态改变触发整个组件的重渲染。
 
-✅ 正确用法（仅订阅 keyword）：
+✅ 正确用法（仅订阅可见性状态）：
 ```tsx
-const keyword = useSearchStore((state) => state.keyword);
-const setKeyword = useSearchStore((state) => state.setKeyword);
+const isMainBannerVisible = useSearchStore((state) => state.isMainBannerVisible);
+const setMainBannerVisible = useSearchStore((state) => state.setMainBannerVisible);
 ```
 
-❌ 错误用法（会导致任何 SearchStore 其他值的变化都引发组件刷新）：
+❌ 错误用法（会导致任何 SearchUIState 其他值的变化都引发组件刷新）：
 ```tsx
 const store = useSearchStore(); 
 ```
+
+### 3.3 URL 作为状态 (URL as State)
+对于诸如搜索参数（搜索词、筛选渠道、标签、作者等）的场景，**强制使用 URL 参数 (`URLSearchParams`) 代替 Zustand 作为数据源**。
+- 好处: 状态可分享、支持浏览器前进后退、解耦 UI Store 与请求逻辑。
+- 示例: `src/features/search/hooks/useSearchParams.ts` 中解析并维护 `q`, `channel`, `sort` 等查询参数。独立的业务逻辑（如 `previewStore.ts` 帖子预览）应当从通用 UI Store 中抽离解耦。
 
 ### 3.3 状态的局部化
 尽量只将 `跨组件通信` 或者 `页面级需要维持的草稿流` 放入 `zustand`。普通的单组件内部开关（如某个下拉菜单是否展现），优先使用 React 原生的 `useState`。

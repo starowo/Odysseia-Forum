@@ -88,7 +88,16 @@
 
 > 生产环境中，`search.py` 还会通过 `KeywordParser` 对 `keywords` 做二次解析，抽取作者名、精确关键词与排除词，组合成实际用于检索的 `final_keywords` 和 `final_exclude_keywords`。
 
-### 2.2 SearchResponse 响应字段
+### 2.2 前端参数装配机制 (Tokenization & Mapping)
+虽然最终的网络传输体符合 `SearchRequest` 模型，但前端在组装数据时引入了**中间态分词层 (`searchTokenizer`)**：
+- 前端界面的源字符串 `query`（如 `"关键词 $tag:音乐$ -$author:张三$"`）会被解析出不同的 Token。
+- `searchApi.ts` 会将打散的 Token 字段拼装到请求体中：
+  - `$tag:` 提取后追加到 `include_tags`。
+  - `-$tag:` 提取后追加到 `exclude_tags`。
+  - `$author:` 提取后转换为 `author:"姓名"` 字符串追加到 `keywords` 字段供后端的 `KeywordParser` 进一步解析，而不会直接使用 `SearchRequest.author_name` 字段。
+  - `$channel:` 优先合并到 `channel_ids` 列表。
+
+### 2.3 SearchResponse 响应字段
 
 定义见 `src/api/v1/schemas/search/search_response.py`。该响应继承自 `PaginatedResponse[ThreadDetail]`，并增加了若干额外字段。
 
@@ -152,7 +161,7 @@
 - `unread_count: int`
   - 当前用户关注列表中的未读更新数量（由 `FollowService.get_unread_count` 统计）。
 
-### 2.3 核心机制：频道映射 (Channel Mappings)
+### 2.4 核心机制：频道映射 (Channel Mappings)
 
 当后端 `config.json` 中配置了 `channel_mappings` 时，API 会产生以下行为：
 
