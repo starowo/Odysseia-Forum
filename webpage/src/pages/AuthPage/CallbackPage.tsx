@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { toast } from 'sonner';
 import { useRefreshAuth } from '@/features/auth/hooks/useAuth';
+import { LOGIN_REDIRECT_STORAGE_KEY, sanitizeInternalRedirect } from '@/shared/lib/navigationSafety';
 import { OmicronLoader } from '@/shared/ui/loaders/OmicronLoader';
 
 export function CallbackPage() {
@@ -23,21 +24,12 @@ export function CallbackPage() {
 
     // Token is now extracted in App.tsx via hash
     // Just handle redirect restoration here
-    const savedRedirect = sessionStorage.getItem('login_redirect');
+    const savedRedirect = sessionStorage.getItem(LOGIN_REDIRECT_STORAGE_KEY);
     const queryRedirect = searchParams.get('redirect');
 
-    sessionStorage.removeItem('login_redirect');
+    sessionStorage.removeItem(LOGIN_REDIRECT_STORAGE_KEY);
 
-    const targetUrl = savedRedirect || queryRedirect || '/';
-
-    // Extract path from full URL if needed
-    let redirectPath = targetUrl;
-    try {
-      const url = new URL(targetUrl);
-      redirectPath = url.pathname + url.search + url.hash;
-    } catch {
-      // targetUrl is already a path
-    }
+    const redirectPath = sanitizeInternalRedirect(savedRedirect || queryRedirect || '/');
 
     toast.success('登录成功！');
 

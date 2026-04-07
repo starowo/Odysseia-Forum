@@ -1,4 +1,5 @@
 import { apiClient } from '@/shared/api/client';
+import { clearStoredAuthToken } from '@/shared/lib/authSession';
 
 export interface User {
   id: string;
@@ -27,6 +28,6 @@ export const authApi = {
 
   logout: async (): Promise<void> => {
     await apiClient.get('/auth/logout');
-    localStorage.removeItem('auth_token');
+    clearStoredAuthToken();
   },
 };

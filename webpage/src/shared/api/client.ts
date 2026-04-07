@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { clearStoredAuthToken, getStoredAuthToken } from '@/shared/lib/authSession';
 
 const DEFAULT_API_URL = 'http://localhost:10810/v1';
 const API_URL = import.meta.env.VITE_API_URL || DEFAULT_API_URL;
@@ -17,7 +18,7 @@ export const apiClient = axios.create({
 
 // 请求拦截器
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('auth_token');
+  const token = getStoredAuthToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -31,7 +32,7 @@ apiClient.interceptors.response.use(
     // 只在非认证检查的请求中处理401
     // 认证检查接口应该由组件自己处理
     if (error.response?.status === 401 && !error.config.url?.includes('/auth/checkauth')) {
-      localStorage.removeItem('auth_token');
+      clearStoredAuthToken();
       // 不要直接跳转，让ProtectedRoute处理
       // window.location.href = '/login';
     }

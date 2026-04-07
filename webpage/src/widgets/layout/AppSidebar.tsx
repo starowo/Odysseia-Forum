@@ -1,6 +1,7 @@
 import ServerIcon from '@/assets/images/icon/A90C044F8DDF1959B2E9078CB629C239.png';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useSearchURLParams } from '@/features/search/hooks/useSearchParams';
+import { clearStoredAuthToken } from '@/shared/lib/authSession';
 import { CHANNEL_CATEGORIES, VIRTUAL_TAG_CATEGORIES } from '@/shared/config/navigation';
 import { addToken, parseSearchQuery, removeToken } from '@/shared/lib/searchTokenizer';
 import { ThemeToggle } from '@/shared/ui/ThemeToggle';
@@ -39,7 +40,7 @@ export function AppSidebar() {
     } catch (error) {
       console.error('Backend logout failed:', error);
     }
-    localStorage.removeItem('auth_token');
+    clearStoredAuthToken();
     window.location.href = '/login';
   };
 
