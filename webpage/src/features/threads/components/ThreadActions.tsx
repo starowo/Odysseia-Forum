@@ -1,6 +1,6 @@
 import { Tooltip } from '@/shared/ui/Tooltip';
 import { DiscordIcon } from '@/shared/ui/icons/DiscordIcon';
-import { useSettings } from '@/shared/hooks/useSettings';
+import { useOpenModeSetting } from '@/shared/hooks/useSettings';
 import { AnimatedIcon } from '@/shared/ui/animation/AnimatedIcon';
 import { useState } from 'react';
 
@@ -22,16 +22,16 @@ interface ThreadActionsProps {
  *  - 'glass': 毛玻璃圆形按钮，用于卡片封面悬浮（与刷新按钮一致）
  */
 export function ThreadActions({ threadId, guildId, size = 'md', variant = 'default', alwaysVisible = false, className, externalUrlOverride }: ThreadActionsProps) {
-    const { settings } = useSettings();
+    const openMode = useOpenModeSetting();
     const [isHovered, setIsHovered] = useState(false);
     const finalGuildId = guildId || import.meta.env.VITE_GUILD_ID || '@me';
 
     // 根据设置决定目标 URL
-    const targetUrl = settings.openMode === 'web'
+    const targetUrl = openMode === 'web'
         ? (externalUrlOverride || `https://discord.com/channels/${finalGuildId}/${threadId}`)
         : (externalUrlOverride || `discord://discord.com/channels/${finalGuildId}/${threadId}`);
 
-    const isWeb = settings.openMode === 'web';
+    const isWeb = openMode === 'web';
     const tooltipContent = isWeb ? "在浏览器中打开" : "在 Discord App 中打开";
 
     // 样式配置

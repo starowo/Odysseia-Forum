@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useRef } from 'react';
 import { useTheme } from '@/shared/hooks/useTheme';
-import { useSettings } from '@/shared/hooks/useSettings';
+import { useThemeSettings } from '@/shared/hooks/useSettings';
 
 const loadedFontLinks = new Map<string, HTMLLinkElement>();
 
@@ -10,7 +10,7 @@ interface ThemeProviderProps {
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
   const { theme, currentTheme } = useTheme();
-  const { settings } = useSettings();
+  const settings = useThemeSettings();
   const previousThemeRef = useRef<string | null>(null);
 
   useEffect(() => {

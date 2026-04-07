@@ -1,35 +1,20 @@
 import { NotificationCenter } from '@/features/notifications/components/NotificationCenter';
-import { searchApi } from '@/features/search/api/searchApi';
 import {
   SearchSuggestions,
   type SearchSuggestionAction,
 } from '@/features/search/components/SearchSuggestions';
+import { SearchFilterPanel } from '@/features/search/components/SearchFilterPanel';
 import { useSearchURLParams } from '@/features/search/hooks/useSearchParams';
+import type { SortMethod, TagLogic } from '@/features/search/hooks/useSearchParams';
+import { useSearchAutocomplete } from '@/features/search/hooks/useSearchAutocomplete';
+import { useTopBarFilterState } from '@/features/search/hooks/useTopBarFilterState';
+import { useTopBarSearchController } from '@/features/search/hooks/useTopBarSearchController';
 import { usePreviewStore } from '@/features/search/store/previewStore';
-import {
-  getDiscoveryPreferenceContext,
-  getPreferenceTagState,
-  mergePreferenceTagsWithManual,
-  resolveDiscoveryPreferencePatch,
-} from '@/features/preferences/lib/discoveryPreferences';
+import { getPreferenceTagState } from '@/features/preferences/lib/discoveryPreferences';
 import { useUserPreferences } from '@/features/preferences/hooks/useUserPreferences';
-import { ALL_VIRTUAL_TAGS } from '@/shared/config/navigation';
 import { GUILD_ID } from '@/shared/config/channelCategories.private';
-import {
-  addSearchHistory,
-  clearSearchHistory,
-  getSearchHistory,
-  removeSearchHistory,
-} from '@/shared/lib/searchHistory';
-import {
-  addToken,
-  parseSearchQuery,
-  removeToken,
-  type SearchToken,
-} from '@/shared/lib/searchTokenizer';
 import { SearchTokenInput } from '@/shared/ui/SearchTokenInput';
 import { AnimatedIcon } from '@/shared/ui/animation/AnimatedIcon';
-import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Bell,
@@ -40,9 +25,8 @@ import {
   Settings as SettingsIcon,
   SlidersHorizontal,
   User,
-  X,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 interface TopBarProps {
@@ -50,46 +34,17 @@ interface TopBarProps {
   sidebarCollapsed?: boolean;
 }
 
-function mergeUnique(values: string[]) {
-  return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)));
-}
-
-function tokenSignature(query: string) {
-  return parseSearchQuery(query || '')
-    .filter((token) => token.type !== 'text')
-    .map((token) => `${token.mode || 'include'}:${token.type}:${token.value.trim()}`)
-    .filter(Boolean)
-    .sort()
-    .join('|');
-}
-
 export function TopBar({ onMenuClick, sidebarCollapsed = false }: TopBarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const isSearchPage = location.pathname === '/search';
   const { params, setParams } = useSearchURLParams();
-  const { setPreviewThread, setPreviewThreadId } = usePreviewStore();
+  const setPreviewThread = usePreviewStore((state) => state.setPreviewThread);
+  const setPreviewThreadId = usePreviewStore((state) => state.setPreviewThreadId);
   const { preferences } = useUserPreferences({ guildId: GUILD_ID });
 
-  const [searchInput, setSearchInput] = useState(params.query);
-  const [debouncedQuery, setDebouncedQuery] = useState(params.query.trim());
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
-  const [includeAuthorDraft, setIncludeAuthorDraft] = useState('');
-  const [excludeAuthorDraft, setExcludeAuthorDraft] = useState('');
-  const [historyItems, setHistoryItems] = useState(() => getSearchHistory());
-  const [syncPreferenceTags, setSyncPreferenceTags] = useState(false);
-  const manualTagSnapshotRef = useRef<{ includeTags: string[]; excludeTags: string[] } | null>(null);
-
-  const searchInputRef = useRef<HTMLInputElement | null>(null);
-  const searchContainerRef = useRef<HTMLDivElement>(null);
-
-  const closePanels = useCallback(() => {
-    setShowSuggestions(false);
-    setShowFilters(false);
-  }, []);
 
   useEffect(() => {
     const handleNotificationCountMatch = (e: Event) => {
@@ -104,80 +59,77 @@ export function TopBar({ onMenuClick, sidebarCollapsed = false }: TopBarProps) {
     };
   }, []);
 
-  useEffect(() => {
-    setSearchInput(params.query);
-  }, [params.query]);
+  const needsFilter = isSearchPage;
+  const preferenceTagState = useMemo(() => getPreferenceTagState(preferences), [preferences]);
 
-  useEffect(() => {
-    const timer = window.setTimeout(() => {
-      setDebouncedQuery(searchInput.trim());
-    }, 250);
-    return () => window.clearTimeout(timer);
-  }, [searchInput]);
+  const {
+    applyInputChange,
+    clearFilters,
+    clearHistory,
+    closePanels,
+    debouncedQuery,
+    excludeAuthorDraft,
+    excludeAuthorTokens,
+    executeSearch,
+    handleInputFocus,
+    handleSearch,
+    historyItems,
+    includeAuthorDraft,
+    includeAuthorTokens,
+    isPanelOpen,
+    removeAuthorToken,
+    removeHistoryItem,
+    searchContainerRef,
+    searchInput,
+    searchInputRef,
+    setExcludeAuthorDraft,
+    setIncludeAuthorDraft,
+    setShowFilters,
+    setShowSuggestions,
+    showFilters,
+    showSuggestions,
+    submitAuthorDraft,
+    toggleFilters,
+    updateQuery,
+    updateQueryFromTokenMutation,
+  } = useTopBarSearchController({
+    isSearchPage,
+    navigate,
+    params,
+    setParams,
+  });
 
-  useEffect(() => {
-    if (showSuggestions) {
-      setHistoryItems(getSearchHistory());
-    }
-  }, [showSuggestions]);
+  const {
+    activeVirtualTag,
+    availableTags,
+    mergedTagState,
+    preferenceSuggestedTags,
+    suggestionAuthors,
+    suggestionPreferencePatch,
+    suggestionTags,
+    suggestionThreads,
+    virtualTagOriginChannelMap,
+  } = useSearchAutocomplete({
+    params,
+    preferences,
+    preferenceTagState,
+    searchInput,
+    debouncedQuery,
+    showSuggestions,
+  });
 
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
-        closePanels();
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [closePanels]);
-
-  const activeVirtualTag = useMemo(() => {
-    const tokens = parseSearchQuery(searchInput || '');
-    const tagToken = tokens.find((token) => token.type === 'tag' && token.mode === 'include');
-    if (!tagToken) return null;
-    return ALL_VIRTUAL_TAGS.find((virtualTag) => virtualTag.name === tagToken.value);
-  }, [searchInput]);
-
-  const executeSearch = useCallback(
-    (nextQuery: string) => {
-      const trimmed = nextQuery.trim();
-      setSearchInput(trimmed);
-
-      if (!isSearchPage) {
-        navigate(trimmed ? `/search?q=${encodeURIComponent(trimmed)}` : '/search');
-      } else {
-        setParams({ query: trimmed });
-      }
-
-      if (trimmed) {
-        addSearchHistory(trimmed);
-        setHistoryItems(getSearchHistory());
-      }
-      closePanels();
-    },
-    [closePanels, isSearchPage, navigate, setParams],
-  );
-
-  const applyInputChange = useCallback(
-    (nextQuery: string) => {
-      setSearchInput(nextQuery);
-
-      const tokenChanged = tokenSignature(nextQuery) !== tokenSignature(params.query || '');
-      if (!tokenChanged) return;
-
-      const trimmed = nextQuery.trim();
-      if (!isSearchPage) {
-        navigate(trimmed ? `/search?q=${encodeURIComponent(trimmed)}` : '/search');
-      } else {
-        setParams({ query: trimmed });
-      }
-    },
-    [isSearchPage, navigate, params.query, setParams],
-  );
-
-  const handleSearch = useCallback(() => {
-    executeSearch(searchInput);
-  }, [executeSearch, searchInput]);
+  const {
+    handlePreferenceTagSyncToggle,
+    syncPreferenceTags,
+    toggleTagToken,
+  } = useTopBarFilterState({
+    params,
+    preferenceExcludeTags: preferenceTagState.excludeTags,
+    preferenceIncludeTags: preferenceTagState.includeTags,
+    updateQuery,
+    updateQueryFromTokenMutation,
+    virtualTagOriginChannelMap,
+  });
 
   const handleSuggestionSelect = useCallback(
     (action: SearchSuggestionAction) => {
@@ -208,206 +160,6 @@ export function TopBar({ onMenuClick, sidebarCollapsed = false }: TopBarProps) {
     [applyInputChange, closePanels, executeSearch, searchInput, setPreviewThread, setPreviewThreadId],
   );
 
-  const toggleFilters = () => {
-    if (showFilters) {
-      closePanels();
-      return;
-    }
-    setShowSuggestions(false);
-    setShowFilters(true);
-  };
-
-  const handleInputFocus = () => {
-    setShowSuggestions(true);
-    setShowFilters(false);
-  };
-
-  const needsFilter = isSearchPage;
-
-  const { data: filterMeta } = useQuery({
-    queryKey: ['search-filter-meta', params.channel],
-    queryFn: () =>
-      searchApi.search({
-        channel_ids: params.channel ? [params.channel] : undefined,
-        limit: 1,
-      }),
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const { data: channelTagCatalog = [] } = useQuery({
-    queryKey: ['search-filter-meta', 'channel-tag-catalog'],
-    queryFn: () => searchApi.getChannelTagCatalog(),
-    enabled: !params.channel,
-    staleTime: 5 * 60 * 1000,
-    retry: false,
-  });
-
-  const globalAvailableTags = useMemo(() => {
-    const tagSet = new Set<string>();
-    for (const channel of channelTagCatalog) {
-      for (const tag of channel.available_tags || []) {
-        if (tag?.trim()) tagSet.add(tag.trim());
-      }
-      for (const tag of channel.virtual_tags || []) {
-        if (tag?.trim()) tagSet.add(tag.trim());
-      }
-    }
-    return Array.from(tagSet);
-  }, [channelTagCatalog]);
-
-  const virtualTagOriginChannelMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const channel of channelTagCatalog) {
-      for (const tag of channel.virtual_tags || []) {
-        if (tag?.trim() && !map.has(tag.trim())) {
-          map.set(tag.trim(), channel.channel_id);
-        }
-      }
-    }
-    return map;
-  }, [channelTagCatalog]);
-
-  const availableTags = useMemo(() => {
-    return mergeUnique([
-      ...(filterMeta?.virtual_tags || []),
-      ...(filterMeta?.available_tags || []),
-      ...globalAvailableTags,
-      ...params.includeTags,
-      ...params.excludeTags,
-    ]);
-  }, [filterMeta?.available_tags, filterMeta?.virtual_tags, globalAvailableTags, params.includeTags, params.excludeTags]);
-
-  const discoveryPreferenceContext = useMemo(
-    () => getDiscoveryPreferenceContext(preferences),
-    [preferences],
-  );
-  const preferenceTagState = useMemo(
-    () => getPreferenceTagState(preferences),
-    [preferences],
-  );
-  const mergedTagState = useMemo(
-    () => mergePreferenceTagsWithManual({
-      manualIncludeTags: params.includeTags,
-      manualExcludeTags: params.excludeTags,
-      preferenceIncludeTags: preferenceTagState.includeTags,
-      preferenceExcludeTags: preferenceTagState.excludeTags,
-      syncPreferenceTags,
-    }),
-    [params.includeTags, params.excludeTags, preferenceTagState.includeTags, preferenceTagState.excludeTags, syncPreferenceTags],
-  );
-  const preferenceSuggestedTags = useMemo(() => {
-    const preferredChannels = new Set(discoveryPreferenceContext?.preferredChannelIds || []);
-    const includeTags = preferenceTagState.includeTags;
-    const excludeTags = new Set(preferenceTagState.excludeTags);
-
-    const scopedCatalog = preferredChannels.size > 0
-      ? channelTagCatalog.filter((channel) => preferredChannels.has(channel.channel_id))
-      : channelTagCatalog;
-
-    const collected = new Set<string>();
-
-    for (const tag of includeTags) {
-      if (!excludeTags.has(tag)) collected.add(tag);
-    }
-
-    for (const channel of scopedCatalog) {
-      for (const tag of [...(channel.virtual_tags || []), ...(channel.available_tags || [])]) {
-        const normalized = tag.trim();
-        if (!normalized || excludeTags.has(normalized)) continue;
-        collected.add(normalized);
-      }
-    }
-
-    return Array.from(collected).slice(0, 8);
-  }, [channelTagCatalog, discoveryPreferenceContext?.preferredChannelIds, preferenceTagState.excludeTags, preferenceTagState.includeTags]);
-
-  const suggestionPreferencePatch = useMemo(
-    () => resolveDiscoveryPreferencePatch({
-      preferences,
-      mode: 'suggestion',
-      query: searchInput,
-      selectedChannel: params.channel,
-    }),
-    [preferences, searchInput, params.channel],
-  );
-
-  const { data: suggestionSearchData } = useQuery({
-    queryKey: [
-      'search-suggestions',
-      debouncedQuery,
-      params.channel,
-      (suggestionPreferencePatch?.channel_ids || []).join(','),
-      (suggestionPreferencePatch?.include_tags || []).join(','),
-      (suggestionPreferencePatch?.exclude_tags || []).join(','),
-      discoveryPreferenceContext?.signature || 'no-preferences',
-    ],
-    queryFn: () =>
-      searchApi.search({
-        query: debouncedQuery,
-        channel_ids: params.channel ? [params.channel] : suggestionPreferencePatch?.channel_ids,
-        include_tags: suggestionPreferencePatch?.include_tags,
-        exclude_tags: suggestionPreferencePatch?.exclude_tags,
-        limit: 5,
-        sort_method: 'relevance',
-      }),
-    enabled: showSuggestions && debouncedQuery.length > 0,
-    staleTime: 30 * 1000,
-    retry: false,
-  });
-
-  const suggestionThreads = useMemo(() => {
-    return (suggestionSearchData?.results || []).slice(0, 5).map((thread) => ({
-      thread_id: thread.thread_id,
-      title: thread.title,
-      snippet: thread.first_message_excerpt || '',
-      thumbnail_url: thread.thumbnail_urls?.[0] || null,
-      author_name:
-        thread.author?.display_name ||
-        thread.author?.global_name ||
-        thread.author?.name ||
-        '未知用户',
-      author_avatar_url: thread.author?.avatar_url || null,
-      source_thread: thread,
-    }));
-  }, [suggestionSearchData?.results]);
-
-  const suggestionAuthors = useMemo(() => {
-    const unique = new Map<string, { id: string; name: string; avatar_url?: string | null }>();
-
-    for (const thread of suggestionSearchData?.results || []) {
-      if (!thread.author) continue;
-      const authorId = String(thread.author.id);
-      if (unique.has(authorId)) continue;
-
-      unique.set(authorId, {
-        id: authorId,
-        name: thread.author.display_name || thread.author.global_name || thread.author.name,
-        avatar_url: thread.author.avatar_url || null,
-      });
-
-      if (unique.size >= 5) break;
-    }
-
-    return Array.from(unique.values());
-  }, [suggestionSearchData?.results]);
-
-  const suggestionTags = useMemo(() => {
-    return mergeUnique([
-      ...(suggestionSearchData?.virtual_tags || []),
-      ...(suggestionSearchData?.available_tags || []),
-    ]).slice(0, 5);
-  }, [suggestionSearchData?.available_tags, suggestionSearchData?.virtual_tags]);
-
-  const allQueryTokens = useMemo(() => parseSearchQuery(searchInput), [searchInput]);
-  const includeAuthorTokens = useMemo(
-    () => allQueryTokens.filter((token) => token.type === 'author' && token.mode === 'include'),
-    [allQueryTokens],
-  );
-  const excludeAuthorTokens = useMemo(
-    () => allQueryTokens.filter((token) => token.type === 'author' && token.mode === 'exclude'),
-    [allQueryTokens],
-  );
-
   const hasActiveFilters =
     params.includeTags.length > 0 ||
     params.excludeTags.length > 0 ||
@@ -419,148 +171,6 @@ export function TopBar({ onMenuClick, sidebarCollapsed = false }: TopBarProps) {
     (params.tagLogic && params.tagLogic !== 'and');
 
   const hasPanelFilters = hasActiveFilters;
-  const isPanelOpen = showSuggestions || showFilters;
-
-  useEffect(() => {
-    if (!params.includeTags.length && !params.excludeTags.length) {
-      setSyncPreferenceTags(false);
-    }
-  }, [params.includeTags.length, params.excludeTags.length]);
-
-  const applyTagStateToQuery = useCallback((nextIncludeTags: string[], nextExcludeTags: string[]) => {
-    const currentTokens = parseSearchQuery(params.query || '');
-    let nextQuery = params.query || '';
-
-    for (const token of currentTokens) {
-      if (token.type !== 'tag') continue;
-      nextQuery = removeToken(nextQuery, token);
-    }
-
-    for (const tag of nextIncludeTags) {
-      nextQuery = addToken(nextQuery, 'tag', tag, 'include');
-    }
-
-    for (const tag of nextExcludeTags) {
-      nextQuery = addToken(nextQuery, 'tag', tag, 'exclude');
-    }
-
-    const trimmed = nextQuery.trim();
-    setSearchInput(trimmed);
-    setParams({ query: trimmed });
-  }, [params.query, setParams]);
-
-  const handlePreferenceTagSyncToggle = useCallback(() => {
-    const nextEnabled = !syncPreferenceTags;
-    setSyncPreferenceTags(nextEnabled);
-
-    if (nextEnabled) {
-      manualTagSnapshotRef.current = {
-        includeTags: [...params.includeTags],
-        excludeTags: [...params.excludeTags],
-      };
-
-      const merged = mergePreferenceTagsWithManual({
-        manualIncludeTags: params.includeTags,
-        manualExcludeTags: params.excludeTags,
-        preferenceIncludeTags: preferenceTagState.includeTags,
-        preferenceExcludeTags: preferenceTagState.excludeTags,
-        syncPreferenceTags: true,
-      });
-      applyTagStateToQuery(merged.includeTags, merged.excludeTags);
-      return;
-    }
-
-    const snapshot = manualTagSnapshotRef.current;
-    manualTagSnapshotRef.current = null;
-    applyTagStateToQuery(snapshot?.includeTags || [], snapshot?.excludeTags || []);
-  }, [applyTagStateToQuery, params.excludeTags, params.includeTags, preferenceTagState.excludeTags, preferenceTagState.includeTags, syncPreferenceTags]);
-
-  const updateQueryFromTokenMutation = useCallback(
-    (mutator: (tokens: SearchToken[]) => string) => {
-      const nextQuery = mutator(parseSearchQuery(params.query || ''));
-      setSearchInput(nextQuery);
-      setParams({ query: nextQuery });
-    },
-    [params.query, setParams],
-  );
-
-  const toggleTagToken = useCallback(
-    (tagName: string, mode: 'include' | 'exclude') => {
-      updateQueryFromTokenMutation((tokens) => {
-        const existing = tokens.find(
-          (token) => token.type === 'tag' && token.value === tagName && token.mode === mode,
-        );
-        const virtualOriginChannelId = !params.channel
-          ? virtualTagOriginChannelMap.get(tagName) || null
-          : null;
-
-        let nextQuery = params.query || '';
-        if (existing) {
-          nextQuery = removeToken(nextQuery, existing);
-          if (virtualOriginChannelId) {
-            const nextTokens = parseSearchQuery(nextQuery);
-            const hasOtherVirtualFromSameOrigin = nextTokens.some(
-              (token) =>
-                token.type === 'tag'
-                && token.mode === 'include'
-                && virtualTagOriginChannelMap.get(token.value) === virtualOriginChannelId,
-            );
-            if (!hasOtherVirtualFromSameOrigin) {
-              const channelToken = nextTokens.find(
-                (token) =>
-                  token.type === 'channel'
-                  && token.mode === 'include'
-                  && token.value === virtualOriginChannelId,
-              );
-              if (channelToken) {
-                nextQuery = removeToken(nextQuery, channelToken);
-              }
-            }
-          }
-        } else {
-          const opposite = tokens.find(
-            (token) => token.type === 'tag' && token.value === tagName && token.mode !== mode,
-          );
-          if (opposite) {
-            nextQuery = removeToken(nextQuery, opposite);
-          }
-          nextQuery = addToken(nextQuery, 'tag', tagName, mode);
-          if (virtualOriginChannelId) {
-            nextQuery = addToken(nextQuery, 'channel', virtualOriginChannelId, 'include');
-          }
-        }
-        return nextQuery.trim();
-      });
-    },
-    [params.channel, params.query, updateQueryFromTokenMutation, virtualTagOriginChannelMap],
-  );
-
-  const removeAuthorToken = useCallback(
-    (token: SearchToken) => {
-      const nextQuery = removeToken(params.query || '', token).trim();
-      setSearchInput(nextQuery);
-      setParams({ query: nextQuery });
-    },
-    [params.query, setParams],
-  );
-
-  const submitAuthorDraft = useCallback(
-    (mode: 'include' | 'exclude') => {
-      const draft = (mode === 'include' ? includeAuthorDraft : excludeAuthorDraft).trim();
-      if (!draft) return;
-
-      const nextQuery = addToken(params.query || '', 'author', draft, mode).trim();
-      setSearchInput(nextQuery);
-      setParams({ query: nextQuery });
-
-      if (mode === 'include') {
-        setIncludeAuthorDraft('');
-      } else {
-        setExcludeAuthorDraft('');
-      }
-    },
-    [excludeAuthorDraft, includeAuthorDraft, params.query, setParams],
-  );
 
   const getBreadcrumb = () => {
     if (location.pathname === '/settings') {
@@ -692,260 +302,34 @@ export function TopBar({ onMenuClick, sidebarCollapsed = false }: TopBarProps) {
                 )}
 
                 {showFilters ? (
-                  <div className="p-4">
-                    <div className="mb-4 flex items-center justify-between">
-                      <h3 className="text-sm font-semibold text-[var(--od-text-primary)]">高级筛选</h3>
-                      {hasPanelFilters && (
-                        <button
-                          onClick={() => {
-                            setSearchInput('');
-                            setIncludeAuthorDraft('');
-                            setExcludeAuthorDraft('');
-                            setParams({
-                              query: '',
-                              sortMethod: 'last_active_desc',
-                              timeFrom: '',
-                              timeTo: '',
-                              tagLogic: 'and',
-                            });
-                          }}
-                          className="text-xs text-[var(--od-accent)] hover:underline"
-                        >
-                          清空筛选
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label htmlFor="topbar-sort" className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-[var(--od-text-tertiary)]">
-                          排序方式
-                        </label>
-                        <select
-                          id="topbar-sort"
-                          value={params.sortMethod}
-                          onChange={(e) => setParams({ sortMethod: e.target.value as any })}
-                          className="od-chrome-surface w-full rounded-xl border border-white/[0.06] px-3 py-2 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
-                        >
-                          <option value="last_active_desc">最近活跃</option>
-                          <option value="created_desc">最新发布</option>
-                          <option value="reply_desc">回复数</option>
-                          <option value="reaction_desc">反应数</option>
-                          <option value="relevance">相关度</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label htmlFor="topbar-tagLogic" className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-[var(--od-text-tertiary)]">
-                          标签逻辑
-                        </label>
-                        <select
-                          id="topbar-tagLogic"
-                          value={params.tagLogic}
-                          onChange={(e) => setParams({ tagLogic: e.target.value as 'and' | 'or' })}
-                          className="od-chrome-surface w-full rounded-xl border border-white/[0.06] px-3 py-2 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
-                        >
-                          <option value="and">全部包含 (AND)</option>
-                          <option value="or">任一即可 (OR)</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label htmlFor="topbar-timeFrom" className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-[var(--od-text-tertiary)]">
-                          不早于
-                        </label>
-                        <input
-                          id="topbar-timeFrom"
-                          type="date"
-                          value={params.timeFrom}
-                          onChange={(e) => setParams({ timeFrom: e.target.value })}
-                          className="od-chrome-surface w-full rounded-xl border border-white/[0.06] px-3 py-2 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
-                        />
-                      </div>
-
-                      <div>
-                        <label htmlFor="topbar-timeTo" className="mb-1 block text-[11px] font-medium uppercase tracking-wider text-[var(--od-text-tertiary)]">
-                          不晚于
-                        </label>
-                        <input
-                          id="topbar-timeTo"
-                          type="date"
-                          value={params.timeTo}
-                          onChange={(e) => setParams({ timeTo: e.target.value })}
-                          className="od-chrome-surface w-full rounded-xl border border-white/[0.06] px-3 py-2 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="mt-4 space-y-4">
-                      <div>
-                        <div className="mb-2 flex items-center justify-between gap-3">
-                          <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--od-text-tertiary)]">
-                            标签筛选
-                          </h4>
-                          <div className="flex items-center gap-3">
-                            <span className="text-[11px] text-[var(--od-text-tertiary)] text-right">
-                              点击标签切换包含 / 排除 / 取消，不在这里显示删除按钮
-                            </span>
-                            <div className={`flex shrink-0 items-center gap-2 rounded-full border px-2.5 py-1.5 ${
-                              preferenceTagState.includeTags.length + preferenceTagState.excludeTags.length > 0
-                                ? 'border-[var(--od-shell-line)] bg-[color-mix(in_srgb,var(--od-surface-input)_72%,transparent)]'
-                                : 'border-[color-mix(in_srgb,var(--od-text-secondary)_10%,transparent)] bg-[color-mix(in_srgb,var(--od-surface-input)_42%,transparent)] opacity-60'
-                            }`}>
-                              <span className="text-[11px] font-semibold text-[var(--od-text-secondary)]">同步偏好标签</span>
-                              <button
-                                type="button"
-                                onClick={handlePreferenceTagSyncToggle}
-                                data-checked={syncPreferenceTags}
-                                disabled={preferenceTagState.includeTags.length + preferenceTagState.excludeTags.length === 0}
-                                className="od-toggle scale-[0.88] disabled:cursor-not-allowed disabled:opacity-50"
-                                title={preferenceTagState.includeTags.length + preferenceTagState.excludeTags.length > 0 ? '同步偏好标签' : '先在偏好页设置标签'}
-                              >
-                                <div className="od-toggle-thumb" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="mb-3 flex flex-wrap items-center gap-2 text-[11px] text-[var(--od-text-tertiary)]">
-                          <span>发现偏好标签</span>
-                          {preferenceTagState.includeTags.length + preferenceTagState.excludeTags.length > 0 ? (
-                            <>
-                              {preferenceTagState.includeTags.map((tag) => (
-                                <span key={`pref-include-${tag}`} className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-emerald-300">+ {tag}</span>
-                              ))}
-                              {preferenceTagState.excludeTags.map((tag) => (
-                                <span key={`pref-exclude-${tag}`} className="rounded-full bg-rose-500/10 px-2.5 py-1 text-rose-300">- {tag}</span>
-                              ))}
-                            </>
-                          ) : (
-                            <span>当前还没有保存偏好标签</span>
-                          )}
-                        </div>
-                        <div className="od-chrome-surface flex max-h-[180px] flex-wrap gap-2 overflow-y-auto rounded-2xl p-3">
-                          {availableTags.length > 0 ? (
-                            availableTags.map((tag) => {
-                               const isIncluded = mergedTagState.includeTags.includes(tag);
-                               const isExcluded = mergedTagState.excludeTags.includes(tag);
-
-                              return (
-                                <div key={tag} className="od-content-surface flex items-center rounded-full p-1">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      if (isIncluded) {
-                                        toggleTagToken(tag, 'exclude');
-                                        return;
-                                      }
-                                      if (isExcluded) {
-                                        toggleTagToken(tag, 'exclude');
-                                        return;
-                                      }
-                                      toggleTagToken(tag, 'include');
-                                    }}
-                                    className={`rounded-full px-3 py-1 text-xs transition-colors ${
-                                      isIncluded
-                                        ? 'bg-emerald-500/20 text-emerald-300'
-                                        : isExcluded
-                                          ? 'bg-rose-500/20 text-rose-300'
-                                          : 'text-[var(--od-text-secondary)] hover:bg-emerald-500/10 hover:text-emerald-300'
-                                    }`}
-                                  >
-                                    {isIncluded ? '✓ ' : isExcluded ? '✕ ' : ''}{tag}
-                                  </button>
-                                </div>
-                              );
-                            })
-                          ) : (
-                            <span className="text-sm text-[var(--od-text-tertiary)]">当前上下文暂时没有可用标签</span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <div>
-                          <label className="mb-2 flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-[var(--od-text-tertiary)]">
-                            <User className="h-3.5 w-3.5" />
-                            包含作者
-                          </label>
-                          <div className="flex gap-2">
-                            <input
-                              value={includeAuthorDraft}
-                              onChange={(e) => setIncludeAuthorDraft(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault();
-                                  submitAuthorDraft('include');
-                                }
-                              }}
-                              placeholder="输入昵称或用户名"
-                              className="od-chrome-surface w-full rounded-xl border border-white/[0.06] px-3 py-2 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => submitAuthorDraft('include')}
-                              className="rounded-xl bg-emerald-500/20 px-3 text-sm text-emerald-300 transition-colors hover:bg-emerald-500/30"
-                            >
-                              添加
-                            </button>
-                          </div>
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {includeAuthorTokens.map((token) => (
-                              <button
-                                key={`${token.mode}-${token.value}`}
-                                type="button"
-                                onClick={() => removeAuthorToken(token)}
-                                className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-3 py-1 text-xs text-emerald-300"
-                              >
-                                {token.value}
-                                <X className="h-3 w-3" />
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="mb-2 flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-[var(--od-text-tertiary)]">
-                            <User className="h-3.5 w-3.5" />
-                            排除作者
-                          </label>
-                          <div className="flex gap-2">
-                            <input
-                              value={excludeAuthorDraft}
-                              onChange={(e) => setExcludeAuthorDraft(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  e.preventDefault();
-                                  submitAuthorDraft('exclude');
-                                }
-                              }}
-                              placeholder="输入昵称或用户名"
-                              className="od-chrome-surface w-full rounded-xl border border-white/[0.06] px-3 py-2 text-sm text-[var(--od-text-primary)] outline-none transition-colors focus:border-[var(--od-accent)]"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => submitAuthorDraft('exclude')}
-                              className="rounded-xl bg-rose-500/20 px-3 text-sm text-rose-300 transition-colors hover:bg-rose-500/30"
-                            >
-                              添加
-                            </button>
-                          </div>
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {excludeAuthorTokens.map((token) => (
-                              <button
-                                key={`${token.mode}-${token.value}`}
-                                type="button"
-                                onClick={() => removeAuthorToken(token)}
-                                className="inline-flex items-center gap-1 rounded-full bg-rose-500/15 px-3 py-1 text-xs text-rose-300"
-                              >
-                                {token.value}
-                                <X className="h-3 w-3" />
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <SearchFilterPanel
+                    availableTags={availableTags}
+                    excludeAuthorDraft={excludeAuthorDraft}
+                    excludeAuthorTokens={excludeAuthorTokens}
+                    hasPanelFilters={hasPanelFilters}
+                    includeAuthorDraft={includeAuthorDraft}
+                    includeAuthorTokens={includeAuthorTokens}
+                    mergedExcludeTags={mergedTagState.excludeTags}
+                    mergedIncludeTags={mergedTagState.includeTags}
+                    onClearFilters={clearFilters}
+                    onExcludeAuthorDraftChange={setExcludeAuthorDraft}
+                    onIncludeAuthorDraftChange={setIncludeAuthorDraft}
+                    onPreferenceTagSyncToggle={handlePreferenceTagSyncToggle}
+                    onRemoveAuthorToken={removeAuthorToken}
+                    onSortMethodChange={(value: SortMethod) => setParams({ sortMethod: value })}
+                    onSubmitAuthorDraft={submitAuthorDraft}
+                    onTagLogicChange={(value: TagLogic) => setParams({ tagLogic: value })}
+                    onTimeFromChange={(value: string) => setParams({ timeFrom: value })}
+                    onTimeToChange={(value: string) => setParams({ timeTo: value })}
+                    onToggleTagToken={toggleTagToken}
+                    preferenceExcludeTags={preferenceTagState.excludeTags}
+                    preferenceIncludeTags={preferenceTagState.includeTags}
+                    sortMethod={params.sortMethod}
+                     syncPreferenceTags={syncPreferenceTags}
+                    tagLogic={params.tagLogic}
+                    timeFrom={params.timeFrom}
+                    timeTo={params.timeTo}
+                  />
                 ) : (
                   <SearchSuggestions
                     currentQuery={searchInput}
@@ -957,12 +341,10 @@ export function TopBar({ onMenuClick, sidebarCollapsed = false }: TopBarProps) {
                     history={historyItems}
                     onSelect={handleSuggestionSelect}
                     onRemoveHistory={(item) => {
-                      removeSearchHistory(item.query);
-                      setHistoryItems(getSearchHistory());
+                      removeHistoryItem(item.query);
                     }}
                     onClearHistory={() => {
-                      clearSearchHistory();
-                      setHistoryItems([]);
+                      clearHistory();
                     }}
                     onClose={closePanels}
                     inputRef={searchInputRef}

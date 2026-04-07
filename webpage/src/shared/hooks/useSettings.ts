@@ -1,32 +1,55 @@
-import { useState, useEffect } from 'react';
-import { getUserSettings, saveUserSettings, type UserSettings } from '@/shared/lib/settings';
+import { useCallback } from 'react';
+
+import { useSettingsStore } from '@/shared/store/settingsStore';
+import type { UserSettings } from '@/shared/lib/settings';
 
 export function useSettings() {
-  const [settings, setSettings] = useState<UserSettings>(getUserSettings);
+  const settings = useSettingsStore((state) => state.settings);
+  const storeUpdateSettings = useSettingsStore((state) => state.updateSettings);
 
-  useEffect(() => {
-    // 监听设置变化事件
-    const handleSettingsChange = (event: CustomEvent<UserSettings>) => {
-      setSettings(event.detail);
-    };
-
-    window.addEventListener('settingsChanged', handleSettingsChange as EventListener);
-    
-    return () => {
-      window.removeEventListener('settingsChanged', handleSettingsChange as EventListener);
-    };
-  }, []);
-
-  const updateSettings = (updates: Partial<UserSettings>) => {
-    // 直接从 localStorage 读取最新的设置，而不是依赖当前组件的 state
-    const currentSettings = getUserSettings();
-    const newSettings = { ...currentSettings, ...updates };
-    // setSettings(newSettings); // 不再需要立即更新当前组件，让事件去处理
-    saveUserSettings(newSettings); // saveUserSettings 会广播事件，让所有组件统一更新
-  };
+  const updateSettings = useCallback(
+    (updates: Partial<UserSettings>) => {
+      storeUpdateSettings(updates);
+    },
+    [storeUpdateSettings],
+  );
 
   return {
     settings,
     updateSettings,
   };
+}
+
+export function useLayoutMode() {
+  return useSettingsStore((state) => state.settings.layoutMode);
+}
+
+export function useFontSizeSetting() {
+  return useSettingsStore((state) => state.settings.fontSize);
+}
+
+export function useImageModeSetting() {
+  return useSettingsStore((state) => state.settings.imageMode);
+}
+
+export function useOpenModeSetting() {
+  return useSettingsStore((state) => state.settings.openMode);
+}
+
+export function useSidebarCollapsedSetting() {
+  return useSettingsStore((state) => state.settings.sidebarCollapsed);
+}
+
+export function useThemeSettings() {
+  return useSettingsStore((state) => ({
+    theme: state.settings.theme,
+    fontMode: state.settings.fontMode,
+    glassBlur: state.settings.glassBlur,
+    backgroundImageBase64: state.settings.backgroundImageBase64,
+    backgroundImageUrl: state.settings.backgroundImageUrl,
+    backgroundImageEnabled: state.settings.backgroundImageEnabled,
+    backgroundImageOpacity: state.settings.backgroundImageOpacity,
+    glassMode: state.settings.glassMode,
+    backgroundlessMode: state.settings.backgroundlessMode,
+  }));
 }

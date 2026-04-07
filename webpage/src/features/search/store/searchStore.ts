@@ -14,34 +14,24 @@ import { create } from 'zustand';
 interface SearchUIState {
   // Banner UI 状态
   isMainBannerVisible: boolean;
-  activeBanner: { id: string; image: string; title: string; description: string } | null;
-  bannerList: { id: string; image: string; title: string; description: string }[];
+  activeBannerId: string | null;
 
   // Actions
   setMainBannerVisible: (visible: boolean) => void;
-  setActiveBanner: (banner: { id: string; image: string; title: string; description: string } | null) => void;
-  setBannerList: (banners: { id: string; image: string; title: string; description: string }[]) => void;
+  setActiveBannerId: (bannerId: string | null) => void;
 }
 
 export const useSearchStore = create<SearchUIState>()((set, get) => ({
   isMainBannerVisible: true,
-  activeBanner: null,
-  bannerList: [],
+  activeBannerId: null,
 
   setMainBannerVisible: (visible) => {
     if (get().isMainBannerVisible === visible) return;
     set({ isMainBannerVisible: visible });
   },
 
-  setActiveBanner: (banner) => {
-    const current = get().activeBanner;
-    if (JSON.stringify(current) === JSON.stringify(banner)) return;
-    set({ activeBanner: banner });
-  },
-
-  setBannerList: (list) => {
-    const current = get().bannerList;
-    if (JSON.stringify(current) === JSON.stringify(list)) return;
-    set({ bannerList: list });
+  setActiveBannerId: (bannerId) => {
+    if (get().activeBannerId === bannerId) return;
+    set({ activeBannerId: bannerId });
   },
 }));

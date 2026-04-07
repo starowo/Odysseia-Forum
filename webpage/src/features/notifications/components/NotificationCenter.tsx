@@ -29,7 +29,7 @@ interface NotificationCenterProps {
 export function NotificationCenter({ open, onClose, onUnreadChange }: NotificationCenterProps) {
   const navigate = useNavigate();
 
-  const { setPreviewThread } = usePreviewStore();
+  const setPreviewThread = usePreviewStore((state) => state.setPreviewThread);
 
   // 本地持久化：已关闭的静态通知（站点公告 / 问候语）
   const [dismissedStaticIds, setDismissedStaticIds] = useState<string[]>(() => {

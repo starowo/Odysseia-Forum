@@ -11,6 +11,7 @@ import { ThreadStatusBadges } from '@/entities/thread/ThreadStatusBadges';
 import { usePretextClampText } from '@/shared/hooks/usePretextClampText';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { memo } from 'react';
 
 
 interface ThreadCardProps {
@@ -21,7 +22,7 @@ interface ThreadCardProps {
   onPreview?: (thread: Thread) => void;
 }
 
-export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onPreview }: ThreadCardProps) {
+function ThreadCardImpl({ thread, onTagClick, searchQuery, onAuthorClick, onPreview }: ThreadCardProps) {
   const navigate = useNavigate();
   const authorName =
     thread.author?.display_name ??
@@ -245,3 +246,5 @@ export function ThreadCard({ thread, onTagClick, searchQuery, onAuthorClick, onP
     </article>
   );
 }
+
+export const ThreadCard = memo(ThreadCardImpl);

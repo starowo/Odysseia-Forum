@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { themes, type ThemeName, type Theme } from '@/shared/styles/themes';
-import { useSettings } from '@/shared/hooks/useSettings';
+import { useSettings, useThemeSettings } from '@/shared/hooks/useSettings';
 import type { UserSettings } from '@/shared/lib/settings';
 
 // 将用户设置中的 theme 字段映射到具体的 ThemeName
@@ -62,7 +62,8 @@ function mapThemeNameToSettings(themeName: ThemeName): UserSettings['theme'] {
 }
 
 export function useTheme() {
-  const { settings, updateSettings } = useSettings();
+  const settings = useThemeSettings();
+  const { updateSettings } = useSettings();
 
   // 监听系统深色模式偏好
   const [systemPrefersDark, setSystemPrefersDark] = useState(false);

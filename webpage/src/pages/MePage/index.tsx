@@ -1,23 +1,28 @@
 import { useEffect, useMemo, useState, type ComponentType } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { BookOpen, Bookmark, FileText, Heart, RefreshCw, Save, Search, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { UserHeaderCard } from '@/entities/user/UserHeaderCard';
 import { UserStatsGrid } from '@/entities/user/UserStatsGrid';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { useSettings } from '@/shared/hooks/useSettings';
-import { ThreadCard } from '@/entities/thread/ThreadCard';
-import { ThreadListItem } from '@/entities/thread/ThreadListItem';
+import { ThreadResultsCollection } from '@/entities/thread/ThreadResultsCollection';
 import type { Thread } from '@/entities/thread/types';
-import { ThreadPreviewOverlay } from '@/widgets/thread-preview/ThreadPreviewOverlay';
-import { followsApi } from '@/features/follows/api/followsApi';
+import { useFollowsFeed } from '@/features/follows/hooks/useFollowsData';
 import { searchApi } from '@/features/search/api/searchApi';
 import { BooklistCard } from '@/entities/booklist/BooklistCard';
-import type { Booklist, BooklistFormInput } from '@/entities/booklist/types';
-import { booklistsApi } from '@/features/booklists/api/booklistsApi';
+import type { Booklist } from '@/entities/booklist/types';
+import {
+  useCollectedBooklistsList,
+  useCreateBooklist,
+  useDeleteBooklist,
+  useMyBooklistsList,
+  useToggleBooklistCollection,
+  useUpdateBooklist,
+} from '@/features/booklists/hooks/useBooklistsData';
 import { BooklistFormModal } from '@/features/booklists/components/BooklistFormModal';
+import { usePreviewThread } from '@/features/search/hooks/usePreviewThread';
 import { useUserPreferences } from '@/features/preferences/hooks/useUserPreferences';
 import { PreferenceTagSelector } from '@/features/preferences/components/PreferenceTagSelector';
 import { FluidDivider } from '@/shared/ui/FluidDivider';
@@ -63,15 +68,13 @@ function parseBooklistSubTab(value: string | null): BooklistSubTab {
 
 export function MePage() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { settings } = useSettings();
   const { user } = useAuth();
+  const { openPreview } = usePreviewThread();
 
   const tab = parseTab(searchParams.get('tab'));
   const booklistSubTab = parseBooklistSubTab(searchParams.get('booklists'));
 
-  const [previewThread, setPreviewThread] = useState<Thread | null>(null);
   const [showCreateBooklist, setShowCreateBooklist] = useState(false);
   const [editingBooklist, setEditingBooklist] = useState<Booklist | null>(null);
 
@@ -117,11 +120,7 @@ export function MePage() {
     return Array.from(tagSet);
   }, [channelTagCatalog, form.preferredChannelIds]);
 
-  const followsQuery = useQuery({
-    queryKey: ['me', 'follows'],
-    queryFn: followsApi.getFollows,
-    staleTime: 60 * 1000,
-  });
+  const followsQuery = useFollowsFeed();
 
   const createdThreadsQuery = useQuery({
     queryKey: ['me', 'threads', user?.id],
@@ -135,72 +134,17 @@ export function MePage() {
     staleTime: 60 * 1000,
   });
 
-  const myBooklistsQuery = useQuery({
-    queryKey: ['me', 'booklists', 'mine'],
-    queryFn: () =>
-      booklistsApi.listMine({
-        createByCurrentUser: true,
-        pageIndex: 0,
-        pageSize: 18,
-        sortMethod: 5,
-      }),
-    staleTime: 60 * 1000,
-  });
+  const myBooklistsQuery = useMyBooklistsList();
 
-  const collectedBooklistsQuery = useQuery({
-    queryKey: ['me', 'booklists', 'collected'],
-    queryFn: () =>
-      booklistsApi.listMine({
-        collectByCurrentUser: true,
-        pageIndex: 0,
-        pageSize: 18,
-        sortMethod: 6,
-      }),
-    staleTime: 60 * 1000,
-  });
+  const collectedBooklistsQuery = useCollectedBooklistsList();
 
-  const collectMutation = useMutation({
-    mutationFn: ({ id, collected }: { id: number; collected: boolean }) =>
-      collected ? booklistsApi.uncollect([id]) : booklistsApi.collect([id]),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['me', 'booklists'] });
-      queryClient.invalidateQueries({ queryKey: ['booklists'] });
-      queryClient.invalidateQueries({ queryKey: ['booklist-detail'] });
-    },
-    onError: () => toast.error('收藏状态更新失败'),
-  });
+  const collectMutation = useToggleBooklistCollection();
 
-  const createMutation = useMutation({
-    mutationFn: (payload: BooklistFormInput) => booklistsApi.create(payload),
-    onSuccess: () => {
-      toast.success('书单创建成功');
-      setShowCreateBooklist(false);
-      queryClient.invalidateQueries({ queryKey: ['me', 'booklists'] });
-      queryClient.invalidateQueries({ queryKey: ['booklists'] });
-    },
-    onError: () => toast.error('书单创建失败'),
-  });
+  const createMutation = useCreateBooklist(() => setShowCreateBooklist(false));
 
-  const updateMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: BooklistFormInput }) => booklistsApi.update(id, payload),
-    onSuccess: () => {
-      toast.success('书单已更新');
-      setEditingBooklist(null);
-      queryClient.invalidateQueries({ queryKey: ['me', 'booklists'] });
-      queryClient.invalidateQueries({ queryKey: ['booklists'] });
-    },
-    onError: () => toast.error('更新失败'),
-  });
+  const updateMutation = useUpdateBooklist(undefined, () => setEditingBooklist(null));
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => booklistsApi.remove(id),
-    onSuccess: () => {
-      toast.success('书单已删除');
-      queryClient.invalidateQueries({ queryKey: ['me', 'booklists'] });
-      queryClient.invalidateQueries({ queryKey: ['booklists'] });
-    },
-    onError: () => toast.error('删除失败'),
-  });
+  const deleteMutation = useDeleteBooklist();
 
   const createdThreads = (createdThreadsQuery.data?.results || []) as Thread[];
   const totalReactions = createdThreads.reduce((sum, item) => sum + (Number(item.reaction_count) || 0), 0);
@@ -433,15 +377,7 @@ export function MePage() {
             ) : (followsQuery.data?.results?.length || 0) === 0 ? (
               <p className="od-text-body">暂无关注内容。</p>
             ) : (
-              <div className={settings.layoutMode === 'list' ? 'flex flex-col space-y-od-list-gap' : 'grid grid-cols-2 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}>
-                {(followsQuery.data?.results || []).map((thread) =>
-                  settings.layoutMode === 'list' ? (
-                    <ThreadListItem key={thread.thread_id} thread={thread} onPreview={setPreviewThread} />
-                  ) : (
-                    <ThreadCard key={thread.thread_id} thread={thread} onPreview={setPreviewThread} />
-                  ),
-                )}
-              </div>
+              <ThreadResultsCollection threads={followsQuery.data?.results || []} onPreview={openPreview} />
             )}
           </section>
         )}
@@ -496,15 +432,7 @@ export function MePage() {
             ) : createdThreads.length === 0 ? (
               <p className="od-text-body">还没有检索到你的创建内容。</p>
             ) : (
-              <div className={settings.layoutMode === 'list' ? 'flex flex-col space-y-od-list-gap' : 'grid grid-cols-2 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}>
-                {createdThreads.map((thread) =>
-                  settings.layoutMode === 'list' ? (
-                    <ThreadListItem key={thread.thread_id} thread={thread} onPreview={setPreviewThread} />
-                  ) : (
-                    <ThreadCard key={thread.thread_id} thread={thread} onPreview={setPreviewThread} />
-                  ),
-                )}
-              </div>
+              <ThreadResultsCollection threads={createdThreads} onPreview={openPreview} />
             )}
           </section>
         )}
@@ -674,9 +602,6 @@ export function MePage() {
         }}
       />
 
-      {previewThread && (
-        <ThreadPreviewOverlay thread={previewThread} onClose={() => setPreviewThread(null)} />
-      )}
     </>
   );
 }

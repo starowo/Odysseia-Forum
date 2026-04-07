@@ -3,14 +3,18 @@ import { useQuery } from '@tanstack/react-query';
 import { usePreviewStore } from '@/features/search/store/previewStore';
 import { ThreadPreviewOverlay } from '@/widgets/thread-preview/ThreadPreviewOverlay';
 import { searchApi } from '@/features/search/api/searchApi';
+import { searchKeys } from '@/features/search/lib/queryKeys';
 import { toast } from 'sonner';
 
 export function GlobalThreadPreview() {
-    const { previewThread, previewThreadId, setPreviewThread, previewOptions } = usePreviewStore();
+    const previewThread = usePreviewStore((state) => state.previewThread);
+    const previewThreadId = usePreviewStore((state) => state.previewThreadId);
+    const previewOptions = usePreviewStore((state) => state.previewOptions);
+    const setPreviewThread = usePreviewStore((state) => state.setPreviewThread);
 
     // Fetch thread details if only ID is provided
     const { data: fetchedThread, isError } = useQuery({
-        queryKey: ['thread', previewThreadId],
+        queryKey: searchKeys.thread(previewThreadId),
         queryFn: () => searchApi.getThread(previewThreadId!),
         enabled: !!previewThreadId,
         staleTime: 5 * 60 * 1000,

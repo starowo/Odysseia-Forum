@@ -1,17 +1,17 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Compass, Dices, Megaphone, Plus, Sparkles } from 'lucide-react';
-import { toast } from 'sonner';
 
 import { ThreadCard } from '@/entities/thread/ThreadCard';
 import { BooklistCard } from '@/entities/booklist/BooklistCard';
 import type { Booklist } from '@/entities/booklist/types';
 import { plazaApi, PLAZA_RAILS, type PlazaRailKey } from '@/features/plaza/api/plazaApi';
 import { BannerApplicationModal } from '@/features/banner/components/BannerApplicationModal';
-import { booklistsApi } from '@/features/booklists/api/booklistsApi';
+import { useToggleBooklistCollection } from '@/features/booklists/hooks/useBooklistsData';
 import { useUserPreferences } from '@/features/preferences/hooks/useUserPreferences';
 import { resolveDiscoveryPreferencePatch } from '@/features/preferences/lib/discoveryPreferences';
+import { plazaKeys } from '@/features/plaza/lib/queryKeys';
 import { usePreviewStore } from '@/features/search/store/previewStore';
 import { GUILD_ID } from '@/shared/config/channelCategories.private';
 import { FluidDivider } from '@/shared/ui/FluidDivider';
@@ -25,8 +25,8 @@ const railSortMap: Record<PlazaRailKey, string> = {
 
 export function PlazaPage() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const { setPreviewThreadId, setPreviewThread } = usePreviewStore();
+  const setPreviewThreadId = usePreviewStore((state) => state.setPreviewThreadId);
+  const setPreviewThread = usePreviewStore((state) => state.setPreviewThread);
   const { preferences } = useUserPreferences({ guildId: GUILD_ID });
 
   const [showBannerApply, setShowBannerApply] = useState(false);
@@ -43,34 +43,34 @@ export function PlazaPage() {
   );
 
   const bannersQuery = useQuery({
-    queryKey: ['plaza', 'banners'],
+    queryKey: plazaKeys.banners(),
     queryFn: plazaApi.getBanners,
     staleTime: 60 * 1000,
   });
 
   const booklistsQuery = useQuery({
-    queryKey: ['plaza', 'booklists'],
+    queryKey: plazaKeys.booklists(),
     queryFn: plazaApi.getFeaturedBooklists,
     staleTime: 2 * 60 * 1000,
   });
 
   const latestQuery = useQuery({
-    queryKey: ['plaza', 'rail', 'latest', JSON.stringify(plazaPreferencePatch || {})],
+    queryKey: plazaKeys.rail('latest', plazaPreferencePatch || null),
     queryFn: () => plazaApi.getRail('latest', plazaPreferencePatch || undefined),
     staleTime: 90 * 1000,
   });
   const reactionQuery = useQuery({
-    queryKey: ['plaza', 'rail', 'reaction_surge', JSON.stringify(plazaPreferencePatch || {})],
+    queryKey: plazaKeys.rail('reaction_surge', plazaPreferencePatch || null),
     queryFn: () => plazaApi.getRail('reaction_surge', plazaPreferencePatch || undefined),
     staleTime: 90 * 1000,
   });
   const discussionQuery = useQuery({
-    queryKey: ['plaza', 'rail', 'discussion_surge', JSON.stringify(plazaPreferencePatch || {})],
+    queryKey: plazaKeys.rail('discussion_surge', plazaPreferencePatch || null),
     queryFn: () => plazaApi.getRail('discussion_surge', plazaPreferencePatch || undefined),
     staleTime: 90 * 1000,
   });
   const pickQuery = useQuery({
-    queryKey: ['plaza', 'rail', 'editors_pick', JSON.stringify(plazaPreferencePatch || {})],
+    queryKey: plazaKeys.rail('editors_pick', plazaPreferencePatch || null),
     queryFn: () => plazaApi.getRail('editors_pick', plazaPreferencePatch || undefined),
     staleTime: 90 * 1000,
   });
@@ -85,16 +85,7 @@ export function PlazaPage() {
     [latestQuery.data, reactionQuery.data, discussionQuery.data, pickQuery.data],
   );
 
-  const collectMutation = useMutation({
-    mutationFn: ({ id, collected }: { id: number; collected: boolean }) =>
-      collected ? booklistsApi.uncollect([id]) : booklistsApi.collect([id]),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['plaza', 'booklists'] });
-      queryClient.invalidateQueries({ queryKey: ['booklists'] });
-      queryClient.invalidateQueries({ queryKey: ['booklist-detail'] });
-    },
-    onError: () => toast.error('收藏状态更新失败'),
-  });
+  const collectMutation = useToggleBooklistCollection();
 
   const heroBanner = bannersQuery.data?.[0] ?? null;
   const secondaryBanners = bannersQuery.data?.slice(1, 4) ?? [];

@@ -10,7 +10,7 @@ import { AuthorAvatar } from '@/entities/user/AuthorAvatar';
 import { ThreadActions } from '@/features/threads/components/ThreadActions';
 import { ThreadStatusBadges } from '@/entities/thread/ThreadStatusBadges';
 import type { Thread } from '@/entities/thread/types';
-import { useSettings } from '@/shared/hooks/useSettings';
+import { useFontSizeSetting } from '@/shared/hooks/useSettings';
 import { fontSizeMap } from '@/shared/lib/settings';
 import { useLockBodyScroll } from '@/shared/hooks/useLockBodyScroll';
 import { useSearchURLParams } from '@/features/search/hooks/useSearchParams';
@@ -32,8 +32,8 @@ export function ThreadPreviewOverlay({
   const navigate = useNavigate();
   const location = useLocation();
   const { params, setParams } = useSearchURLParams();
-  const { settings } = useSettings();
-  const fontSizes = fontSizeMap[settings.fontSize];
+  const fontSize = useFontSizeSetting();
+  const fontSizes = fontSizeMap[fontSize];
   const [isVisible, setIsVisible] = useState(false);
 
   useLockBodyScroll(true);

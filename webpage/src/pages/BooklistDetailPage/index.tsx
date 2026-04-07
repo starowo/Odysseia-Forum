@@ -1,18 +1,26 @@
 import { useMemo, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, BookOpen, Edit3, Plus, RefreshCw, Star, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { ThreadResultsCollection } from '@/entities/thread/ThreadResultsCollection';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { ThreadListItem } from '@/entities/thread/ThreadListItem';
 import type { Thread } from '@/entities/thread/types';
-import { ThreadPreviewOverlay } from '@/widgets/thread-preview/ThreadPreviewOverlay';
-import { booklistsApi } from '@/features/booklists/api/booklistsApi';
-import type { BooklistItem, BooklistItemAddInput } from '@/entities/booklist/types';
+import {
+  useAddBooklistItems,
+  useBooklistDetail,
+  useBooklistItems,
+  useDeleteBooklist,
+  useRemoveBooklistItems,
+  useToggleBooklistCollection,
+  useUpdateBooklist,
+  useUpdateBooklistItem,
+} from '@/features/booklists/hooks/useBooklistsData';
+import type { BooklistItem } from '@/entities/booklist/types';
 import { BooklistFormModal } from '@/features/booklists/components/BooklistFormModal';
 import { AddThreadsToBooklistModal } from '@/features/booklists/components/AddThreadsToBooklistModal';
 import { BooklistItemEditorModal } from '@/features/booklists/components/BooklistItemEditorModal';
+import { usePreviewThread } from '@/features/search/hooks/usePreviewThread';
 
 function toThread(item: BooklistItem): Thread {
   return {
@@ -36,95 +44,28 @@ function toThread(item: BooklistItem): Thread {
 export function BooklistDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { openPreview } = usePreviewThread();
 
   const booklistId = Number.parseInt(id || '', 10);
-  const [previewThread, setPreviewThread] = useState<Thread | null>(null);
   const [showEdit, setShowEdit] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [editingItem, setEditingItem] = useState<BooklistItem | null>(null);
 
-  const detailQuery = useQuery({
-    queryKey: ['booklist-detail', booklistId],
-    queryFn: () => booklistsApi.getDetail(booklistId),
-    enabled: Number.isFinite(booklistId),
-  });
-
-  const itemsQuery = useQuery({
-    queryKey: ['booklist-items', booklistId],
-    queryFn: () => booklistsApi.listItems(booklistId, 0, 100),
-    enabled: Number.isFinite(booklistId),
-  });
+  const detailQuery = useBooklistDetail(booklistId);
+  const itemsQuery = useBooklistItems(booklistId);
 
   const isOwner = useMemo(
     () => String(detailQuery.data?.owner_id ?? '') === String(user?.id ?? ''),
     [detailQuery.data?.owner_id, user?.id],
   );
 
-  const invalidateAll = () => {
-    queryClient.invalidateQueries({ queryKey: ['booklist-detail', booklistId] });
-    queryClient.invalidateQueries({ queryKey: ['booklist-items', booklistId] });
-    queryClient.invalidateQueries({ queryKey: ['booklists'] });
-  };
-
-  const updateMutation = useMutation({
-    mutationFn: (payload: Parameters<typeof booklistsApi.update>[1]) => booklistsApi.update(booklistId, payload),
-    onSuccess: () => {
-      toast.success('书单已更新');
-      setShowEdit(false);
-      invalidateAll();
-    },
-    onError: () => toast.error('更新失败'),
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: () => booklistsApi.remove(booklistId),
-    onSuccess: () => {
-      toast.success('书单已删除');
-      navigate('/booklists');
-    },
-    onError: () => toast.error('删除失败'),
-  });
-
-  const collectMutation = useMutation({
-    mutationFn: ({ collected }: { collected: boolean }) =>
-      collected ? booklistsApi.uncollect([booklistId]) : booklistsApi.collect([booklistId]),
-    onSuccess: () => {
-      invalidateAll();
-    },
-    onError: () => toast.error('收藏状态更新失败'),
-  });
-
-  const addItemsMutation = useMutation({
-    mutationFn: (items: BooklistItemAddInput[]) => booklistsApi.addItems(booklistId, items),
-    onSuccess: () => {
-      toast.success('帖子已加入书单');
-      setShowAdd(false);
-      invalidateAll();
-    },
-    onError: () => toast.error('添加失败'),
-  });
-
-  const removeItemMutation = useMutation({
-    mutationFn: (threadId: number) => booklistsApi.removeItems(booklistId, [threadId]),
-    onSuccess: () => {
-      toast.success('已移除条目');
-      invalidateAll();
-    },
-    onError: () => toast.error('移除失败'),
-  });
-
-  const updateItemMutation = useMutation({
-    mutationFn: ({ threadId, payload }: { threadId: number; payload: { comment?: string; display_order?: number } }) =>
-      booklistsApi.updateItem(booklistId, threadId, payload),
-    onSuccess: () => {
-      toast.success('条目已更新');
-      setEditingItem(null);
-      invalidateAll();
-    },
-    onError: () => toast.error('更新条目失败'),
-  });
+  const updateMutation = useUpdateBooklist(booklistId, () => setShowEdit(false));
+  const deleteMutation = useDeleteBooklist(() => navigate('/booklists'));
+  const collectMutation = useToggleBooklistCollection();
+  const addItemsMutation = useAddBooklistItems(booklistId, () => setShowAdd(false));
+  const removeItemMutation = useRemoveBooklistItems(booklistId);
+  const updateItemMutation = useUpdateBooklistItem(booklistId, () => setEditingItem(null));
 
   if (!Number.isFinite(booklistId)) {
     return <div className="p-8 text-sm text-[var(--od-error)]">无效书单 ID</div>;
@@ -184,7 +125,7 @@ export function BooklistDetailPage() {
 
               <button
                 type="button"
-                onClick={() => collectMutation.mutate({ collected: Boolean(booklist.collected_flag) })}
+                onClick={() => collectMutation.mutate({ id: booklistId, collected: Boolean(booklist.collected_flag) })}
                 className={`rounded-md px-3 py-1.5 text-xs font-semibold ${
                   booklist.collected_flag
                     ? 'bg-[var(--od-accent)]/15 text-[var(--od-accent)]'
@@ -216,7 +157,7 @@ export function BooklistDetailPage() {
                     type="button"
                     onClick={() => {
                       if (!window.confirm(`确认删除书单「${booklist.title}」？`)) return;
-                      deleteMutation.mutate();
+                      deleteMutation.mutate(booklistId);
                     }}
                     className="inline-flex items-center gap-1 rounded-md border border-[var(--od-border)] px-3 py-1.5 text-xs text-[var(--od-error)]"
                   >
@@ -238,7 +179,11 @@ export function BooklistDetailPage() {
           <div className="flex flex-col space-y-od-list-gap">
             {items.map((item) => (
               <div key={`${item.booklist_item_id}-${item.thread_id}`} className="space-y-2">
-                <ThreadListItem thread={toThread(item)} onPreview={setPreviewThread} />
+                <ThreadResultsCollection
+                  threads={[toThread(item)]}
+                  onPreview={openPreview}
+                  listClassName="flex flex-col"
+                />
                 <div className="rounded-lg border border-[var(--od-border)] bg-[var(--od-card)] px-3 py-2">
                   <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                     <span className="text-[var(--od-text-tertiary)]">排序权重: {item.display_order}</span>
@@ -281,7 +226,7 @@ export function BooklistDetailPage() {
         initialValue={booklist}
         submitting={updateMutation.isPending}
         onClose={() => setShowEdit(false)}
-        onSubmit={(payload) => updateMutation.mutate(payload)}
+        onSubmit={(payload) => updateMutation.mutate({ payload })}
       />
 
       <AddThreadsToBooklistModal
@@ -307,7 +252,6 @@ export function BooklistDetailPage() {
         }}
       />
 
-      {previewThread && <ThreadPreviewOverlay thread={previewThread} onClose={() => setPreviewThread(null)} />}
     </>
   );
 }

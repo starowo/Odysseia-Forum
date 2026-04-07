@@ -1,22 +1,19 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { FileText, Heart, MessageCircle, RefreshCw } from 'lucide-react';
 
 import { searchApi } from '@/features/search/api/searchApi';
-import { useSettings } from '@/shared/hooks/useSettings';
-import { ThreadCard } from '@/entities/thread/ThreadCard';
-import { ThreadListItem } from '@/entities/thread/ThreadListItem';
+import { ThreadResultsCollection } from '@/entities/thread/ThreadResultsCollection';
 import type { Thread } from '@/entities/thread/types';
 import { UserHeaderCard } from '@/entities/user/UserHeaderCard';
 import { UserStatsGrid } from '@/entities/user/UserStatsGrid';
+import { usePreviewThread } from '@/features/search/hooks/usePreviewThread';
 import { FluidDivider } from '@/shared/ui/FluidDivider';
-import { ThreadPreviewOverlay } from '@/widgets/thread-preview/ThreadPreviewOverlay';
 
 export function UserProfilePage() {
   const { userId } = useParams();
-  const { settings } = useSettings();
-  const [previewThread, setPreviewThread] = useState<Thread | null>(null);
+  const { openPreview } = usePreviewThread();
 
   const threadsQuery = useQuery({
     queryKey: ['user-profile', userId, 'threads'],
@@ -115,28 +112,13 @@ export function UserProfilePage() {
           ) : threads.length === 0 ? (
             <p className="text-sm text-[var(--od-text-secondary)]">暂无可展示帖子。</p>
           ) : (
-            <div
-              className={
-                settings.layoutMode === 'list'
-                  ? 'flex flex-col space-y-od-list-gap'
-                  : 'grid grid-cols-2 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-              }
-            >
-              {threads.map((thread) =>
-                settings.layoutMode === 'list' ? (
-                  <ThreadListItem key={thread.thread_id} thread={thread} onPreview={setPreviewThread} />
-                ) : (
-                  <ThreadCard key={thread.thread_id} thread={thread} onPreview={setPreviewThread} />
-                ),
-              )}
-            </div>
+            <ThreadResultsCollection
+              threads={threads}
+              onPreview={openPreview}
+            />
           )}
         </section>
       </div>
-
-      {previewThread && (
-        <ThreadPreviewOverlay thread={previewThread} onClose={() => setPreviewThread(null)} />
-      )}
     </>
   );
 }

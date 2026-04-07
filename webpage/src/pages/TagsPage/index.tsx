@@ -4,8 +4,9 @@ import { Search, Tag as TagIcon, TrendingUp, Hash } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 import { searchApi } from '@/features/search/api/searchApi';
+import { searchKeys } from '@/features/search/lib/queryKeys';
 import { addToken } from '@/shared/lib/searchTokenizer';
-import { useSettings } from '@/shared/hooks/useSettings';
+import { useSidebarCollapsedSetting } from '@/shared/hooks/useSettings';
 import { FluidDivider } from '@/shared/ui/FluidDivider';
 
 interface TagWithCount {
@@ -24,11 +25,11 @@ export function TagsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedChannelId, setSelectedChannelId] = useState<string>(ALL_CHANNELS_VALUE);
   const navigate = useNavigate();
-  const { settings } = useSettings();
+  const sidebarCollapsed = useSidebarCollapsedSetting();
 
   // 全频道标签源（兼容没有 /meta/channels 的后端）
   const { data: channelTagCatalog = [], isLoading: isCatalogLoading } = useQuery({
-    queryKey: ['tags-overview', 'channel-tag-catalog'],
+    queryKey: searchKeys.channelTagCatalog(),
     queryFn: () => searchApi.getChannelTagCatalog(),
     staleTime: 5 * 60 * 1000,
     retry: false,
@@ -296,7 +297,7 @@ export function TagsPage() {
 
             {/* 标签网格 */}
           {isPageLoading ? (
-            <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 lg:gap-5 ${settings.sidebarCollapsed ? 'lg:grid-cols-4 xl:grid-cols-5' : 'lg:grid-cols-3 xl:grid-cols-4'}`}>
+            <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 lg:gap-5 ${sidebarCollapsed ? 'lg:grid-cols-4 xl:grid-cols-5' : 'lg:grid-cols-3 xl:grid-cols-4'}`}>
                 {Array.from({ length: 12 }).map((_, i) => (
                   <div
                     key={i}
@@ -306,7 +307,7 @@ export function TagsPage() {
               </div>
             ) : filteredTags.length > 0 ? (
               <div
-                className={`grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2 lg:gap-x-10 lg:gap-y-3 ${settings.sidebarCollapsed ? 'lg:grid-cols-4 xl:grid-cols-5' : 'lg:grid-cols-3 xl:grid-cols-4'} animate-in fade-in duration-500`}
+                className={`grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2 lg:gap-x-10 lg:gap-y-3 ${sidebarCollapsed ? 'lg:grid-cols-4 xl:grid-cols-5' : 'lg:grid-cols-3 xl:grid-cols-4'} animate-in fade-in duration-500`}
                 style={{ animationDelay: '300ms' }}
               >
                 {filteredTags.map((tag, index) => (

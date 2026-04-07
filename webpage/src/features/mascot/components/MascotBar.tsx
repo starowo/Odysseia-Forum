@@ -3,7 +3,11 @@ import { X } from 'lucide-react';
 import { useMascotStore } from '../store/mascotStore';
 
 export function MascotBar() {
-    const { emotion, message, isVisible, setVisible, reset } = useMascotStore();
+    const emotion = useMascotStore((state) => state.emotion);
+    const message = useMascotStore((state) => state.message);
+    const isVisible = useMascotStore((state) => state.isVisible);
+    const setVisible = useMascotStore((state) => state.setVisible);
+    const reset = useMascotStore((state) => state.reset);
 
     // Simple interaction: reset to random idle message on click
     const handleMascotClick = () => {

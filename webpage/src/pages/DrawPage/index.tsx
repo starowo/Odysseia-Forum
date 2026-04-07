@@ -17,9 +17,10 @@ import type { Thread } from '@/entities/thread/types';
 import { useUserPreferences } from '@/features/preferences/hooks/useUserPreferences';
 import { getDiscoveryPreferenceContext } from '@/features/preferences/lib/discoveryPreferences';
 import { searchApi } from '@/features/search/api/searchApi';
+import { usePreviewThread } from '@/features/search/hooks/usePreviewThread';
+import { searchKeys } from '@/features/search/lib/queryKeys';
 import { GUILD_ID, CHANNELS, CHANNEL_CATEGORIES } from '@/shared/config/channelCategories.private';
 import { FluidDivider } from '@/shared/ui/FluidDivider';
-import { ThreadPreviewOverlay } from '@/widgets/thread-preview/ThreadPreviewOverlay';
 
 type DrawScopeMode = 'preferences' | 'channel';
 
@@ -47,6 +48,7 @@ const allChannels = CHANNEL_CATEGORIES.flatMap((category) => category.channels);
 
 export function DrawPage() {
   const navigate = useNavigate();
+  const { openPreview } = usePreviewThread();
   const { preferences } = useUserPreferences({ guildId: GUILD_ID });
   const preferenceContext = useMemo(
     () => getDiscoveryPreferenceContext(preferences),
@@ -55,7 +57,6 @@ export function DrawPage() {
 
   const [scopeMode, setScopeMode] = useState<DrawScopeMode>('preferences');
   const [selectedChannelId, setSelectedChannelId] = useState<string>('');
-  const [previewThread, setPreviewThread] = useState<Thread | null>(null);
   const [drawResults, setDrawResults] = useState<Thread[]>([]);
   const [lastDrawCount, setLastDrawCount] = useState<number>(1);
   const [revealedCount, setRevealedCount] = useState<number>(0);
@@ -112,10 +113,13 @@ export function DrawPage() {
   const includeTags = preferenceContext?.includeTags.length ? preferenceContext.includeTags : undefined;
   const excludeTags = preferenceContext?.excludeTags.length ? preferenceContext.excludeTags : undefined;
   const preferenceSignature = preferenceContext?.signature || 'all-content';
-  const scopeSignature = effectiveChannelIds?.join(',') || 'all-channels';
-
   const candidateQuery = useQuery({
-    queryKey: ['draw', 'candidate-pool', preferenceSignature, scopeMode, selectedChannelId, scopeSignature],
+    queryKey: searchKeys.drawPool({
+      preferenceSignature,
+      scopeMode,
+      selectedChannelId,
+      effectiveChannelIds,
+    }),
     queryFn: async () => {
       const result = await searchApi.search({
         channel_ids: effectiveChannelIds,
@@ -358,13 +362,13 @@ export function DrawPage() {
                 </div>
 
                 <div className="max-w-[42rem]">
-                  <ThreadCard thread={featuredResult} onPreview={setPreviewThread} />
+                  <ThreadCard thread={featuredResult} onPreview={openPreview} />
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setPreviewThread(featuredResult)}
+                    onClick={() => openPreview(featuredResult)}
                     className="od-inline-action od-inline-action-primary"
                   >
                     <Eye className="h-4 w-4" />
@@ -408,7 +412,7 @@ export function DrawPage() {
                   <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-2">
                     {trailingResults.map((thread, index) => (
                       <div key={thread.thread_id} className="animate-in fade-in zoom-in-95 duration-300" style={{ animationDelay: `${index * 90}ms` }}>
-                        <ThreadCard thread={thread} onPreview={setPreviewThread} />
+                        <ThreadCard thread={thread} onPreview={openPreview} />
                       </div>
                     ))}
                   </div>
@@ -432,10 +436,6 @@ export function DrawPage() {
           </div>
         )}
       </section>
-
-      {previewThread && (
-        <ThreadPreviewOverlay thread={previewThread} onClose={() => setPreviewThread(null)} />
-      )}
     </div>
   );
 }

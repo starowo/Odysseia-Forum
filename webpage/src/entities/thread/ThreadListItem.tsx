@@ -6,13 +6,14 @@ import { LazyImage } from '@/shared/ui/LazyImage';
 import { HighlightText } from '@/shared/ui/HighlightText';
 import { MarkdownText } from '@/shared/ui/MarkdownText';
 import type { Thread } from '@/entities/thread/types';
-import { useSettings } from '@/shared/hooks/useSettings';
+import { useFontSizeSetting } from '@/shared/hooks/useSettings';
 import { fontSizeMap } from '@/shared/lib/settings';
 import { ThreadActions } from '@/features/threads/components/ThreadActions';
 import { AuthorAvatar } from '@/entities/user/AuthorAvatar';
 import { ThreadStatusBadges } from '@/entities/thread/ThreadStatusBadges';
 import { usePretextClampText } from '@/shared/hooks/usePretextClampText';
 import { useNavigate } from 'react-router-dom';
+import { memo } from 'react';
 
 
 interface ThreadListItemProps {
@@ -23,10 +24,10 @@ interface ThreadListItemProps {
   onPreview?: (thread: Thread) => void;
 }
 
-export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick, onPreview }: ThreadListItemProps) {
+function ThreadListItemImpl({ thread, onTagClick, searchQuery, onAuthorClick, onPreview }: ThreadListItemProps) {
   const navigate = useNavigate();
-  const { settings } = useSettings();
-  const fontSizes = fontSizeMap[settings.fontSize];
+  const fontSize = useFontSizeSetting();
+  const fontSizes = fontSizeMap[fontSize];
 
   const createdTime = formatDistanceToNow(new Date(thread.created_at), {
     addSuffix: true,
@@ -208,3 +209,5 @@ export function ThreadListItem({ thread, onTagClick, searchQuery, onAuthorClick,
     </article>
   );
 }
+
+export const ThreadListItem = memo(ThreadListItemImpl);

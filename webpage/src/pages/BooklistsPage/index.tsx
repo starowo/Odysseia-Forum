@@ -1,13 +1,17 @@
 import { useMemo, useState } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BookOpen, Plus, RefreshCw, Search, SlidersHorizontal } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
 
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { BooklistCard } from '@/entities/booklist/BooklistCard';
-import type { Booklist, BooklistFormInput } from '@/entities/booklist/types';
-import { booklistsApi } from '@/features/booklists/api/booklistsApi';
+import type { Booklist } from '@/entities/booklist/types';
+import {
+  useBooklistsList,
+  useCreateBooklist,
+  useDeleteBooklist,
+  useToggleBooklistCollection,
+  useUpdateBooklist,
+} from '@/features/booklists/hooks/useBooklistsData';
 import { BooklistFormModal } from '@/features/booklists/components/BooklistFormModal';
 import { FluidDivider } from '@/shared/ui/FluidDivider';
 
@@ -21,7 +25,6 @@ const scopeOptions: Array<{ key: BooklistScope; label: string }> = [
 
 export function BooklistsPage() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { user } = useAuth();
 
   const [scope, setScope] = useState<BooklistScope>('public');
@@ -32,85 +35,18 @@ export function BooklistsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [editing, setEditing] = useState<Booklist | null>(null);
 
-  const listQuery = useQuery({
-    queryKey: ['booklists', scope, keywords, sortMethod, pageIndex],
-    queryFn: async () => {
-      if (scope === 'public') {
-        return booklistsApi.listPublic({
-          keywords: keywords || undefined,
-          sortMethod,
-          pageIndex,
-          pageSize: 12,
-        });
-      }
-
-      if (scope === 'mine') {
-        return booklistsApi.listMine({
-          createByCurrentUser: true,
-          keywords: keywords || undefined,
-          sortMethod,
-          pageIndex,
-          pageSize: 12,
-        });
-      }
-
-      return booklistsApi.listMine({
-        collectByCurrentUser: true,
-        keywords: keywords || undefined,
-        sortMethod,
-        pageIndex,
-        pageSize: 12,
-      });
-    },
+  const listQuery = useBooklistsList({
+    scope,
+    keywords: keywords || undefined,
+    sortMethod,
+    pageIndex,
+    pageSize: 12,
   });
 
-  const createMutation = useMutation({
-    mutationFn: (payload: BooklistFormInput) => booklistsApi.create(payload),
-    onSuccess: () => {
-      toast.success('书单创建成功');
-      setShowCreate(false);
-      queryClient.invalidateQueries({ queryKey: ['booklists'] });
-    },
-    onError: () => {
-      toast.error('书单创建失败');
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, payload }: { id: number; payload: BooklistFormInput }) =>
-      booklistsApi.update(id, payload),
-    onSuccess: () => {
-      toast.success('书单已更新');
-      setEditing(null);
-      queryClient.invalidateQueries({ queryKey: ['booklists'] });
-    },
-    onError: () => {
-      toast.error('更新失败');
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: number) => booklistsApi.remove(id),
-    onSuccess: () => {
-      toast.success('书单已删除');
-      queryClient.invalidateQueries({ queryKey: ['booklists'] });
-    },
-    onError: () => {
-      toast.error('删除失败');
-    },
-  });
-
-  const collectMutation = useMutation({
-    mutationFn: ({ id, collected }: { id: number; collected: boolean }) =>
-      collected ? booklistsApi.uncollect([id]) : booklistsApi.collect([id]),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['booklists'] });
-      queryClient.invalidateQueries({ queryKey: ['booklist-detail'] });
-    },
-    onError: () => {
-      toast.error('收藏状态更新失败');
-    },
-  });
+  const createMutation = useCreateBooklist(() => setShowCreate(false));
+  const updateMutation = useUpdateBooklist(undefined, () => setEditing(null));
+  const deleteMutation = useDeleteBooklist();
+  const collectMutation = useToggleBooklistCollection();
 
   const results = listQuery.data?.results ?? [];
   const total = listQuery.data?.total ?? 0;

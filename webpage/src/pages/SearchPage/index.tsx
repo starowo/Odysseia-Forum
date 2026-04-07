@@ -1,44 +1,19 @@
-import { ThreadCard } from '@/entities/thread/ThreadCard';
 import { ThreadCardSkeleton } from '@/entities/thread/ThreadCardSkeleton';
-import { ThreadListItem } from '@/entities/thread/ThreadListItem';
 import { ThreadListItemSkeleton } from '@/entities/thread/ThreadListItemSkeleton';
-import type { Thread } from '@/entities/thread/types';
+import { ThreadResultsCollection } from '@/entities/thread/ThreadResultsCollection';
 import { MascotDialog } from '@/features/mascot/components/MascotDialog';
-import { searchApi } from '@/features/search/api/searchApi';
+import { usePreviewThread } from '@/features/search/hooks/usePreviewThread';
 import { useSearchURLParams } from '@/features/search/hooks/useSearchParams';
-import { useSearchStore } from '@/features/search/store/searchStore';
+import { useSearchResults } from '@/features/search/hooks/useSearchResults';
 import { useUserPreferences } from '@/features/preferences/hooks/useUserPreferences';
-import {
-  getDiscoveryPreferenceContext,
-  resolveDiscoveryPreferencePatch,
-} from '@/features/preferences/lib/discoveryPreferences';
 import { GUILD_ID } from '@/shared/config/channelCategories.private';
-import { useSettings } from '@/shared/hooks/useSettings';
+import { useLayoutMode } from '@/shared/hooks/useSettings';
 import { addToken } from '@/shared/lib/searchTokenizer';
 import { FluidDivider } from '@/shared/ui/FluidDivider';
-import { ThreadPreviewOverlay } from '@/widgets/thread-preview/ThreadPreviewOverlay';
-import { useInfiniteQuery } from '@tanstack/react-query';
 import { Compass, Dices, Search, SlidersHorizontal } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-
-const defaultBanners = [
-  {
-    id: '1',
-    image:
-      'https://images.unsplash.com/photo-1614850523296-d8c1af93d400?auto=format&fit=crop&q=80&w=2070',
-    title: '探索无限可能',
-    description: '在 Odysseia 发现你感兴趣的内容',
-  },
-  {
-    id: '2',
-    image:
-      'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&q=80&w=2070',
-    title: '类脑智能社区',
-    description: '连接思想，共创未来',
-  },
-];
 
 export function SearchPage() {
   const navigate = useNavigate();
@@ -46,75 +21,35 @@ export function SearchPage() {
   const {
     query,
     channel: selectedChannel,
-    includeTags,
-    excludeTags,
-    includeAuthors,
-    excludeAuthors,
-    tagLogic,
-    sortMethod,
-    timeFrom,
-    timeTo,
   } = params;
-
-  const perPage = 24;
-  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   const [showOnboarding, setShowOnboarding] = useState(() => {
     return !localStorage.getItem('od_onboarding_shown');
   });
-  const [ignoreDiscoveryPreferences, setIgnoreDiscoveryPreferences] = useState(false);
 
   const { preferences } = useUserPreferences({ guildId: GUILD_ID });
+  const { openPreview } = usePreviewThread();
 
-  const hasExplicitFilters =
-    includeTags.length > 0 ||
-    excludeTags.length > 0 ||
-    includeAuthors.length > 0 ||
-    excludeAuthors.length > 0 ||
-    !!timeFrom ||
-    !!timeTo ||
-    (sortMethod && sortMethod !== 'last_active_desc') ||
-    (tagLogic && tagLogic !== 'and');
+  const layoutMode = useLayoutMode();
 
-  const discoveryPreferenceContext = useMemo(
-    () => getDiscoveryPreferenceContext(preferences),
-    [preferences],
-  );
-
-  const discoveryPreferencePatch = useMemo(
-    () => (ignoreDiscoveryPreferences
-      ? null
-      : resolveDiscoveryPreferencePatch({
-        preferences,
-        mode: 'browse-empty',
-        query,
-        selectedChannel,
-        hasExplicitFilters,
-      })),
-    [preferences, query, selectedChannel, hasExplicitFilters, ignoreDiscoveryPreferences],
-  );
-
-  const effectiveSortMethod = discoveryPreferencePatch?.sort_method || sortMethod;
-  const effectivePerPage = discoveryPreferencePatch?.limit || perPage;
-  const effectiveChannelIds = selectedChannel
-    ? [selectedChannel]
-    : discoveryPreferencePatch?.channel_ids;
-  const effectiveIncludeTags = includeTags.length > 0
-    ? includeTags
-    : (discoveryPreferencePatch?.include_tags || []);
-  const effectiveExcludeTags = excludeTags.length > 0
-    ? excludeTags
-    : (discoveryPreferencePatch?.exclude_tags || []);
-
-  const { setBannerList } = useSearchStore();
-  const { settings } = useSettings();
-  const [previewThread, setPreviewThread] = useState<Thread | null>(null);
-
-  useEffect(() => {
-    if (query.trim() || selectedChannel || hasExplicitFilters) {
-      setIgnoreDiscoveryPreferences(false);
-    }
-  }, [query, selectedChannel, hasExplicitFilters]);
+  const {
+    discoveryPreferenceContext,
+    hasExplicitFilters,
+    hasSearchFilters,
+    ignoreDiscoveryPreferences,
+    isPreferenceFilteredBrowse,
+    loadMoreRef,
+    queryState: {
+      isLoading,
+      isError,
+      refetch,
+      hasNextPage,
+      isFetchingNextPage,
+    },
+    results,
+    setIgnoreDiscoveryPreferences,
+    totalResults,
+  } = useSearchResults({ params, preferences });
 
   const handleCloseOnboarding = () => {
     setShowOnboarding(false);
@@ -141,117 +76,10 @@ export function SearchPage() {
     handleCloseOnboarding();
   };
 
-  const {
-    data: searchData,
-    isLoading,
-    isError,
-    refetch,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery<any, Error, any, any, number>({
-    queryKey: [
-      'search',
-        query,
-        selectedChannel,
-        effectiveChannelIds?.join(',') || '',
-        effectiveIncludeTags.join(','),
-        effectiveExcludeTags.join(','),
-        includeAuthors,
-        excludeAuthors,
-        tagLogic,
-        effectiveSortMethod,
-        effectivePerPage,
-        timeFrom,
-        timeTo,
-        discoveryPreferenceContext?.signature || 'no-preferences',
-      ],
-    initialPageParam: 0,
-    queryFn: ({ pageParam }) =>
-      searchApi.search({
-        query: query || undefined,
-        channel_ids: effectiveChannelIds,
-        include_tags: effectiveIncludeTags,
-        exclude_tags: effectiveExcludeTags,
-        tag_logic: tagLogic,
-        sort_method: effectiveSortMethod,
-        limit: effectivePerPage,
-        offset: Number(pageParam) || 0,
-        created_after: timeFrom || undefined,
-        created_before: timeTo || undefined,
-      }),
-    getNextPageParam: (lastPage, allPages) => {
-      const loadedCount = allPages.reduce(
-        (sum: number, page: Awaited<ReturnType<typeof searchApi.search>>) => sum + (page.results?.length || 0),
-        0,
-      );
-      return loadedCount < (lastPage.total || 0) ? loadedCount : undefined;
-    },
-    staleTime: 30 * 1000,
-  });
-
-  const results = useMemo<Thread[]>(() => {
-    const mergedResults =
-      (searchData?.pages.flatMap(
-        (page: Awaited<ReturnType<typeof searchApi.search>>) => page.results || [],
-      ) || []) as Thread[];
-
-    const uniqueResults = new Map<string, Thread>();
-    for (const thread of mergedResults) {
-      if (!thread?.thread_id) continue;
-      if (!uniqueResults.has(thread.thread_id)) {
-        uniqueResults.set(thread.thread_id, thread);
-      }
-    }
-
-    return Array.from(uniqueResults.values());
-  }, [searchData]);
-  const totalResults = Number(searchData?.pages?.[0]?.total || 0);
-
-  useEffect(() => {
-    const target = loadMoreRef.current;
-    if (!target || !hasNextPage) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && hasNextPage && !isFetchingNextPage) {
-          fetchNextPage();
-        }
-      },
-      { rootMargin: '300px 0px' },
-    );
-
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage, results.length]);
-
-  useEffect(() => {
-    const bannerCarousel = searchData?.pages[0]?.banner_carousel;
-    if (bannerCarousel && bannerCarousel.length > 0) {
-      const apiBanners = bannerCarousel.map((banner: any) => ({
-        id: banner.thread_id,
-        image: banner.cover_image_url,
-        title: banner.title,
-        description: banner.description || '点击查看详情',
-      }));
-      setBannerList(apiBanners);
-    } else if (defaultBanners.length > 0) {
-      setBannerList(defaultBanners);
-    }
-  }, [searchData?.pages, setBannerList]);
-
   const handleTagClick = (tagName: string) => {
     const nextQuery = addToken(query || '', 'tag', tagName, 'include');
     setParams({ query: nextQuery });
   };
-
-  const hasSearchFilters = !!query || hasExplicitFilters;
-
-  const isPreferenceFilteredBrowse =
-    !query.trim() &&
-    !selectedChannel &&
-    !hasExplicitFilters &&
-    Boolean(discoveryPreferencePatch);
 
   const gridClass = 'grid grid-cols-2 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
 
@@ -383,9 +211,9 @@ export function SearchPage() {
         )}
 
         {isLoading ? (
-          <div className={settings.layoutMode === 'list' ? 'flex flex-col space-y-od-list-gap' : gridClass}>
+          <div className={layoutMode === 'list' ? 'flex flex-col space-y-od-list-gap' : gridClass}>
             {Array.from({ length: 8 }).map((_, index) =>
-              settings.layoutMode === 'list' ? (
+              layoutMode === 'list' ? (
                 <ThreadListItemSkeleton key={index} />
               ) : (
                 <ThreadCardSkeleton key={index} />
@@ -408,29 +236,15 @@ export function SearchPage() {
           </div>
         ) : results.length > 0 ? (
           <div className="flex flex-col gap-6">
-            <div className={settings.layoutMode === 'list' ? 'flex flex-col space-y-od-list-gap pb-4' : gridClass}>
-              {results.map((thread) =>
-                settings.layoutMode === 'list' ? (
-                  <ThreadListItem
-                    key={thread.thread_id}
-                    thread={thread}
-                    onTagClick={handleTagClick}
-                    searchQuery={query}
-                    onAuthorClick={(author) => navigate(`/u/${author.id}`)}
-                    onPreview={setPreviewThread}
-                  />
-                ) : (
-                  <ThreadCard
-                    key={thread.thread_id}
-                    thread={thread}
-                    onTagClick={handleTagClick}
-                    searchQuery={query}
-                    onAuthorClick={(author) => navigate(`/u/${author.id}`)}
-                    onPreview={setPreviewThread}
-                  />
-                ),
-              )}
-            </div>
+            <ThreadResultsCollection
+              threads={results}
+              onTagClick={handleTagClick}
+              searchQuery={query}
+              onAuthorClick={(author) => navigate(`/u/${author.id}`)}
+              onPreview={openPreview}
+              gridClassName={gridClass}
+              listClassName="flex flex-col space-y-od-list-gap pb-4"
+            />
 
             <div ref={loadMoreRef} className="flex items-center justify-center py-8">
               {isFetchingNextPage ? (
@@ -479,10 +293,6 @@ export function SearchPage() {
           {preferences && <li>你可以一键套用已保存的偏好频道和排序配置</li>}
         </ul>
       </MascotDialog>
-
-      {previewThread && (
-        <ThreadPreviewOverlay thread={previewThread} onClose={() => setPreviewThread(null)} />
-      )}
     </div>
   );
 }

@@ -14,9 +14,12 @@ dist/
 downloads/
 eggs/
 .eggs/
-# 忽略所有 lib/ 文件夹，但是 webpage/src/lib/ 除外
+# 忽略所有 lib/ 文件夹，但保留前端源码里的 lib 目录
 lib/
 !webpage/src/lib/
+!webpage/src/lib/**
+!webpage/src/**/lib/
+!webpage/src/**/lib/**
 lib64/
 parts/
 sdist/
@@ -181,6 +184,9 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+.kilo/
+.workspace/
+workspace/
 
 # 忽略运行文件
 
@@ -201,6 +207,7 @@ webpage/src/shared/config/channelCategories.private.ts
 *.local
 *.log
 .DS_Store
+*.bak
 # Test tool directory
 testtool/
 前端组件测试/

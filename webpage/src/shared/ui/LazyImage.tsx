@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react';
-import { useSettings } from '@/shared/hooks/useSettings';
+import { useImageModeSetting } from '@/shared/hooks/useSettings';
 import { reportBrokenThreadThumbnail, subscribeThreadThumbnailRepair } from '@/features/threads/lib/thumbnailRepairQueue';
 
 interface LazyImageProps {
@@ -23,8 +23,8 @@ export function LazyImage({
   const [isInView, setIsInView] = useState(false);
   const [currentSrc, setCurrentSrc] = useState(src);
   const imgRef = useRef<HTMLDivElement>(null);
-  const { settings } = useSettings();
-  const isImageDisabled = settings.imageMode === 'off';
+  const imageMode = useImageModeSetting();
+  const isImageDisabled = imageMode === 'off';
 
   useEffect(() => {
     const observer = new IntersectionObserver(

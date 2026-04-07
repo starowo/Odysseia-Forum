@@ -5,7 +5,7 @@ import { TopBar } from '@/widgets/layout/TopBar';
 import { MobileTabBar } from '@/widgets/layout/MobileTabBar';
 import { MascotBar } from '@/features/mascot/components/MascotBar';
 import { GlobalThreadPreview } from '@/widgets/thread-preview/GlobalThreadPreview';
-import { useSettings } from '@/shared/hooks/useSettings';
+import { useSidebarCollapsedSetting, useSettings } from '@/shared/hooks/useSettings';
 import { useState } from 'react';
 
 /**
@@ -28,7 +28,8 @@ import { useState } from 'react';
  */
 export function RootLayout() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const { settings, updateSettings } = useSettings();
+  const sidebarCollapsed = useSidebarCollapsedSetting();
+  const { updateSettings } = useSettings();
 
   return (
     <div className="od-app-shell relative flex h-screen w-full overflow-hidden text-[var(--od-text-primary)]">
@@ -37,25 +38,25 @@ export function RootLayout() {
       <div className="od-operation-base pointer-events-none absolute inset-0 z-[5]" />
 
       {/* ── Sidebar (桌面端固定 / 移动端抽屉) ── */}
-      <ResizableSidebar
-        isMobileOpen={isMobileOpen}
-        setIsMobileOpen={setIsMobileOpen}
-        isCollapsed={settings.sidebarCollapsed}
-        setIsCollapsed={(collapsed: boolean) => updateSettings({ sidebarCollapsed: collapsed })}
-      >
-        <AppSidebar />
+        <ResizableSidebar
+          isMobileOpen={isMobileOpen}
+          setIsMobileOpen={setIsMobileOpen}
+          isCollapsed={sidebarCollapsed}
+          setIsCollapsed={(collapsed: boolean) => updateSettings({ sidebarCollapsed: collapsed })}
+        >
+          <AppSidebar />
       </ResizableSidebar>
 
       {/* TopBar 与 Sidebar 处于同一操作层 */}
       <TopBar
         onMenuClick={() => setIsMobileOpen(true)}
-        sidebarCollapsed={settings.sidebarCollapsed}
+        sidebarCollapsed={sidebarCollapsed}
       />
 
       {/* ── 主内容列 ── */}
       <div
         className={`relative z-10 flex min-w-0 flex-1 flex-col transition-[margin] duration-300 ${
-          settings.sidebarCollapsed ? 'lg:ml-0' : 'lg:ml-[170px]'
+          sidebarCollapsed ? 'lg:ml-0' : 'lg:ml-[170px]'
         }`}
       >
         {/* 主滚动区 — 圆角面板 + 独立背景色，形成视觉层级 */}

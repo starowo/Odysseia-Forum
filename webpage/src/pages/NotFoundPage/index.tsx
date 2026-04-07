@@ -4,7 +4,7 @@ import { useMascotStore } from '@/features/mascot/store/mascotStore';
 
 export function NotFoundPage() {
     const navigate = useNavigate();
-    const { reactToError } = useMascotStore();
+    const reactToError = useMascotStore((state) => state.reactToError);
 
     useEffect(() => {
         // Trigger mascot reaction on mount
