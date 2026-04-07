@@ -14,13 +14,17 @@ export function MascotBar() {
         reset();
     };
 
-    if (!isVisible) return null;
-
     return (
-        <div className="fixed bottom-20 md:bottom-4 z-40 flex flex-col-reverse items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500 left-1/2 -translate-x-1/2 lg:left-64 lg:translate-x-0 lg:flex-row lg:items-end pointer-events-none">
+        <div
+            className={`pointer-events-none fixed bottom-20 left-1/2 z-40 flex -translate-x-1/2 flex-col-reverse items-center gap-4 transition-all duration-500 md:bottom-6 lg:left-[11.5rem] lg:translate-x-0 lg:flex-row lg:items-end ${
+                isVisible
+                    ? 'translate-y-0 opacity-100'
+                    : 'pointer-events-none translate-y-6 opacity-0'
+            }`}
+        >
             {/* Mascot Image */}
             <div
-                className="relative z-10 -mb-2 h-24 w-24 cursor-pointer transition-transform hover:scale-110 active:scale-95 pointer-events-auto"
+                className="pointer-events-auto relative z-10 -mb-2 h-24 w-24 cursor-pointer transition-transform hover:scale-110 active:scale-95"
                 onClick={handleMascotClick}
             >
                 <img
@@ -31,8 +35,9 @@ export function MascotBar() {
             </div>
 
             {/* Dialogue Box */}
-            <div className="relative mb-4 max-w-[280px] lg:max-w-md pointer-events-auto">
-                <div className="relative rounded-2xl border border-[var(--od-border)] bg-[var(--od-bg-secondary)] px-4 py-3 shadow-xl lg:px-6">
+            <div className="pointer-events-auto relative mb-4 max-w-[300px] lg:max-w-md">
+                <div className="relative overflow-hidden rounded-[1.35rem] border border-[color-mix(in_srgb,var(--od-border)_75%,transparent)] bg-[color-mix(in_srgb,var(--od-surface-floating)_88%,transparent)] px-4 py-3 shadow-[var(--od-shadow-floating)] backdrop-blur-md lg:px-5">
+                    <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--od-accent)_10%,transparent),transparent_48%,color-mix(in_srgb,var(--od-text-primary)_5%,transparent))]" />
                     <p className="text-sm font-medium text-[var(--od-text-primary)]">
                         {message}
                     </p>

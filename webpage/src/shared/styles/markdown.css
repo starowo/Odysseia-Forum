@@ -1,0 +1,136 @@
+@layer components {
+  .od-md {
+    font-size: 0.875rem;
+    line-height: 1.6;
+    color: var(--od-text-secondary);
+  }
+
+  .od-md h1,
+  .od-md h2,
+  .od-md h3 {
+    font-weight: 700;
+    color: var(--od-text-primary);
+    margin: 0.5rem 0 0.3rem;
+  }
+
+  .od-md h1 {
+    font-size: 1.05rem;
+    border-bottom: 1px solid var(--od-border);
+    padding-bottom: 0.25rem;
+  }
+
+  .od-md strong {
+    color: var(--od-text-primary);
+    font-weight: 700;
+  }
+
+  .od-md em {
+    color: var(--od-text-secondary);
+  }
+
+  .od-md code {
+    background: var(--od-bg-secondary);
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    font-size: 0.85em;
+    color: var(--od-text-primary);
+    border: 1px solid var(--od-border);
+  }
+
+  .od-md pre {
+    background: var(--od-bg-secondary);
+    padding: 10px;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 8px 0;
+    border: 1px solid var(--od-border);
+  }
+
+  .od-md .discord-h1 {
+    font-size: 1.2em;
+    font-weight: 700;
+    color: var(--od-text-primary);
+    margin: 0.5rem 0 0.3rem;
+  }
+
+  .od-md .discord-h2 {
+    font-size: 1.1em;
+    font-weight: 700;
+    color: var(--od-text-primary);
+    margin: 0.4rem 0 0.25rem;
+  }
+
+  .od-md .discord-h3 {
+    font-size: 1em;
+    font-weight: 700;
+    color: var(--od-text-primary);
+    margin: 0.3rem 0 0.2rem;
+  }
+
+  .od-md .discord-link,
+  .od-md a {
+    color: var(--od-link);
+    text-decoration: none;
+  }
+
+  .od-md .discord-link:hover,
+  .od-md a:hover {
+    color: var(--od-link-hover);
+    text-decoration: underline;
+  }
+
+  .od-md .discord-quote {
+    display: block;
+    border-left: 4px solid #4e5058;
+    padding-left: 12px;
+    margin: 4px 0;
+    color: var(--od-text-secondary);
+  }
+
+  .od-md .inline-code {
+    background: rgba(79, 84, 92, 0.38);
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 0.875em;
+    color: var(--od-text-primary);
+  }
+
+  .od-md .spoiler {
+    background-color: #2d2d30;
+    color: transparent;
+    border-radius: 3px;
+    padding: 0 2px;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.1s ease, color 0.1s ease;
+  }
+
+  .od-md .spoiler:hover {
+    background-color: #3a3a3d;
+  }
+
+  .od-md u {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .od-md del {
+    text-decoration: line-through;
+    opacity: 0.7;
+  }
+
+  .od-md blockquote {
+    border-left: 3px solid var(--od-border);
+    padding-left: 0.75rem;
+    margin: 0.5rem 0;
+    color: var(--od-text-tertiary);
+    font-style: italic;
+  }
+
+  .od-md ul {
+    list-style-type: disc;
+    padding-left: 20px;
+  }
+}

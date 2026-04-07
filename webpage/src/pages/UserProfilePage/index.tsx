@@ -74,7 +74,7 @@ export function UserProfilePage() {
                   avatar: undefined,
                 }}
                 avatarUrl={author?.avatar_url || null}
-                subtitle={`作者主页 · ${author?.id ? `ID: ${author.id}` : '尚未加载作者标识'}`}
+                subtitle={`作者主页 · ${author?.id ? `ID: ${author.id}` : '正在加载作者信息'}`}
               />
 
               <button
@@ -96,7 +96,7 @@ export function UserProfilePage() {
           <FluidDivider label="Threads" className="mb-8" />
           <div className="mb-6 flex flex-wrap items-center gap-2 text-sm text-[var(--od-text-secondary)]">
             <FileText className="h-4 w-4 text-[var(--od-accent)]" />
-            <span>作者帖子列表</span>
+            <span>这位作者的帖子</span>
             <span className="mx-1 text-[var(--od-text-tertiary)]">·</span>
             <Heart className="h-4 w-4" />
             <span>{totalReactions}</span>
@@ -106,11 +106,11 @@ export function UserProfilePage() {
           </div>
 
           {threadsQuery.isLoading ? (
-            <p className="text-sm text-[var(--od-text-secondary)]">加载作者帖子中...</p>
+            <p className="text-sm text-[var(--od-text-secondary)]">正在加载这位作者的帖子...</p>
           ) : threadsQuery.isError ? (
-            <p className="text-sm text-[var(--od-error)]">加载失败，请稍后重试。</p>
+            <p className="text-sm text-[var(--od-error)]">加载失败了，稍后再试试吧。</p>
           ) : threads.length === 0 ? (
-            <p className="text-sm text-[var(--od-text-secondary)]">暂无可展示帖子。</p>
+            <p className="text-sm text-[var(--od-text-secondary)]">这位作者还没有发布过帖子。</p>
           ) : (
             <ThreadResultsCollection
               threads={threads}

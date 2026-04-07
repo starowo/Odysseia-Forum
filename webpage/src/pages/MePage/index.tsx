@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState, type ComponentType } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { BookOpen, Bookmark, FileText, Heart, RefreshCw, Save, Search, Settings2 } from 'lucide-react';
-import { toast } from 'sonner';
 
 import { UserHeaderCard } from '@/entities/user/UserHeaderCard';
 import { UserStatsGrid } from '@/entities/user/UserStatsGrid';
@@ -33,6 +32,7 @@ import {
 } from '@/features/preferences/lib/preferencesMapper';
 import { CHANNEL_CATEGORIES } from '@/shared/config/navigation';
 import { GUILD_ID } from '@/shared/config/channelCategories.private';
+import { notifyError, notifySuccess } from '@/shared/lib/notify';
 
 type MeTab = 'booklists' | 'follows' | 'threads' | 'preferences';
 type BooklistSubTab = 'mine' | 'collected';
@@ -206,9 +206,9 @@ export function MePage() {
       const payload = toPreferencesUpdatePayload(form);
       await savePreferences(payload);
       setIsDirty(false);
-      toast.success('偏好已保存');
+      notifySuccess('偏好已保存');
     } catch {
-      toast.error('保存偏好失败');
+      notifyError('保存偏好失败');
     }
   };
 
@@ -236,7 +236,7 @@ export function MePage() {
 
         <UserHeaderCard
           user={user}
-          subtitle="个人中心：统一管理我的书单、关注、创建内容与偏好设置。"
+          subtitle="这里是你的个人空间，书单、关注、创建的内容和偏好都在这里啦。"
         />
 
         <UserStatsGrid items={stats} />
@@ -265,7 +265,7 @@ export function MePage() {
 
         </div>
               <p className="text-sm leading-6 text-[var(--od-text-secondary)]">
-                在这里切换你的书单、关注、创建内容和搜索偏好，信息按分段展开，不再堆叠成后台式面板。
+                在这里切换查看你的书单、关注、创建内容和搜索偏好，分类看更清晰。
               </p>
             </div>
           </div>
@@ -325,9 +325,9 @@ export function MePage() {
             </div>
 
             {(myBooklistsQuery.isLoading || collectedBooklistsQuery.isLoading) ? (
-              <p className="od-text-body">加载书单中...</p>
+              <p className="od-text-body">正在加载书单...</p>
             ) : activeBooklists.length === 0 ? (
-              <p className="od-text-body">当前分组暂无数据。</p>
+              <p className="od-text-body">这个分组里还没有内容，去创建一个吧～</p>
             ) : (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {activeBooklists.map((booklist) => (
@@ -371,11 +371,11 @@ export function MePage() {
             </div>
 
             {followsQuery.isLoading ? (
-              <p className="od-text-body">加载关注中...</p>
+              <p className="od-text-body">正在加载关注列表...</p>
             ) : followsQuery.isError ? (
-              <p className="od-text-body text-[var(--od-text-emphasis)]">关注列表加载失败。</p>
+              <p className="od-text-body text-[var(--od-text-emphasis)]">关注列表加载失败了，稍后试试看。</p>
             ) : (followsQuery.data?.results?.length || 0) === 0 ? (
-              <p className="od-text-body">暂无关注内容。</p>
+              <p className="od-text-body">还没有关注任何内容，去广场看看有没有感兴趣的吧。</p>
             ) : (
               <ThreadResultsCollection threads={followsQuery.data?.results || []} onPreview={openPreview} />
             )}
@@ -428,9 +428,9 @@ export function MePage() {
             </div>
 
             {createdThreadsQuery.isLoading ? (
-              <p className="od-text-body">加载创建内容中...</p>
+              <p className="od-text-body">正在加载你创建的内容...</p>
             ) : createdThreads.length === 0 ? (
-              <p className="od-text-body">还没有检索到你的创建内容。</p>
+              <p className="od-text-body">还没有找到你创建的内容，可能还没被索引到。</p>
             ) : (
               <ThreadResultsCollection threads={createdThreads} onPreview={openPreview} />
             )}
@@ -446,13 +446,13 @@ export function MePage() {
             </div>
 
             {isPrefsLoading ? (
-              <p className="od-text-body">加载偏好中...</p>
+              <p className="od-text-body">正在加载你的偏好设置...</p>
             ) : (
               <div className="space-y-8">
                 <div className="space-y-3">
                   <p className="text-sm font-medium text-[var(--od-text-primary)]">偏好频道</p>
                   <p className="text-sm leading-6 text-[var(--od-text-secondary)]">
-                    这些频道会在空搜索探索和搜索建议里优先生效，作为你个人展示层过滤的起点；一旦你手动点频道或输入搜索词，它们就会让位给你的当前意图。
+                    这些频道会在探索和搜索建议里优先生效，这样你就不会看到你不感兴趣的频道内容被推荐啦。
                   </p>
                   <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                     {channelOptions.map((channel) => {
@@ -561,7 +561,7 @@ export function MePage() {
                 </div>
 
                 <div className="rounded-[1.2rem] border border-[color-mix(in_srgb,var(--od-text-secondary)_14%,transparent)] bg-[color-mix(in_srgb,var(--od-surface-input)_56%,transparent)] px-4 py-4 text-sm leading-6 text-[var(--od-text-secondary)]">
-                  这些偏好现在主要作用于“发现流”而不是搜索框本身：空搜索状态的展示页、全频道探索态与搜索建议会参考它们，但不会把它们偷偷写进你的输入框，也不会压过你手动选择的频道。
+                  这些偏好主要影响“发现流”，不会偷偷改你的搜索框，也不会压过你手动选的频道。空搜索、全频道探索和搜索建议会参考它们，但你的主动操作始终优先。
                 </div>
 
                 <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[color-mix(in_srgb,var(--od-text-secondary)_14%,transparent)] pt-5">

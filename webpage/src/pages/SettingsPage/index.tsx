@@ -20,7 +20,7 @@ import {
 
 import { useSettings } from '@/shared/hooks/useSettings';
 import { resetUserSettings } from '@/shared/lib/settings';
-import { toast } from 'sonner';
+import { notifyError, notifySuccess } from '@/shared/lib/notify';
 import { themes } from '@/shared/styles/themes';
 import { APP_VERSION } from '@/shared/config/appInfo';
 import defaultWinterBackground from '@/assets/images/background/winter.png';
@@ -52,12 +52,12 @@ export function SettingsPage() {
 
     const maxBytes = 5 * 1024 * 1024;
     if (file.size > maxBytes) {
-      toast.error('图片超过 5MB，无法保存到本地');
+      notifyError('图片超过 5MB，无法保存到本地');
       return;
     }
 
     if (!file.type.startsWith('image/')) {
-      toast.error('仅支持图片文件');
+      notifyError('仅支持图片文件');
       return;
     }
 
@@ -65,13 +65,13 @@ export function SettingsPage() {
     reader.onload = () => {
       const result = typeof reader.result === 'string' ? reader.result : '';
       if (!result.startsWith('data:image/')) {
-        toast.error('图片读取失败，请重试');
+        notifyError('图片读取失败，请重试');
         return;
       }
 
       // base64 膨胀后通常比原文件大约 33%，同时 localStorage 容量也通常只有 ~5MB
       if (result.length > 4_500_000) {
-        toast.error('base64 体积过大，建议改用 URL 或内置背景图');
+        notifyError('base64 体积过大，建议改用 URL 或内置背景图');
         return;
       }
 
@@ -81,12 +81,12 @@ export function SettingsPage() {
           backgroundImageUrl: '',
           backgroundImageEnabled: true,
         });
-        toast.success('本地背景图已保存（base64）');
+        notifySuccess('本地背景图已保存（base64）');
       } catch {
-        toast.error('保存失败，可能是本地存储空间不足');
+        notifyError('保存失败，可能是本地存储空间不足');
       }
     };
-    reader.onerror = () => toast.error('读取图片失败');
+    reader.onerror = () => notifyError('读取图片失败');
     reader.readAsDataURL(file);
   };
 
@@ -96,7 +96,7 @@ export function SettingsPage() {
       backgroundImageUrl: '',
       backgroundImageBase64: '',
     });
-    toast.success('背景图已清除');
+    notifySuccess('背景图已清除');
   };
 
   const themeOptions = [
@@ -175,7 +175,7 @@ export function SettingsPage() {
   const handleResetSettings = () => {
     if (confirm('确定要重置所有设置为默认值吗？')) {
       resetUserSettings();
-      toast.success('设置已重置为默认值');
+      notifySuccess('设置已重置为默认值');
       setTimeout(() => window.location.reload(), 1000);
     }
   };
@@ -192,7 +192,7 @@ export function SettingsPage() {
             <div>
               <p className="mb-2 text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-[var(--od-text-label)]">Personal Workspace</p>
               <h1 className="od-section-title">设置</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--od-text-secondary)]">个性化你的体验，优先用字号、字重、文本深浅和强调色建立层级，而不是靠一堆浅暗选择框。</p>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--od-text-secondary)]">这里是你的专属调色板，我帮你把所有显示偏好都收拢在一起了。随便调，调完马上生效哦～</p>
             </div>
           </div>
         </div>
@@ -216,7 +216,7 @@ export function SettingsPage() {
                 <label className="mb-1 block text-[1.1rem] font-semibold tracking-[-0.02em] text-[var(--od-text-primary)]">
                   字体大小
                 </label>
-                <p className="mb-3 text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">阅读密度最先取决于字体比例。这里建议大胆拉开，不要怕标题偏大。</p>
+                <p className="mb-3 text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">字号差异拉大一点，阅读节奏会更清楚～大胆试试看，不喜欢随时改回来。</p>
                 <div className="od-options-wrap">
                   {(['small', 'medium', 'large'] as const).map((size) => {
                     const isActive = settings.fontSize === size;
@@ -257,7 +257,7 @@ export function SettingsPage() {
                 <label className="mb-1 block text-[1.1rem] font-semibold tracking-[-0.02em] text-[var(--od-text-primary)]">
                   字体来源
                 </label>
-                <p className="mb-3 text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">主题包现在可以携带自己的 CDN 字体。关闭后回退系统字体，开启后随主题一起切换字形气质。</p>
+                <p className="mb-3 text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">有些主题自带好看的字体，开启后我会帮你自动加载～关掉就回到系统默认字体。</p>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <button
                     onClick={() => updateSettings({ fontMode: 'system' })}
@@ -299,7 +299,7 @@ export function SettingsPage() {
                 <label className="mb-1 block text-[1.1rem] font-semibold tracking-[-0.02em] text-[var(--od-text-primary)]">
                   卡片大小
                 </label>
-                <p className="mb-3 text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">控制内容块的呼吸感，影响广场、搜索和个人页的整体节奏。</p>
+                <p className="mb-3 text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">控制卡片的呼吸感，会影响广场、搜索和个人页的整体节奏。放大了看着更舒服。</p>
                 <div className="od-options-wrap">
                   {(['compact', 'normal', 'large'] as const).map((size) => {
                     const isActive = settings.cardSize === size;
@@ -338,7 +338,7 @@ export function SettingsPage() {
                 <label className="mb-1 block text-[1.1rem] font-semibold tracking-[-0.02em] text-[var(--od-text-primary)]">
                   布局模式
                 </label>
-                <p className="mb-3 text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">决定内容是以更强视觉封面进入，还是以更轻的阅读流进入。</p>
+                <p className="mb-3 text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">网格更有封面感，列表更适合高效筛选。看你今天想怎么逛～</p>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <button
                     onClick={() => updateSettings({ layoutMode: 'grid' })}
@@ -386,7 +386,7 @@ export function SettingsPage() {
                 <label className="mb-1 block text-[1.1rem] font-semibold tracking-[-0.02em] text-[var(--od-text-primary)]">
                   图片加载
                 </label>
-                <p className="mb-3 text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">用图片保留视觉记忆，或切换到纯文本流以获得更稳定的阅读效率。</p>
+                <p className="mb-3 text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">图片可以帮你记住内容，关掉的话切换成纯文字流，加载更快，也更专注。</p>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <button
                     onClick={() => updateSettings({ imageMode: 'normal' })}
@@ -438,7 +438,7 @@ export function SettingsPage() {
                 <label className="mb-1 block text-[1.1rem] font-semibold tracking-[-0.02em] text-[var(--od-text-primary)]">
                   主题
                 </label>
-                <p className="mb-3 text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">主题不是单纯换底色，而是整套文本对比、强调色和表层氛围的切换。</p>
+                <p className="mb-3 text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">每套主题都是精心调配的一整套色彩氛围，不只是换个底色哦～试试看哪个最合你心意。</p>
                 <div className="space-y-2">
                   {themeOptions.map((option) => {
                     const isSelected = settings.theme === option.id;
@@ -497,7 +497,7 @@ export function SettingsPage() {
                   <div>
                     <p className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-[var(--od-text-label)]">Atmosphere</p>
                     <p className="mt-1 text-[1.1rem] font-semibold tracking-[-0.02em] text-[var(--od-text-primary)]">背景图与毛玻璃</p>
-                    <p className="mt-2 text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">背景图与毛玻璃联动：无背景图时自动降级为普通模式。浮层仍会保持足够不透明，避免阅读性下降。</p>
+                    <p className="mt-2 text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">背景图和毛玻璃是连在一起的～没有背景图时自动降级成普通模式，浮层始终保持清晰可读。</p>
                   </div>
                   <button
                     onClick={() =>
@@ -513,7 +513,7 @@ export function SettingsPage() {
                 <div className="space-y-3">
                   <div className="od-setting-panel-soft">
                     <p className="mb-2 text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-[var(--od-text-label)]">Presets</p>
-                    <p className="mb-3 text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">先选一张气氛底图，再决定透明度和模糊强度。</p>
+                    <p className="mb-3 text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">先选一张喜欢的底图，然后调调透明度和模糊就好。</p>
                     <div className="od-options-wrap">
                       <button
                         type="button"
@@ -572,7 +572,7 @@ export function SettingsPage() {
 
                   <label className="block">
                     <span className="mb-1 block text-base font-semibold tracking-[-0.02em] text-[var(--od-text-primary)]">本地上传</span>
-                    <span className="mb-2 block text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">Base64，最大 5MB。适合直接保存到本地浏览器。</span>
+                    <span className="mb-2 block text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">直接从本地选张图，最大 5MB，会保存在你的浏览器里。</span>
                     <input
                       type="file"
                       accept="image/*"
@@ -583,7 +583,7 @@ export function SettingsPage() {
 
                   <label className="block">
                     <span className="mb-1 block text-base font-semibold tracking-[-0.02em] text-[var(--od-text-primary)]">背景图 URL</span>
-                    <span className="mb-2 block text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">适合引用外部图片地址，切换更轻便。</span>
+                    <span className="mb-2 block text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">也可以贴一个外部图片链接，换起来更方便。</span>
                     <input
                       type="text"
                       value={settings.backgroundImageUrl}
@@ -618,7 +618,7 @@ export function SettingsPage() {
 
                   <label className="block">
                     <span className="mb-1 block text-base font-semibold tracking-[-0.02em] text-[var(--od-text-primary)]">毛玻璃模式</span>
-                    <span className="mb-2 block text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">决定背景图出现时表层是否带轻度模糊。</span>
+                    <span className="mb-2 block text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">有背景图的时候，要不要让页面稍微模糊一点。</span>
                     <select
                       value={settings.glassMode}
                       onChange={(e) =>
@@ -635,7 +635,7 @@ export function SettingsPage() {
                   <div className="od-setting-row">
                     <div>
                       <p className="od-choice-title text-base font-semibold text-[var(--od-text-primary)]">无背景色模式</p>
-                      <p className="mt-1 text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">去掉页面主体背景层，只保留文字色与结构线；透明度滑杆仍然生效，但改为只叠加一层暗色，不再恢复大面积面板底色。</p>
+                      <p className="mt-1 text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">去掉页面大面积的底色，只保留文字和结构线。滑杆还是有效的，只是叠的是一层暗色而不是面板底色。</p>
                     </div>
                     <button
                       onClick={() => updateSettings({ backgroundlessMode: !settings.backgroundlessMode })}
@@ -648,7 +648,7 @@ export function SettingsPage() {
 
                   <div className="flex items-start gap-3 rounded-[1.1rem] border border-[var(--od-shell-line)]/70 bg-[color-mix(in_srgb,var(--od-surface-input)_78%,transparent)] px-4 py-3 text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">
                     <EyeOff className="mt-0.5 h-4 w-4 shrink-0 text-[var(--od-text-emphasis)]" />
-                    <p>这个开关只影响页面主背景，不会把下拉框、模态框、悬浮框也一起做透明；浮层仍保持足够实心，免得看不清。</p>
+                    <p>放心，这个开关只影响页面大背景，弹窗、下拉框那些浮层还是保持实心的，不会看不清。</p>
                   </div>
 
                   <label className="block">
@@ -695,7 +695,7 @@ export function SettingsPage() {
               <div className="od-setting-row">
                 <div>
                   <p className="od-choice-title text-base font-semibold text-[var(--od-text-primary)]">紧凑模式</p>
-                  <p className="mt-1 text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">减少界面元素间距，让列表和卡片的阅读密度更高。</p>
+                  <p className="mt-1 text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">收紧界面间距，列表和卡片看起来更紧凑，适合喜欢高密度信息的你。</p>
                 </div>
                 <button
                   onClick={() => updateSettings({ compactMode: !settings.compactMode })}
@@ -725,7 +725,7 @@ export function SettingsPage() {
               <div className="od-setting-row">
                 <div>
                   <p className="od-choice-title text-base font-semibold text-[var(--od-text-primary)]">新帖通知</p>
-                  <p className="mt-1 text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">关注的频道有新帖时通知。</p>
+                  <p className="mt-1 text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">关注的频道有新帖了，我会第一时间告诉你。</p>
                 </div>
                 <button
                   onClick={() =>
@@ -746,7 +746,7 @@ export function SettingsPage() {
               <div className="od-setting-row">
                 <div>
                   <p className="od-choice-title text-base font-semibold text-[var(--od-text-primary)]">回复通知</p>
-                  <p className="mt-1 text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">有人回复你的帖子时通知。</p>
+                  <p className="mt-1 text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">有人回复了你的帖子，我会提醒你过去看看。</p>
                 </div>
                 <button
                   onClick={() =>
@@ -767,7 +767,7 @@ export function SettingsPage() {
               <div className="od-setting-row">
                 <div>
                   <p className="od-choice-title text-base font-semibold text-[var(--od-text-primary)]">提及通知</p>
-                  <p className="mt-1 text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">有人 @ 你时通知。</p>
+                  <p className="mt-1 text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">有人 @ 了你，可能在找你聊天哦。</p>
                 </div>
                 <button
                   onClick={() =>
@@ -803,7 +803,7 @@ export function SettingsPage() {
               className="w-full rounded-[1.1rem] bg-[var(--od-error)] p-4 text-left transition-colors hover:bg-[color-mix(in_oklab,var(--od-error)_85%,black)]"
             >
               <div className="text-sm font-medium text-white">重置设置</div>
-              <div className="text-xs text-red-200">恢复所有设置到默认值</div>
+              <div className="text-xs text-red-200">把所有设置恢复到最初的样子，确定要来一次大扫除吗？</div>
             </button>
           </div>
 
@@ -831,8 +831,8 @@ export function SettingsPage() {
           {/* 提示信息 */}
           <div className="rounded-[1.3rem] bg-[color-mix(in_oklab,var(--od-accent)_8%,transparent)] p-4">
             <p className="text-sm text-[var(--od-text-secondary)]">
-              💡 <span className="font-medium text-[var(--od-text-primary)]">提示：</span>
-              设置保存在本地浏览器中，清除浏览器数据会重置设置。
+              💡 <span className="font-medium text-[var(--od-text-primary)]">小提醒：</span>
+              你的设置都保存在本地浏览器里～清除浏览器数据的话，这些设置也会一起消失哦。
             </p>
           </div>
         </div>

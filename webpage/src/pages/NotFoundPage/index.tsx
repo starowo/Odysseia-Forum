@@ -1,15 +1,13 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMascotStore } from '@/features/mascot/store/mascotStore';
+import { showMascotErrorToast } from '@/shared/lib/mascotToast';
 
 export function NotFoundPage() {
     const navigate = useNavigate();
-    const reactToError = useMascotStore((state) => state.reactToError);
 
     useEffect(() => {
-        // Trigger mascot reaction on mount
-        reactToError('notFound');
-    }, [reactToError]);
+        showMascotErrorToast('notFound', { id: 'not-found-mascot-toast' });
+    }, []);
 
     return (
         <div className="flex min-h-[80vh] flex-col items-center justify-center p-4 text-center">

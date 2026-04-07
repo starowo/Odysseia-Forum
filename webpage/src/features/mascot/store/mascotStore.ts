@@ -1,17 +1,24 @@
 import { create } from 'zustand';
 import { MascotEmotion } from '../assets';
-import { MASCOT_MESSAGES } from '../config/triggers';
+import {
+  resolveErrorMascotMessage,
+  resolveIdleMascotMessage,
+  resolveSearchMascotMessage,
+} from '../lib/messageResolver';
 
 interface MascotState {
     emotion: MascotEmotion;
     message: string;
     isVisible: boolean;
     isAnimating: boolean;
+    lastTriggerAt: number;
+    hasWelcomed: boolean;
 
     // Actions
     say: (message: string, emotion?: MascotEmotion, duration?: number) => void;
     setEmotion: (emotion: MascotEmotion) => void;
     setVisible: (visible: boolean) => void;
+    markWelcomed: () => void;
     reset: () => void;
     reactToSearch: (status: 'start' | 'empty' | 'found', query?: string) => void;
     reactToError: (type?: 'generic' | 'network' | 'notFound') => void;
@@ -20,68 +27,50 @@ interface MascotState {
 const DEFAULT_STATE = {
     emotion: 'hi' as MascotEmotion,
     message: '今天也是充满希望的一天呢！',
-    isVisible: true,
+    isVisible: false,
     isAnimating: false,
+    lastTriggerAt: 0,
+    hasWelcomed: false,
 };
 
 export const useMascotStore = create<MascotState>((set, get) => ({
     ...DEFAULT_STATE,
 
-    say: (message, emotion) => {
+    say: (message, emotion, duration = 4600) => {
         set({
             message,
             emotion: emotion || get().emotion,
             isVisible: true,
-            isAnimating: true
+            isAnimating: true,
+            lastTriggerAt: Date.now(),
         });
         setTimeout(() => set({ isAnimating: false }), 300);
+        setTimeout(() => {
+            const { lastTriggerAt } = get();
+            if (Date.now() - lastTriggerAt >= duration - 120) {
+                set({ isVisible: false });
+            }
+        }, duration);
     },
 
     setEmotion: (emotion) => set({ emotion }),
 
     setVisible: (visible) => set({ isVisible: visible }),
 
-    reset: () => {
-        const idleMessages = MASCOT_MESSAGES.idle;
-        const randomMsg = idleMessages[Math.floor(Math.random() * idleMessages.length)];
+    markWelcomed: () => set({ hasWelcomed: true }),
 
-        set({
-            emotion: pickRandom(randomMsg.emotion),
-            message: pickRandom(randomMsg.text),
-            isAnimating: true
-        });
-        setTimeout(() => set({ isAnimating: false }), 300);
+    reset: () => {
+        const resolved = resolveIdleMascotMessage();
+        get().say(resolved.message, resolved.emotion);
     },
 
     reactToSearch: (status, query) => {
-        let msg = MASCOT_MESSAGES.search[status];
-
-        // 1. Check for keyword triggers first
-        if (query) {
-            const lowerQuery = query.toLowerCase();
-            const keywordTriggers = MASCOT_MESSAGES.keywords;
-
-            for (const trigger of keywordTriggers) {
-                if (trigger.keywords.some(k => lowerQuery.includes(k.toLowerCase()))) {
-                    msg = trigger.message;
-                    break;
-                }
-            }
-        }
-
-        get().say(pickRandom(msg.text), pickRandom(msg.emotion));
+        const resolved = resolveSearchMascotMessage(status, query);
+        get().say(resolved.message, resolved.emotion);
     },
 
     reactToError: (type = 'generic') => {
-        const msg = MASCOT_MESSAGES.error[type];
-        get().say(pickRandom(msg.text), pickRandom(msg.emotion));
+        const resolved = resolveErrorMascotMessage(type);
+        get().say(resolved.message, resolved.emotion);
     },
 }));
-
-// Helper to pick a random value from a string or string array
-function pickRandom(value: string | string[]): string {
-    if (Array.isArray(value)) {
-        return value[Math.floor(Math.random() * value.length)];
-    }
-    return value;
-}

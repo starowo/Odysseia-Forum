@@ -28,6 +28,21 @@ export function useFontSizeSetting() {
   return useSettingsStore((state) => state.settings.fontSize);
 }
 
+export function useCardSizeSetting() {
+  return useSettingsStore((state) => state.settings.cardSize);
+}
+
+export function useCardGridClass() {
+  const cardSize = useCardSizeSetting();
+  if (cardSize === 'large') {
+    return 'grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
+  }
+  if (cardSize === 'compact') {
+    return 'grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5';
+  }
+  return 'grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
+}
+
 export function useImageModeSetting() {
   return useSettingsStore((state) => state.settings.imageMode);
 }

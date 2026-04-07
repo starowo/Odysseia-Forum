@@ -32,18 +32,20 @@ export function ResizableSidebar({
       <aside
         style={{ width: `${sidebarWidth}px` }}
         className={`
-          fixed left-0 top-0 z-50 h-screen bg-transparent transition-transform duration-300 lg:z-40
+          fixed left-0 top-0 z-50 h-screen transition-transform duration-300 lg:z-40
+          bg-[color-mix(in_srgb,var(--od-bg-secondary)_88%,transparent)] backdrop-blur-xl
+          lg:bg-transparent lg:backdrop-blur-none
           ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
           ${isCollapsed ? 'lg:-translate-x-full' : 'lg:translate-x-0'}
         `}
       >
-        {/* 移动端关闭按钮 */}
+        {/* 移动端关闭按钮 — 偏右上角，避开 logo 区域 */}
         <button
           onClick={() => setIsMobileOpen?.(false)}
-          className="absolute right-4 top-4 rounded-lg p-2 text-[var(--od-text-tertiary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)] lg:hidden"
+          className="absolute right-2 top-3 z-10 rounded-lg p-1.5 text-[var(--od-text-tertiary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)] lg:hidden"
           aria-label="关闭菜单"
         >
-          <X className="h-5 w-5" />
+          <X className="h-4 w-4" />
         </button>
 
         {/* PC端收起按钮：与侧边栏右边缘融合，默认低调，悬停时凸显（仅在展开时显示） */}

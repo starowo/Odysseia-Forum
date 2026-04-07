@@ -1,0 +1,96 @@
+@layer components {
+  .od-floating-panel-solid {
+    background: var(--od-surface-floating);
+    border: 1px solid color-mix(in srgb, var(--od-border) 72%, transparent);
+    box-shadow: var(--od-shadow-floating);
+  }
+
+  html[data-od-wallpaper='on'] .od-floating-panel-solid,
+  html[data-od-glass='on'] .od-floating-panel-solid {
+    background: color-mix(in srgb, var(--od-surface-floating) 94%, black 6%);
+  }
+
+  html[data-od-backgroundless='on'] .od-floating-panel-solid {
+    background: color-mix(in srgb, var(--od-text-primary) 9%, var(--od-bg-secondary));
+  }
+
+  .od-shell-surface {
+    background: var(--od-bg-secondary);
+    border-color: transparent !important;
+  }
+
+  html[data-od-wallpaper='on'] .od-shell-surface {
+    background: color-mix(in srgb, var(--od-bg-secondary), transparent 42%);
+  }
+
+  html[data-od-glass='on'] .od-shell-surface {
+    background: color-mix(in srgb, var(--od-bg-secondary), transparent 22%);
+  }
+
+  .od-chrome-layer {
+    background: var(--od-bg-secondary);
+  }
+
+  html[data-od-wallpaper='on'] .od-chrome-layer,
+  html[data-od-glass='on'] .od-chrome-layer {
+    background: color-mix(in srgb, var(--od-bg-secondary), transparent var(--od-chrome-transparency, 46%));
+  }
+
+  .od-chrome-surface {
+    background: var(--od-bg-tertiary);
+  }
+
+  html[data-od-wallpaper='on'] .od-chrome-surface,
+  html[data-od-glass='on'] .od-chrome-surface {
+    background: color-mix(in srgb, var(--od-bg-secondary), transparent var(--od-chrome-surface-transparency, 38%));
+  }
+
+  .od-content-surface {
+    background: var(--od-bg-tertiary);
+  }
+
+  html[data-od-wallpaper='on'] .od-content-surface,
+  html[data-od-glass='on'] .od-content-surface {
+    background: color-mix(in srgb, var(--od-bg-secondary), transparent var(--od-content-transparency, 20%));
+  }
+
+  .od-floating-glass {
+    background: color-mix(in srgb, var(--od-bg-secondary) 92%, transparent);
+  }
+
+  html[data-od-glass='on'] .od-floating-glass {
+    background: color-mix(in srgb, var(--od-bg-secondary) 88%, transparent);
+    backdrop-filter: blur(var(--od-glass-blur)) saturate(122%);
+    -webkit-backdrop-filter: blur(var(--od-glass-blur)) saturate(122%);
+  }
+
+  html[data-od-backgroundless='on'] .od-floating-glass {
+    background: color-mix(in srgb, var(--od-text-primary) 12%, black 88%);
+  }
+
+  .od-app-shell {
+    background: var(--od-bg);
+  }
+
+  html[data-od-wallpaper='on'] .od-app-shell {
+    background: color-mix(in srgb, var(--od-bg), transparent 56%);
+  }
+
+  html[data-od-glass='on'] .od-app-shell {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .od-operation-base {
+    background: var(--od-bg-secondary);
+  }
+
+  html[data-od-wallpaper='on'] .od-operation-base {
+    background: color-mix(in srgb, var(--od-bg-secondary), transparent var(--od-chrome-transparency, 46%));
+  }
+
+  html[data-od-glass='on'] .od-operation-base {
+    backdrop-filter: blur(calc(var(--od-glass-blur) * 0.62)) saturate(118%);
+    -webkit-backdrop-filter: blur(calc(var(--od-glass-blur) * 0.62)) saturate(118%);
+  }
+}

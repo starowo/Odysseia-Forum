@@ -5,13 +5,15 @@ import { MascotDialog } from '@/features/mascot/components/MascotDialog';
 import { usePreviewThread } from '@/features/search/hooks/usePreviewThread';
 import { useSearchURLParams } from '@/features/search/hooks/useSearchParams';
 import { useSearchResults } from '@/features/search/hooks/useSearchResults';
+import { useCardGridClass } from '@/shared/hooks/useSettings';
+import { useMascotStore } from '@/features/mascot/store/mascotStore';
 import { useUserPreferences } from '@/features/preferences/hooks/useUserPreferences';
 import { GUILD_ID } from '@/shared/config/channelCategories.private';
 import { useLayoutMode } from '@/shared/hooks/useSettings';
 import { addToken } from '@/shared/lib/searchTokenizer';
 import { FluidDivider } from '@/shared/ui/FluidDivider';
 import { Compass, Dices, Search, SlidersHorizontal } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -29,8 +31,10 @@ export function SearchPage() {
 
   const { preferences } = useUserPreferences({ guildId: GUILD_ID });
   const { openPreview } = usePreviewThread();
+  const reactToSearch = useMascotStore((state) => state.reactToSearch);
 
   const layoutMode = useLayoutMode();
+  const hasTriggeredSearchCueRef = useRef<string | null>(null);
 
   const {
     discoveryPreferenceContext,
@@ -81,7 +85,28 @@ export function SearchPage() {
     setParams({ query: nextQuery });
   };
 
-  const gridClass = 'grid grid-cols-2 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
+  const gridClass = useCardGridClass();
+
+  useEffect(() => {
+    if (isLoading) return;
+
+    const normalizedQuery = query.trim();
+    if (!normalizedQuery) {
+      hasTriggeredSearchCueRef.current = null;
+      return;
+    }
+
+    const cueKey = `${normalizedQuery}::${totalResults}::${isError ? 'error' : 'ok'}`;
+    if (hasTriggeredSearchCueRef.current === cueKey) return;
+
+    if (isError) {
+      hasTriggeredSearchCueRef.current = cueKey;
+      return;
+    }
+
+    reactToSearch(totalResults > 0 ? 'found' : 'empty', normalizedQuery);
+    hasTriggeredSearchCueRef.current = cueKey;
+  }, [isError, isLoading, query, reactToSearch, totalResults]);
 
   return (
     <div className="flex min-h-screen flex-col overflow-x-hidden">
@@ -144,71 +169,83 @@ export function SearchPage() {
         </div>
 
         {isPreferenceFilteredBrowse && discoveryPreferenceContext && (
-          <div className="mb-6 flex flex-col gap-3 rounded-[1.4rem] border border-[color-mix(in_srgb,var(--od-accent)_18%,transparent)] bg-[color-mix(in_srgb,var(--od-accent)_7%,transparent)] px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-5">
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-[var(--od-text-primary)]">当前探索结果已按你的发现偏好收束</p>
-              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs leading-5 text-[var(--od-text-secondary)]">
+          <section className="mb-7 px-1">
+            <div className="od-inline-notice" data-tone="accent">
+              <div className="od-inline-notice-head">
+                <div className="min-w-0">
+                  <div className="od-editorial-kicker">
+                    <Compass className="h-3.5 w-3.5" />
+                    Preference Filter Active
+                  </div>
+                  <p className="od-inline-notice-title mt-3">当前探索结果已按你的发现偏好收束</p>
+                  <p className="od-inline-notice-copy mt-2 max-w-3xl">
+                    现在看到的是更贴近你个人发现边界的浏览结果。它会优先尊重你保存过的频道与标签偏好，但不会改写你的搜索词。
+                  </p>
+                </div>
+
+                <div className="od-inline-notice-actions shrink-0 sm:justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setIgnoreDiscoveryPreferences(true)}
+                    className="od-inline-action od-inline-action-soft"
+                  >
+                    暂时忽略偏好
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/me?tab=preferences')}
+                    className="od-inline-action od-inline-action-ghost"
+                  >
+                    去调整偏好
+                  </button>
+                </div>
+              </div>
+
+              <div className="od-inline-notice-meta">
                 {discoveryPreferenceContext.preferredChannelIds.length > 0 && (
-                  <span>频道 {discoveryPreferenceContext.preferredChannelIds.length} 个</span>
+                  <span className="od-pill-chip">频道 {discoveryPreferenceContext.preferredChannelIds.length} 个</span>
                 )}
                 {discoveryPreferenceContext.includeTags.length > 0 && (
-                  <span>包含标签 {discoveryPreferenceContext.includeTags.length} 个</span>
+                  <span className="od-pill-chip">包含标签 {discoveryPreferenceContext.includeTags.length} 个</span>
                 )}
                 {discoveryPreferenceContext.excludeTags.length > 0 && (
-                  <span>排除标签 {discoveryPreferenceContext.excludeTags.length} 个</span>
+                  <span className="od-pill-chip">排除标签 {discoveryPreferenceContext.excludeTags.length} 个</span>
                 )}
                 {discoveryPreferenceContext.sortMethod && (
-                  <span>默认排序已生效</span>
+                  <span className="od-pill-chip">默认排序已生效</span>
                 )}
               </div>
             </div>
-
-            <div className="flex shrink-0 flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setIgnoreDiscoveryPreferences(true)}
-                className="od-inline-action od-inline-action-ghost"
-              >
-                暂时忽略偏好
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate('/me?tab=preferences')}
-                className="od-inline-action od-inline-action-soft"
-              >
-                去调整偏好
-              </button>
-            </div>
-          </div>
+          </section>
         )}
 
-        {!hasSearchFilters && !isLoading && !isError && (
-          <div className="mb-6 overflow-hidden rounded-[1.5rem] border border-[color-mix(in_srgb,var(--od-accent)_14%,transparent)] bg-[linear-gradient(145deg,color-mix(in_srgb,var(--od-accent)_8%,transparent),color-mix(in_srgb,var(--od-surface-raised)_92%,black_8%))] p-5 sm:p-6">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div className="max-w-2xl">
-                <div className="inline-flex items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--od-accent)_18%,transparent)] bg-[color-mix(in_srgb,var(--od-accent)_10%,transparent)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--od-accent)]">
-                  <Dices className="h-3.5 w-3.5" />
-                  Surprise Discovery
+          <div className="mb-6 px-1">
+            <div className="od-inline-notice" data-tone="accent">
+              <div className="od-inline-notice-head">
+                <div className="min-w-0">
+                  <div className="od-editorial-kicker">
+                    <Dices className="h-3.5 w-3.5" />
+                    Surprise Discovery
+                  </div>
+                  <p className="od-inline-notice-title mt-3">想逛，但暂时没有明确关键词？</p>
+                  <p className="od-inline-notice-copy mt-2 max-w-3xl">
+                    去随机抽卡页，把当前偏好当作安全池来抽一张或十连。它不会改写你的搜索框，只是给你一个更有趣的发现入口。
+                  </p>
                 </div>
-                <h2 className="mt-4 text-xl font-bold tracking-tight text-[var(--od-text-primary)]">想逛，但暂时没有明确关键词？</h2>
-                <p className="mt-2 text-sm leading-6 text-[var(--od-text-secondary)]">
-                  去随机抽卡页，把当前偏好当作安全池来抽一张或十连。它不会改写你的搜索框，只是给你一个更有趣的发现入口。
-                </p>
-              </div>
 
-              <div className="flex shrink-0 flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => navigate('/draw')}
-                  className="od-inline-action od-inline-action-primary"
-                >
-                  <Dices className="h-4 w-4" />
-                  去抽卡
-                </button>
+                <div className="od-inline-notice-actions shrink-0 sm:justify-end">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/draw')}
+                    className="od-inline-action od-inline-action-primary"
+                  >
+                    <Dices className="h-4 w-4" />
+                    去抽卡
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        )}
 
         {isLoading ? (
           <div className={layoutMode === 'list' ? 'flex flex-col space-y-od-list-gap' : gridClass}>
@@ -221,12 +258,12 @@ export function SearchPage() {
             )}
           </div>
         ) : isError ? (
-          <div className="flex min-h-[400px] flex-col items-center justify-center rounded-[1.5rem] bg-[var(--od-surface-input)] p-12 text-center">
+          <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-red-500/10 text-red-500">
               <SlidersHorizontal className="h-10 w-10" />
             </div>
             <h3 className="mb-2 text-xl font-bold text-[var(--od-text-primary)]">搜索出错了</h3>
-            <p className="mb-6 text-[var(--od-text-secondary)]">暂时无法获取搜索结果，请稍后再试。</p>
+            <p className="mb-6 text-[var(--od-text-secondary)]">暂时拉不到结果，稍后再试试吧。</p>
             <button
               onClick={() => refetch()}
               className="od-inline-action od-inline-action-primary px-6 py-3 text-sm"
@@ -257,15 +294,15 @@ export function SearchPage() {
             </div>
           </div>
         ) : (
-          <div className="animate-in fade-in zoom-in-95 duration-500 flex min-h-[400px] flex-col items-center justify-center rounded-[1.5rem] bg-[var(--od-surface-input)] p-12 text-center">
+          <div className="animate-in fade-in zoom-in-95 duration-500 flex flex-col items-center justify-center py-20 text-center">
             <div className="mb-4 text-[var(--od-text-tertiary)] opacity-20">
               <Search className="mx-auto h-24 w-24" />
             </div>
             <h3 className="mb-2 text-xl font-bold text-[var(--od-text-primary)]">
-              {hasSearchFilters ? '没有找到匹配的结果' : '开始你的探索之旅'}
+              {hasSearchFilters ? '没有找到匹配的结果' : '开始你的探索之旅吧～'}
             </h3>
             <p className="text-[var(--od-text-secondary)]">
-              {hasSearchFilters ? '尝试调整搜索关键词或清空筛选条件' : '在上方搜索框输入内容，或从侧边栏选择频道'}
+              {hasSearchFilters ? '试试换个关键词，或者清掉筛选条件看看' : '在上面搜索框输入内容，或从侧边栏选个频道开始'}
             </p>
           </div>
         )}
@@ -288,9 +325,9 @@ export function SearchPage() {
             <code className="rounded bg-[var(--od-bg-tertiary)] px-1 font-mono text-[0.9em]">$author:</code>、
             <code className="rounded bg-[var(--od-bg-tertiary)] px-1 font-mono text-[0.9em]">-$tag:</code> 等高级语法
           </li>
-          <li>高级筛选已支持标签正反选、作者包含/排除、时间与排序组合</li>
-          <li>点击卡片就能预览详情，不用跳页哦</li>
-          {preferences && <li>你可以一键套用已保存的偏好频道和排序配置</li>}
+          <li>高级筛选支持标签正反选、作者过滤、时间和排序组合</li>
+          <li>点击卡片就能预览详情，不用跳页哦～</li>
+          {preferences && <li>你还可以一键套用已保存的偏好频道和排序配置</li>}
         </ul>
       </MascotDialog>
     </div>

@@ -72,11 +72,11 @@ export function BooklistDetailPage() {
   }
 
   if (detailQuery.isLoading || itemsQuery.isLoading) {
-    return <div className="p-8 text-sm text-[var(--od-text-secondary)]">加载书单中...</div>;
+    return <div className="p-8 text-sm text-[var(--od-text-secondary)]">正在帮你加载书单...</div>;
   }
 
   if (detailQuery.isError || !detailQuery.data) {
-    return <div className="p-8 text-sm text-[var(--od-error)]">书单加载失败或不存在</div>;
+    return <div className="p-8 text-sm text-[var(--od-error)]">书单加载出错了，可能不存在或已经被删除了</div>;
   }
 
   const booklist = detailQuery.data;
@@ -173,7 +173,7 @@ export function BooklistDetailPage() {
         {items.length === 0 ? (
           <div className="rounded-xl border border-[var(--od-border)] bg-[var(--od-card)] p-10 text-center">
             <p className="text-base font-semibold text-[var(--od-text-primary)]">书单里还没有帖子</p>
-            <p className="mt-1 text-sm text-[var(--od-text-secondary)]">{isOwner ? '点击右上角添加帖子开始维护。' : '等待作者添加内容。'}</p>
+            <p className="mt-1 text-sm text-[var(--od-text-secondary)]">{isOwner ? '可以点右上角添加帖子，开始充实你的书单吧。' : '作者还在准备中，再等等看。'}</p>
           </div>
         ) : (
           <div className="flex flex-col space-y-od-list-gap">

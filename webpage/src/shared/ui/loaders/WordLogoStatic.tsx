@@ -18,7 +18,7 @@ export function WordLogoStatic({ className }: WordLogoStaticProps) {
   const svgClass = 'h-full aspect-square overflow-visible';
 
   return (
-    <div className={cn('flex items-center gap-[1px]', className)}>
+    <div className={cn('flex flex-nowrap items-center gap-[1px]', className)}>
       {/* O (Omicron) - Static with Gap & Dot at 12 o'clock */}
       <svg viewBox="0 0 80 80" className={svgClass}>
         {/* 将 9点钟作为起始点的路径旋转90度，让缺口朝上 (12点方向) */}

@@ -62,22 +62,19 @@ export function MascotDialog({
 
                 {/* Dialogue Box (Right/Bottom) */}
                 <div className="relative flex-1 w-full min-w-0">
-                    <div className="relative overflow-hidden rounded-2xl border-2 border-[var(--od-accent)] bg-[var(--od-card)] p-4 md:p-6 shadow-2xl backdrop-blur-md animate-in slide-in-from-right-8 fade-in duration-500 delay-100">
-                        {/* Decorative Corner */}
-                        <div className="absolute -right-2 -top-2 h-8 w-8 rotate-45 bg-[var(--od-accent)]/20" />
-
+                    <div className="relative flex flex-col gap-3 p-4 md:p-6 animate-in slide-in-from-right-8 fade-in duration-500 delay-100">
                         {/* Header */}
                         <div className="mb-2 flex items-center justify-between">
                             {title && (
-                                <h3 className="text-lg font-bold text-[var(--od-accent)] flex items-center gap-2">
-                                    <span className="inline-block h-2 w-2 rounded-full bg-[var(--od-accent)] animate-pulse" />
+                                <h3 className="text-xl md:text-2xl font-black text-white flex items-center gap-2 drop-shadow-md">
+                                    <span className="inline-block h-2 w-2 rounded-full bg-[var(--od-accent)] animate-pulse shadow-[0_0_8px_var(--od-accent)]" />
                                     {title}
                                 </h3>
                             )}
                             {showCloseButton && onClose && (
                                 <button
                                     onClick={onClose}
-                                    className="rounded-full p-1 text-[var(--od-text-tertiary)] hover:bg-[var(--od-bg-tertiary)] hover:text-[var(--od-text-primary)] transition-colors"
+                                    className="rounded-full p-2 text-white/50 hover:bg-white/10 hover:text-white transition-colors"
                                 >
                                     <X size={20} />
                                 </button>
@@ -85,19 +82,19 @@ export function MascotDialog({
                         </div>
 
                         {/* Content */}
-                        <div className="text-[var(--od-text-primary)] leading-relaxed text-xs md:text-base">
+                        <div className="text-white/90 leading-relaxed text-sm md:text-lg font-medium drop-shadow-sm">
                             {children}
                         </div>
 
                         {/* Action Button */}
                         {(actionLabel || onAction) && (
-                            <div className="mt-4 flex justify-end">
+                            <div className="mt-6 flex justify-start">
                                 <button
                                     onClick={onAction || onClose}
-                                    className="group flex items-center gap-1 rounded-lg bg-[var(--od-accent)] px-4 py-2 text-sm font-bold text-white shadow-lg transition-all hover:bg-[var(--od-accent-hover)] hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
+                                    className="group flex items-center gap-2 rounded-full border border-white/20 bg-white/10 backdrop-blur-md px-6 py-3 text-sm md:text-base font-bold text-white transition-all hover:bg-white/20 hover:border-white/40 hover:-translate-y-0.5 active:translate-y-0"
                                 >
                                     {actionLabel || '继续'}
-                                    <ChevronRight size={16} className="transition-transform group-hover:translate-x-1" />
+                                    <ChevronRight size={18} className="transition-transform group-hover:translate-x-1" />
                                 </button>
                             </div>
                         )}

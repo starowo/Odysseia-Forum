@@ -3,9 +3,10 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { X, Loader2, Image as ImageIcon, Hash, Eye } from 'lucide-react';
-import { toast } from 'sonner';
 import { bannerApi } from '@/features/banner/api/bannerApi';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { showMascotToast } from '@/shared/lib/mascotToast';
+import { extractErrorMessage, notifySuccess } from '@/shared/lib/notify';
 
 const bannerSchema = z.object({
     thread_id: z.string().min(17, '帖子ID必须是17-20位数字').max(20, '帖子ID必须是17-20位数字').regex(/^\d+$/, '帖子ID必须是纯数字'),
@@ -38,7 +39,13 @@ export function BannerApplicationModal({ isOpen, onClose }: BannerApplicationMod
 
     const onSubmit = async (data: BannerFormValues) => {
         if (!user) {
-            toast.error('请先登录');
+            showMascotToast({
+                id: 'banner-login-required',
+                emotion: 'confused',
+                eyebrow: 'Identity Check',
+                title: '还没拿到你的身份牌',
+                message: '要先登录，类脑娘才能帮你把 Banner 申请送到审核台。',
+            });
             return;
         }
 
@@ -46,14 +53,26 @@ export function BannerApplicationModal({ isOpen, onClose }: BannerApplicationMod
         try {
             const result = await bannerApi.apply(data);
             if (result.success) {
-                toast.success('Banner 申请已提交，请等待审核');
+                notifySuccess('Banner 申请已提交，请等待审核');
                 reset();
                 onClose();
             } else {
-                toast.error(result.message || '申请提交失败');
+                showMascotToast({
+                    id: 'banner-apply-failed',
+                    emotion: 'sad_apology',
+                    eyebrow: 'Application Blocked',
+                    title: '这份 Banner 申请没送进去',
+                    message: result.message || '申请提交失败，稍后整理好信息再试一次。',
+                });
             }
-        } catch (error: any) {
-            toast.error(error.response?.data?.detail || '申请提交失败，请稍后重试');
+        } catch (error) {
+            showMascotToast({
+                id: 'banner-apply-error',
+                emotion: 'error',
+                eyebrow: 'Submission Error',
+                title: '审核通道刚刚抖了一下',
+                message: extractErrorMessage(error, '申请提交失败，请稍后重试'),
+            });
         } finally {
             setIsSubmitting(false);
         }

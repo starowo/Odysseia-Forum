@@ -2,14 +2,27 @@ import { fileURLToPath, URL } from 'node:url';
 import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react-swc';
+import { analyzer } from 'vite-bundle-analyzer';
 
 const pkg = JSON.parse(
   readFileSync(new URL('./package.json', import.meta.url), 'utf-8'),
 ) as { version?: string };
 
+const shouldAnalyzeBundle = process.env.ANALYZE_BUNDLE === 'true';
+
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    shouldAnalyzeBundle
+      ? analyzer({
+          analyzerMode: 'static',
+          fileName: () => 'bundle-analysis',
+          openAnalyzer: false,
+          summary: true,
+        })
+      : null,
+  ].filter(Boolean),
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version ?? '0.0.0'),
   },

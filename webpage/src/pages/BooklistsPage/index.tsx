@@ -82,7 +82,7 @@ export function BooklistsPage() {
                 <div className="space-y-1.5">
                   <h1 className="od-section-title">书单</h1>
                   <p className="max-w-2xl text-sm leading-6 text-[var(--od-text-secondary)]">
-                    把帖子整理成可持续维护的阅读索引，公开分享、自己归档，或者收藏别人的精选合集。
+                    把喜欢的帖子整理成书单，可以公开分享，也可以留着自己看，或者收藏别人的精选合集。
                   </p>
                 </div>
               </div>
@@ -121,7 +121,7 @@ export function BooklistsPage() {
               </div>
 
               <p className="text-sm leading-6 text-[var(--od-text-secondary)]">
-                按公开书单、自己的整理结果或已收藏合集切换视角，再通过关键词和排序方式缩小范围。
+                切换看看公开书单、你自己整理的、或者已经收藏的，再用搜索和排序缩小范围。
               </p>
             </div>
 
@@ -178,13 +178,13 @@ export function BooklistsPage() {
         </div>
       ) : listQuery.isError ? (
         <div className="py-12 text-center text-sm text-[var(--od-text-secondary)]">
-          书单加载失败，请稍后重试。
+          书单加载出了点问题，稍后再试试吧。
         </div>
       ) : results.length === 0 ? (
         <div className="py-14 text-center">
           <p className="text-base font-semibold text-[var(--od-text-primary)]">暂无书单</p>
           <p className="mt-1 text-sm text-[var(--od-text-secondary)]">
-            {scope === 'public' ? '还没有可见的公开书单。' : '你还没有对应书单，先创建一个吧。'}
+            {scope === 'public' ? '现在还没有公开书单，来创建第一个吧～' : '你还没有对应书单，可以新建一个试试。'}
           </p>
         </div>
       ) : (

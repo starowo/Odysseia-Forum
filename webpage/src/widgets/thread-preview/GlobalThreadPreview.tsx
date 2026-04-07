@@ -4,7 +4,7 @@ import { usePreviewStore } from '@/features/search/store/previewStore';
 import { ThreadPreviewOverlay } from '@/widgets/thread-preview/ThreadPreviewOverlay';
 import { searchApi } from '@/features/search/api/searchApi';
 import { searchKeys } from '@/features/search/lib/queryKeys';
-import { toast } from 'sonner';
+import { showMascotToast } from '@/shared/lib/mascotToast';
 
 export function GlobalThreadPreview() {
     const previewThread = usePreviewStore((state) => state.previewThread);
@@ -23,7 +23,13 @@ export function GlobalThreadPreview() {
     // Handle fetch error
     useEffect(() => {
         if (isError) {
-            toast.error('无法加载帖子详情');
+            showMascotToast({
+                id: 'thread-preview-load-error',
+                emotion: 'confused',
+                eyebrow: 'Preview Interrupted',
+                title: '帖子详情没拉下来',
+                message: '这条帖子的预览没能顺利展开，等会儿再试试看。',
+            });
             setPreviewThread(null); // Close overlay
         }
     }, [isError, setPreviewThread]);

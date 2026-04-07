@@ -46,7 +46,7 @@ export function AppSidebar() {
 
   const isActive = (path: string) => location.pathname === path;
 
-  const clearChannelAndVirtualTags = () => {
+  const clearVirtualTags = () => {
     const nextQuery = parseSearchQuery(searchInput)
       .filter(
         (token) => !(token.type === 'tag' && token.mode === 'include'),
@@ -62,7 +62,16 @@ export function AppSidebar() {
       return;
     }
 
-    setParams({ query: nextQuery, channel: null });
+    setParams({ query: nextQuery });
+  };
+
+  const clearChannelSelection = () => {
+    if (location.pathname !== '/search') {
+      navigateToSearchWithParams({ channel: null });
+      return;
+    }
+
+    setParams({ channel: null });
   };
 
   const navigateToSearchWithParams = (updates: { channel?: string | null; query?: string }) => {
@@ -244,18 +253,24 @@ export function AppSidebar() {
         </div>
 
         <div className="mb-6">
+          <div className="mb-2 flex items-center justify-between px-2">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--od-text-tertiary)]">
+              频道
+            </h2>
+          </div>
+
           <div className="space-y-0.5">
             <button
-              onClick={clearChannelAndVirtualTags}
+              onClick={clearChannelSelection}
               className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${
-                activeTags.length === 0 && !activeChannelId
+                !activeChannelId
                   ? 'bg-[var(--od-bg-secondary)] font-medium text-[var(--od-text-primary)]'
                   : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
               }`}
             >
               <span
                 className={`h-1.5 w-1.5 rounded-full ${
-                  activeTags.length === 0 && !activeChannelId
+                  !activeChannelId
                     ? 'bg-[var(--od-accent)]'
                     : 'bg-[var(--od-text-tertiary)]'
                 }`}
@@ -305,6 +320,24 @@ export function AppSidebar() {
               </div>
             ))}
 
+          </div>
+        </div>
+
+        <div className="mb-6">
+          <div className="mb-2 flex items-center justify-between px-2">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--od-text-tertiary)]">
+              映射标签
+            </h2>
+            <button
+              type="button"
+              onClick={clearVirtualTags}
+              className="text-[10px] font-semibold uppercase tracking-widest text-[var(--od-text-tertiary)] transition-colors hover:text-[var(--od-text-primary)]"
+            >
+              清空
+            </button>
+          </div>
+
+          <div className="space-y-0.5">
             {VIRTUAL_TAG_CATEGORIES.map((category) => (
               <div key={category.name} className="mt-4 first:mt-0">
                 <div className="mb-1 px-2 text-[10px] font-bold uppercase tracking-widest text-[var(--od-text-tertiary)] opacity-60">
@@ -334,17 +367,19 @@ export function AppSidebar() {
                         }}
                         className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${
                           active
-                            ? 'bg-[var(--od-bg-secondary)] font-medium text-[var(--od-text-primary)] shadow-sm'
+                            ? 'bg-[color-mix(in_srgb,var(--od-accent)_10%,transparent)] font-medium text-[var(--od-text-primary)] shadow-sm'
                             : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
                         }`}
                       >
                         <span
-                          className={`h-1.5 w-1.5 rounded-full ${
+                          className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full border text-[10px] font-bold leading-none ${
                             active
-                              ? 'bg-[var(--od-accent)]'
-                              : 'border border-[var(--od-text-tertiary)] opacity-30'
+                              ? 'border-[color-mix(in_srgb,var(--od-accent)_30%,transparent)] bg-[var(--od-accent)] text-white'
+                              : 'border-[var(--od-text-tertiary)] text-[var(--od-text-tertiary)] opacity-60'
                           }`}
-                        />
+                        >
+                          #
+                        </span>
                         <span className="truncate">{tag.name}</span>
                       </button>
                     );

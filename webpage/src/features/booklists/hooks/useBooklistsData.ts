@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 
 import { booklistsApi } from '@/features/booklists/api/booklistsApi';
 import { booklistKeys, type BooklistScope } from '@/features/booklists/lib/queryKeys';
 import type { BooklistFormInput, BooklistItemAddInput, BooklistItemUpdateInput } from '@/entities/booklist/types';
+import { extractErrorMessage, notifyError, notifySuccess } from '@/shared/lib/notify';
 
 export function useBooklistsList(params: {
   scope: BooklistScope;
@@ -99,7 +99,7 @@ export function useToggleBooklistCollection() {
     onSuccess: (_, variables) => {
       invalidateBooklists(variables.id);
     },
-    onError: () => toast.error('收藏状态更新失败'),
+    onError: (error) => notifyError(extractErrorMessage(error, '书单收藏状态更新失败')),
   });
 }
 
@@ -109,11 +109,11 @@ export function useCreateBooklist(onSuccess?: () => void) {
   return useMutation({
     mutationFn: (payload: BooklistFormInput) => booklistsApi.create(payload),
     onSuccess: () => {
-      toast.success('书单创建成功');
+      notifySuccess('书单创建成功');
       invalidateBooklists();
       onSuccess?.();
     },
-    onError: () => toast.error('书单创建失败'),
+    onError: (error) => notifyError(extractErrorMessage(error, '书单创建失败')),
   });
 }
 
@@ -124,11 +124,11 @@ export function useUpdateBooklist(booklistId?: number, onSuccess?: () => void) {
     mutationFn: ({ id, payload }: { id?: number; payload: Partial<BooklistFormInput> }) =>
       booklistsApi.update(id ?? booklistId!, payload),
     onSuccess: (_, variables) => {
-      toast.success('书单已更新');
+      notifySuccess('书单已更新');
       invalidateBooklists(variables.id ?? booklistId);
       onSuccess?.();
     },
-    onError: () => toast.error('更新失败'),
+    onError: (error) => notifyError(extractErrorMessage(error, '书单更新失败')),
   });
 }
 
@@ -138,11 +138,11 @@ export function useDeleteBooklist(onSuccess?: () => void) {
   return useMutation({
     mutationFn: (id: number) => booklistsApi.remove(id),
     onSuccess: (_, id) => {
-      toast.success('书单已删除');
+      notifySuccess('书单已删除');
       invalidateBooklists(id);
       onSuccess?.();
     },
-    onError: () => toast.error('删除失败'),
+    onError: (error) => notifyError(extractErrorMessage(error, '删除书单失败')),
   });
 }
 
@@ -152,11 +152,11 @@ export function useAddBooklistItems(booklistId: number, onSuccess?: () => void) 
   return useMutation({
     mutationFn: (items: BooklistItemAddInput[]) => booklistsApi.addItems(booklistId, items),
     onSuccess: () => {
-      toast.success('帖子已加入书单');
+      notifySuccess('帖子已加入书单');
       invalidateBooklists(booklistId);
       onSuccess?.();
     },
-    onError: () => toast.error('添加失败'),
+    onError: (error) => notifyError(extractErrorMessage(error, '添加帖子到书单失败')),
   });
 }
 
@@ -166,10 +166,10 @@ export function useRemoveBooklistItems(booklistId: number) {
   return useMutation({
     mutationFn: (threadId: number) => booklistsApi.removeItems(booklistId, [threadId]),
     onSuccess: () => {
-      toast.success('已移除条目');
+      notifySuccess('书单条目已移除');
       invalidateBooklists(booklistId);
     },
-    onError: () => toast.error('移除失败'),
+    onError: (error) => notifyError(extractErrorMessage(error, '移除书单条目失败')),
   });
 }
 
@@ -180,10 +180,10 @@ export function useUpdateBooklistItem(booklistId: number, onSuccess?: () => void
     mutationFn: ({ threadId, payload }: { threadId: number; payload: BooklistItemUpdateInput }) =>
       booklistsApi.updateItem(booklistId, threadId, payload),
     onSuccess: () => {
-      toast.success('条目已更新');
+      notifySuccess('书单条目已更新');
       invalidateBooklists(booklistId);
       onSuccess?.();
     },
-    onError: () => toast.error('更新条目失败'),
+    onError: (error) => notifyError(extractErrorMessage(error, '更新书单条目失败')),
   });
 }

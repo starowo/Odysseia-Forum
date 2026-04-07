@@ -200,7 +200,7 @@ export function TagsPage() {
                   <div className="space-y-1.5">
                     <h1 className="od-section-title">标签总览</h1>
                     <p className="max-w-2xl text-sm leading-6 text-[var(--od-text-secondary)]">
-                      浏览当前社区里已经形成讨论的标签脉络，先从主题分布里找到方向，再进入搜索查看具体帖子。
+                      社区里已经形成讨论的标签都在这里了，先看看主题分布，找到感兴趣的方向再去搜索具体帖子吧。
                     </p>
                   </div>
                 </div>
@@ -222,7 +222,7 @@ export function TagsPage() {
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-[var(--od-text-secondary)]">标签总数</p>
                   <p className="text-[2rem] font-semibold tracking-tight text-[var(--od-text-value)]">{totalTags}</p>
-                  <p className="text-xs leading-5 text-[var(--od-text-tertiary)]">当前筛选范围内可浏览的独立标签。</p>
+                  <p className="text-xs leading-5 text-[var(--od-text-tertiary)]">当前范围内能看到的独立标签数量。</p>
                 </div>
                 <Hash className="mt-1 h-8 w-8 text-[var(--od-text-secondary)]/26" />
               </div>
@@ -231,7 +231,7 @@ export function TagsPage() {
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-[var(--od-text-secondary)]">相关帖子</p>
                   <p className="text-[2rem] font-semibold tracking-tight text-[var(--od-text-value)]">{totalThreads}</p>
-                  <p className="text-xs leading-5 text-[var(--od-text-tertiary)]">所有命中帖子总量，用来判断主题是否已经成形。</p>
+                  <p className="text-xs leading-5 text-[var(--od-text-tertiary)]">这些标签下一共有多少帖子，可以感受一下话题热度。</p>
                 </div>
                 <TrendingUp className="mt-1 h-8 w-8 text-[var(--od-text-secondary)]/26" />
               </div>
@@ -242,7 +242,7 @@ export function TagsPage() {
                   <p className="text-[2rem] font-semibold tracking-tight text-[var(--od-text-value)]">
                     {totalTags > 0 ? Math.round(totalThreads / totalTags) : 0}
                   </p>
-                  <p className="text-xs leading-5 text-[var(--od-text-tertiary)]">粗略感受讨论密度，不作为绝对热度判断。</p>
+                  <p className="text-xs leading-5 text-[var(--od-text-tertiary)]">大概感受一下每个标签的讨论活跃度。</p>
                 </div>
                 <TagIcon className="mt-1 h-8 w-8 text-[var(--od-text-secondary)]/26" />
               </div>
@@ -258,7 +258,7 @@ export function TagsPage() {
               <div className="space-y-1.5">
                 <h2 className="od-section-title">筛选标签范围</h2>
                 <p className="max-w-3xl text-sm leading-6 text-[var(--od-text-secondary)]">
-                  先缩小频道范围，再按名称检索，会更容易找到真正有内容沉淀的标签。
+                  先选个频道缩小范围，再搜名字，这样更容易找到有内容沉淀的标签。
                 </p>
               </div>
             </div>
@@ -362,10 +362,10 @@ export function TagsPage() {
                 <div className="text-center">
                   <Search className="mx-auto mb-4 h-16 w-16 text-[var(--od-text-tertiary)]" />
                   <h3 className="mb-2 text-xl font-bold text-[var(--od-text-primary)]">
-                    未找到匹配的标签
+                    没有找到匹配的标签
                   </h3>
                   <p className="text-[var(--od-text-secondary)]">
-                    尝试使用其他关键词搜索
+                    换个关键词试试看？或者切换一下频道范围。
                   </p>
                 </div>
               </div>

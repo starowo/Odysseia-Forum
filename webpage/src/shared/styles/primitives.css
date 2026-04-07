@@ -1,0 +1,187 @@
+@layer components {
+  .od-fluid-panel {
+    background: var(--od-surface-ghost);
+    border: 1px solid transparent;
+    transition: background-color 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+  }
+
+  html[data-od-wallpaper='on'] .od-fluid-panel {
+    background: color-mix(in srgb, var(--od-bg-secondary), transparent 42%);
+  }
+
+  html[data-od-glass='on'] .od-fluid-panel {
+    background: var(--od-glass-bg);
+    border-color: transparent;
+  }
+
+  .od-fluid-panel:hover {
+    background: var(--od-surface-ghost-hover);
+    border-color: transparent;
+  }
+
+  .od-page-hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: 1.75rem;
+    border: 1px solid color-mix(in srgb, var(--od-border) 72%, transparent);
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--od-accent) 16%, transparent), transparent 38%),
+      linear-gradient(180deg, color-mix(in srgb, var(--od-surface-content) 94%, transparent), color-mix(in srgb, var(--od-surface-shell) 96%, transparent));
+    box-shadow: var(--od-shadow-soft);
+  }
+
+  html[data-od-wallpaper='on'] .od-page-hero {
+    background:
+      linear-gradient(135deg, color-mix(in srgb, var(--od-accent) 18%, transparent), transparent 42%),
+      linear-gradient(180deg, color-mix(in srgb, var(--od-surface-content) 78%, transparent), color-mix(in srgb, var(--od-surface-shell) 82%, transparent));
+  }
+
+  .od-page-hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgb(0 0 0 / 0.14), rgb(0 0 0 / 0.4));
+  }
+
+  .od-page-hero-content {
+    position: relative;
+    z-index: 1;
+  }
+
+  .od-page-section {
+    position: relative;
+  }
+
+  .od-page-section + .od-page-section {
+    padding-top: 1.5rem;
+  }
+
+  .od-inline-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    padding: 0.625rem 1rem;
+    font-size: 0.8125rem;
+    font-weight: 650;
+    transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease, transform 180ms ease;
+  }
+
+  .od-inline-action:hover {
+    transform: translateY(-1px);
+  }
+
+  .od-inline-action-primary {
+    background: var(--od-accent);
+    color: white;
+  }
+
+  .od-inline-action-primary:hover {
+    background: var(--od-accent-hover);
+  }
+
+  .od-inline-action-soft {
+    background: var(--od-surface-soft);
+    color: var(--od-text-primary);
+  }
+
+  .od-inline-action-soft:hover {
+    background: var(--od-interactive-strong);
+  }
+
+  .od-inline-action-ghost {
+    background: transparent;
+    color: var(--od-text-secondary);
+  }
+
+  .od-inline-action-ghost:hover {
+    background: var(--od-interactive-hover);
+    color: var(--od-text-primary);
+  }
+
+  .od-pill-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 9999px;
+    background: color-mix(in srgb, var(--od-surface-input) 92%, transparent);
+    border: 1px solid color-mix(in srgb, var(--od-border) 64%, transparent);
+    color: var(--od-text-secondary);
+    padding: 0.3rem 0.7rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
+  }
+
+  .od-pill-chip:hover {
+    background: var(--od-interactive-hover);
+    color: var(--od-text-primary);
+  }
+
+  .od-fluid-section {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .od-fluid-section + .od-fluid-section {
+    border-top: 1px solid color-mix(in srgb, var(--od-border) 70%, transparent);
+    padding-top: 1.05rem;
+    margin-top: 1.05rem;
+  }
+
+  .od-fluid-divider {
+    border-top: 1px solid color-mix(in srgb, var(--od-border) 80%, transparent);
+  }
+
+  .od-fluid-divider-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    width: 100%;
+  }
+
+  .od-fluid-divider-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      color-mix(in srgb, var(--od-divider-line-color, var(--od-divider)) 42%, transparent) 14%,
+      var(--od-divider-line-color, var(--od-divider-strong)) 50%,
+      color-mix(in srgb, var(--od-divider-line-color, var(--od-divider)) 42%, transparent) 86%,
+      transparent 100%
+    );
+    opacity: 0.95;
+  }
+
+  .od-fluid-divider-label {
+    color: var(--od-text-secondary);
+    font-size: 0.72rem;
+    font-weight: 650;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .od-ghost-input {
+    border: 0;
+    border-bottom: 1px solid var(--od-border);
+    border-radius: 0;
+    background: transparent;
+    color: var(--od-text-primary);
+    padding: 0.5rem 0;
+    transition: border-color 180ms ease, box-shadow 180ms ease;
+  }
+
+  .od-ghost-input:hover {
+    border-bottom-color: var(--od-border-strong);
+  }
+
+  .od-ghost-input:focus {
+    outline: none;
+    border-bottom-color: var(--od-accent);
+    box-shadow: 0 1px 0 0 var(--od-accent);
+  }
+}

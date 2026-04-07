@@ -27,7 +27,6 @@ export const VIRTUAL_TAG_CATEGORIES: VirtualTagCategory[] = [
   {
     name: 'ΙΛΙΑΣ 映射',
     tags: [
-      { id: 'ilias-all', name: '类脑ΙΛΙΑΣ' },
       { id: 'ilias-text', name: 'ΙΛΙΑΣ-纯文字' },
       { id: 'ilias-light', name: 'ΙΛΙΑΣ-轻前端' },
       { id: 'ilias-heavy', name: 'ΙΛΙΑΣ-重前端' },

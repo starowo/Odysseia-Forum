@@ -4,8 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { DiscordIcon } from '@/shared/ui/icons/DiscordIcon';
 import { useAuth, useRefreshAuth } from '@/features/auth/hooks/useAuth';
 import { apiClient } from '@/shared/api/client';
-import { toast } from 'sonner';
 import forumIcon from '@/assets/images/icon/A90C044F8DDF1959B2E9078CB629C239.png';
+import { showMascotToast } from '@/shared/lib/mascotToast';
+import { notifySuccess } from '@/shared/lib/notify';
 import { WordLogoStatic } from '@/shared/ui/loaders/WordLogoStatic';
 import backgroundImage from '@/assets/images/background/spring2.png';
 import { WordLoader } from '@/shared/ui/loaders/WordLoader';
@@ -36,12 +37,23 @@ export function LoginPage() {
           const response = await apiClient.post('/auth/login');
           if (response.data.token) {
             localStorage.setItem('auth_token', response.data.token);
-            toast.success('登录成功！');
+            notifySuccess('登录成功，欢迎回来', { id: 'login-mock-success' });
             refreshAuth();
             navigate('/', { replace: true });
           }
-        } catch (error) {
-          toast.error('登录失败，请稍后重试。');
+        } catch {
+          showMascotToast({
+            id: 'login-mock-error',
+            emotion: 'error',
+            eyebrow: 'Connection Failed',
+            title: '登录入口没有接通',
+            message: '刚才这次连接没成功。你可以立刻再试一次，我会继续盯着。',
+            actionLabel: '重新登录',
+            onAction: () => window.location.reload(),
+            cancelLabel: '先停一下',
+            onCancel: () => setIsRedirecting(false),
+            duration: 7000,
+          });
           setIsRedirecting(false);
         }
       }, 1500); // 留出 1.5s 播放 SVG 动画
@@ -99,9 +111,9 @@ export function LoginPage() {
             </div>
 
             {/* 标题：将普通文字升级为 SVG 图形标题 */}
-            <div className="flex flex-col items-center justify-center mb-10 gap-2">
+            <div className="flex flex-col items-center justify-center mb-10 gap-2 max-w-full overflow-hidden">
               <span className="text-xl font-bold tracking-[0.2em] text-[var(--od-text-primary)]">类脑</span>
-              <WordLogoStatic className="h-6 text-[var(--od-text-primary)]" />
+              <WordLogoStatic className="h-5 shrink-0 text-[var(--od-text-primary)] sm:h-6" />
             </div>
 
             <p className="mb-10 text-[var(--od-text-secondary)]">使用 Discord 登录以继续</p>

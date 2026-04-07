@@ -1,0 +1,54 @@
+@layer components {
+  .od-text-title {
+    font-size: var(--od-type-title);
+    font-weight: var(--od-weight-strong);
+    color: var(--od-text-heading);
+    line-height: 1.25;
+    letter-spacing: 0.01em;
+  }
+
+  .od-text-label {
+    font-size: var(--od-type-label);
+    font-weight: var(--od-weight-medium);
+    color: var(--od-text-label);
+    line-height: 1.35;
+  }
+
+  .od-text-body {
+    font-size: var(--od-type-body);
+    font-weight: var(--od-weight-regular);
+    color: var(--od-text-primary);
+    line-height: 1.5;
+  }
+
+  .od-text-meta {
+    font-size: var(--od-type-meta);
+    font-weight: var(--od-weight-regular);
+    color: var(--od-text-meta);
+    line-height: 1.4;
+  }
+
+  .od-text-code {
+    font-size: var(--od-type-code);
+    font-weight: var(--od-weight-medium);
+    color: var(--od-text-value);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    line-height: 1.35;
+  }
+
+  .od-hero-title {
+    font-size: var(--od-type-hero);
+    font-weight: 760;
+    line-height: 0.94;
+    letter-spacing: -0.03em;
+    color: white;
+  }
+
+  .od-section-title {
+    font-size: var(--od-type-section);
+    font-weight: 720;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--od-text-primary);
+  }
+}

@@ -1,0 +1,167 @@
+@layer components {
+  .od-mascot-toast {
+    position: relative;
+    display: grid;
+    grid-template-columns: 5.25rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.9rem;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--od-border) 68%, transparent);
+    border-radius: 1.5rem;
+    background:
+      radial-gradient(circle at top left, color-mix(in srgb, var(--od-accent) 16%, transparent), transparent 42%),
+      linear-gradient(145deg, color-mix(in srgb, var(--od-surface-floating) 94%, transparent), color-mix(in srgb, var(--od-bg-secondary) 92%, black 8%));
+    box-shadow: var(--od-shadow-floating);
+    padding: 0.95rem 0.95rem 0.95rem 0.7rem;
+    backdrop-filter: blur(calc(var(--od-glass-blur) * 0.9));
+  }
+
+  .od-mascot-toast::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 1px solid color-mix(in srgb, white 7%, transparent);
+    pointer-events: none;
+  }
+
+  .od-mascot-toast-figure {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: end;
+    min-height: 5.6rem;
+  }
+
+  .od-mascot-toast-figure::after {
+    content: '';
+    position: absolute;
+    bottom: 0.1rem;
+    left: 50%;
+    width: 3.6rem;
+    height: 0.7rem;
+    border-radius: 9999px;
+    background: color-mix(in srgb, black 24%, transparent);
+    filter: blur(10px);
+    transform: translateX(-50%);
+    opacity: 0.45;
+  }
+
+  .od-mascot-toast-image {
+    position: relative;
+    z-index: 1;
+    max-height: 5.8rem;
+    width: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 16px 24px rgb(0 0 0 / 0.22));
+  }
+
+  .od-mascot-toast-body {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.28rem;
+  }
+
+  .od-mascot-toast-eyebrow {
+    color: var(--od-text-label);
+    font-size: 0.68rem;
+    font-weight: 680;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+  }
+
+  .od-mascot-toast-title {
+    color: var(--od-text-primary);
+    font-size: 0.98rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.25;
+  }
+
+  .od-mascot-toast-copy {
+    color: var(--od-text-secondary);
+    font-size: 0.86rem;
+    line-height: 1.55;
+  }
+
+  .od-mascot-toast-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.4rem;
+  }
+
+  .od-mascot-toast-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2rem;
+    padding: 0.42rem 0.78rem;
+    border-radius: 9999px;
+    font-size: 0.78rem;
+    font-weight: 650;
+    transition: transform 160ms ease, background-color 160ms ease, color 160ms ease;
+  }
+
+  .od-mascot-toast-button:hover {
+    transform: translateY(-1px);
+  }
+
+  .od-mascot-toast-button-primary {
+    background: color-mix(in srgb, var(--od-accent) 88%, white 12%);
+    color: white;
+  }
+
+  .od-mascot-toast-button-primary:hover {
+    background: color-mix(in srgb, var(--od-accent-hover) 90%, white 10%);
+  }
+
+  .od-mascot-toast-button-secondary {
+    background: color-mix(in srgb, var(--od-text-primary) 8%, transparent);
+    color: var(--od-text-primary);
+  }
+
+  .od-mascot-toast-button-secondary:hover {
+    background: color-mix(in srgb, var(--od-text-primary) 12%, transparent);
+  }
+
+  .od-mascot-toast-close {
+    align-self: start;
+    display: inline-flex;
+    height: 2rem;
+    width: 2rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    color: var(--od-text-tertiary);
+    transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
+  }
+
+  .od-mascot-toast-close:hover {
+    background: color-mix(in srgb, var(--od-text-primary) 8%, transparent);
+    color: var(--od-text-primary);
+    transform: translateY(-1px);
+  }
+
+  @media (max-width: 639px) {
+    .od-mascot-toast {
+      grid-template-columns: 4.4rem minmax(0, 1fr) auto;
+      gap: 0.75rem;
+      border-radius: 1.25rem;
+      padding: 0.82rem 0.82rem 0.82rem 0.55rem;
+    }
+
+    .od-mascot-toast-image {
+      max-height: 4.8rem;
+    }
+
+    .od-mascot-toast-title {
+      font-size: 0.92rem;
+    }
+
+    .od-mascot-toast-copy {
+      font-size: 0.82rem;
+    }
+  }
+}

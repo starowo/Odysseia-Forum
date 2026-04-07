@@ -12,6 +12,8 @@ import { usePretextClampText } from '@/shared/hooks/usePretextClampText';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { memo } from 'react';
+import { useFontSizeSetting, useCardSizeSetting } from '@/shared/hooks/useSettings';
+import { fontSizeMap, cardSizeMap } from '@/shared/lib/settings';
 
 
 interface ThreadCardProps {
@@ -24,13 +26,16 @@ interface ThreadCardProps {
 
 function ThreadCardImpl({ thread, onTagClick, searchQuery, onAuthorClick, onPreview }: ThreadCardProps) {
   const navigate = useNavigate();
+  const fontSize = useFontSizeSetting();
+  const fontSizes = fontSizeMap[fontSize];
+  const cardSize = useCardSizeSetting();
+  const cardSizes = cardSizeMap[cardSize];
   const authorName =
     thread.author?.display_name ??
     thread.author?.global_name ??
     thread.author?.name ??
     '未知用户';
   const authorId = thread.author?.id || '';
-  const hasThumbnail = thread.thumbnail_urls && thread.thumbnail_urls.length > 0;
   const initialThumbnail = useMemo(() => thread.thumbnail_urls?.[0] || '', [thread.thumbnail_urls]);
   const [thumbnailSrc, setThumbnailSrc] = useState(initialThumbnail);
 
@@ -57,12 +62,6 @@ function ThreadCardImpl({ thread, onTagClick, searchQuery, onAuthorClick, onPrev
   const hasExcerpt =
     !!thread.first_message_excerpt &&
     thread.first_message_excerpt.trim() !== '...';
-  const compactAuthorTextClass =
-    authorName.length > 14
-      ? 'text-[11px] md:text-xs'
-      : authorName.length > 9
-        ? 'text-xs md:text-sm'
-        : 'text-sm';
   const { measureRef: titleMeasureRef, clampedText: clampedTitle } =
     usePretextClampText<HTMLHeadingElement>(thread.title, { maxLines: 2 });
   const { measureRef: excerptMeasureRef, clampedText: clampedExcerpt } =
@@ -83,11 +82,11 @@ function ThreadCardImpl({ thread, onTagClick, searchQuery, onAuthorClick, onPrev
 
   return (
     <article
-      className="group relative flex aspect-[3/5] w-full cursor-pointer flex-col overflow-hidden rounded-[1.4rem] border border-[var(--od-shell-line)] bg-[var(--od-surface-raised)] shadow-[var(--od-shadow-soft)] transition-all duration-300 hover:-translate-y-1 hover:border-[color-mix(in_srgb,var(--od-accent)_28%,var(--od-border))] md:aspect-[3/4]"
+      className={`group relative flex w-full cursor-pointer flex-col overflow-hidden rounded-[1.4rem] border border-[var(--od-shell-line)] bg-[var(--od-surface-shell)]/30 backdrop-blur-[4px] shadow-[var(--od-shadow-soft)] transition-all duration-300 hover:-translate-y-1 hover:border-[color-mix(in_srgb,var(--od-accent)_28%,var(--od-border))] hover:bg-[var(--od-surface-shell)]/50 ${cardSizes.imageHeight}`}
       onClick={() => onPreview?.(thread)}
     >
       {/* Background Image Layer */}
-      <div className="absolute inset-0 z-0 bg-[var(--od-surface-shell)]">
+      <div className="absolute inset-0 z-0">
         {thumbnailSrc ? (
           <img
             src={thumbnailSrc}
@@ -101,18 +100,14 @@ function ThreadCardImpl({ thread, onTagClick, searchQuery, onAuthorClick, onPrev
             }}
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(160deg,var(--od-surface-shell),var(--od-surface-raised))]">
-            <ImageIcon className="h-12 w-12 text-[var(--od-text-tertiary)] opacity-40" />
+          <div className="flex h-full w-full items-center justify-center bg-[color-mix(in_srgb,var(--od-surface-raised)_15%,transparent)]">
+            <ImageIcon className="h-12 w-12 text-[var(--od-text-tertiary)]/20" />
           </div>
         )}
       </div>
 
-      {/* Gradient Overlay - Only show for threads with images to ensure text readability */}
-      {hasThumbnail && (
-        <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(180deg,rgba(7,10,18,0.06),rgba(7,10,18,0.4)_48%,rgba(7,10,18,0.88))]" />
-      )}
-
-      {!hasThumbnail && <div className="absolute inset-0 z-10 bg-[linear-gradient(180deg,transparent,rgba(7,10,18,0.16)_56%,rgba(7,10,18,0.26))]" />}
+      {/* Gradient Overlay - Theme aware fade to background color */}
+      <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(180deg,transparent_15%,color-mix(in_srgb,var(--od-bg)_35%,transparent)_45%,color-mix(in_srgb,var(--od-bg)_90%,transparent)_85%,var(--od-bg)_100%)]" />
 
       {/* Top Right Actions */}
       <div className="absolute right-3 top-3 z-20 opacity-100 transition-opacity duration-200 md:opacity-0 md:group-hover:opacity-100">
@@ -131,7 +126,7 @@ function ThreadCardImpl({ thread, onTagClick, searchQuery, onAuthorClick, onPrev
       />
 
       {/* Bottom Content Area */}
-      <div className={`absolute bottom-0 left-0 right-0 z-20 flex flex-col p-4 ${hasThumbnail ? 'text-white' : 'text-[var(--od-text-primary)]'}`}>
+      <div className={`absolute bottom-0 left-0 right-0 z-20 flex flex-col ${cardSizes.padding} text-[var(--od-text-primary)]`}>
 
         {/* Tags */}
         {thread.tags && thread.tags.length > 0 && (
@@ -143,20 +138,14 @@ function ThreadCardImpl({ thread, onTagClick, searchQuery, onAuthorClick, onPrev
                   e.stopPropagation();
                   onTagClick?.(tag);
                 }}
-                  className={`rounded-full px-2.5 py-1 text-[10px] font-semibold transition-colors border ${hasThumbnail
-                  ? 'border-white/10 bg-white/12 text-white/88 hover:bg-white/18'
-                  : 'border-[var(--od-border)] bg-[var(--od-surface-input)] text-[var(--od-text-secondary)] hover:bg-[var(--od-interactive-hover)] hover:text-[var(--od-text-primary)]'
-                   }`}
+                  className="od-card-tag border-[var(--od-border-strong)]/40 bg-[var(--od-surface-input)]/60 text-[var(--od-text-secondary)] hover:bg-[var(--od-surface-input)] text-[10px]"
                 >
                   {tag}
               </button>
             ))}
             {/* Show +N for explicit tags */}
             {thread.tags.length > 3 && (
-              <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold border ${hasThumbnail
-                ? 'border-white/10 bg-white/12 text-white/82'
-                : 'border-[var(--od-border)] bg-[var(--od-surface-input)] text-[var(--od-text-secondary)]'
-                 }`}>
+              <span className="od-card-tag border-[var(--od-border-strong)]/40 bg-[var(--od-surface-input)]/60 text-[var(--od-text-secondary)] text-[10px]">
                 +{thread.tags.length - 3}
               </span>
             )}
@@ -167,10 +156,7 @@ function ThreadCardImpl({ thread, onTagClick, searchQuery, onAuthorClick, onPrev
             {virtualOnlyTags.slice(0, 2).map((tag) => (
               <span
                 key={`vt-${tag}`}
-                className={`rounded-full px-2.5 py-1 text-[10px] font-semibold border ${hasThumbnail
-                  ? 'border-cyan-200/22 bg-cyan-300/16 text-white'
-                  : 'border-[var(--od-accent)]/18 bg-[var(--od-accent)]/10 text-[var(--od-accent)]'
-                  }`}
+                className="od-card-tag border-cyan-200/20 bg-cyan-500/20 text-white"
               >
                 ~{tag}
               </span>
@@ -181,20 +167,20 @@ function ThreadCardImpl({ thread, onTagClick, searchQuery, onAuthorClick, onPrev
         {/* Title */}
         <h3
           ref={titleMeasureRef}
-          className={`mb-2 line-clamp-2 text-base font-extrabold leading-snug tracking-[-0.02em] md:text-[1.05rem] ${hasThumbnail ? 'text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.38)]' : 'text-[var(--od-text-primary)]'}`}
+          className={`mb-2 font-extrabold leading-snug tracking-[-0.02em] ${cardSizes.titleLines} ${fontSizes.title} text-[var(--od-text-primary)]`}
         >
-          <HighlightText text={clampedTitle} highlight={searchQuery} className={hasThumbnail ? 'text-white' : 'text-[var(--od-text-primary)]'} />
+          <HighlightText text={clampedTitle} highlight={searchQuery} className="text-[var(--od-text-primary)]" />
         </h3>
         {hasExcerpt && (
           <p
             ref={excerptMeasureRef}
-            className={`mb-3 line-clamp-2 text-xs leading-5 ${hasThumbnail ? 'text-white/76' : 'text-[var(--od-text-secondary)]'}`}
+            className={`mb-3 ${cardSizes.contentLines} ${fontSizes.content} leading-snug text-[var(--od-text-secondary)]`}
           >
             {clampedExcerpt}
           </p>
         )}
         {/* Footer: Author + Time + Stats */}
-        <div className={`border-t pt-3 text-xs ${hasThumbnail ? 'border-white/10 text-white/80' : 'border-[var(--od-shell-line)] text-[var(--od-text-secondary)]'}`}>
+        <div className={`border-t pt-3 ${fontSizes.meta} border-[var(--od-border-strong)]/30 text-[var(--od-text-secondary)]`}>
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2">
             <div className="flex min-w-0 items-center gap-2 overflow-hidden">
               <button
@@ -202,17 +188,18 @@ function ThreadCardImpl({ thread, onTagClick, searchQuery, onAuthorClick, onPrev
                 onClick={handleAuthorClick}
                 className="rounded-full"
               >
-                <AuthorAvatar author={thread.author} className={`h-6 w-6 md:h-7 md:w-7 ${hasThumbnail ? 'ring-1 ring-white/20' : 'ring-1 ring-[var(--od-border)]'}`} />
+                <AuthorAvatar author={thread.author} className="h-6 w-6 md:h-7 md:w-7 ring-1 ring-[var(--od-border-strong)]/40" />
               </button>
               <button
                 type="button"
                 onClick={handleAuthorClick}
-                className={`truncate font-semibold hover:underline ${compactAuthorTextClass} ${hasThumbnail ? 'hover:text-white' : 'hover:text-[var(--od-text-primary)]'}`}
+                className="max-w-[120px] truncate font-medium hover:text-[var(--od-text-primary)]"
               >
                 {authorName}
               </button>
             </div>
-            <div className={`flex flex-col items-end gap-1.5 text-[10px] ${hasThumbnail ? 'text-white/88' : 'text-[var(--od-text-tertiary)]'}`}>
+            <div className="flex flex-col items-end gap-1.5 text-[10px] text-[var(--od-text-tertiary)]">
+              <span className="text-[var(--od-border-strong)]/60">•</span>
               <div className="flex items-center gap-2 whitespace-nowrap">
                 <span className="inline-flex items-center gap-1 shrink-0">
                   <Calendar className="h-3 w-3 shrink-0" />

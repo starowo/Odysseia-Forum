@@ -266,7 +266,7 @@ export function TopBar({ onMenuClick, sidebarCollapsed = false }: TopBarProps) {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -8, scale: 0.98 }}
                 transition={{ type: 'spring', stiffness: 320, damping: 26 }}
-                className="od-floating-glass absolute left-1/2 top-full z-50 mt-2 w-[calc(100vw-1.5rem)] max-w-[560px] -translate-x-1/2 overflow-hidden rounded-2xl border border-[var(--od-border-strong)] shadow-2xl sm:left-auto sm:right-0 sm:w-[560px] sm:max-w-none sm:translate-x-0"
+                className="od-floating-glass fixed top-[4.25rem] inset-x-3 z-50 mt-2 overflow-hidden rounded-2xl border border-[var(--od-border-strong)] shadow-2xl mx-auto w-auto max-w-md sm:absolute sm:top-full sm:inset-x-auto sm:left-auto sm:right-0 sm:mx-0 sm:w-[560px] sm:max-w-none"
               >
                 {needsFilter && (
                   <div className="flex items-center gap-2 border-b border-white/[0.06] p-2">

@@ -1,0 +1,106 @@
+@layer base {
+  :root {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 263 70% 50%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 263 70% 50%;
+    --radius: 0.5rem;
+
+    /* Odysseia runtime theme variables（由 JS 根据 Theme 动态覆盖） */
+    --od-bg: #313338;
+    --od-bg-secondary: #1e1f22;
+    --od-bg-tertiary: #2b2d31;
+    --od-card: var(--od-bg);
+    --od-card-hover: #3a3c42;
+    --od-text-primary: #f2f3f5;
+    --od-text-secondary: #b5bac1;
+    --od-text-tertiary: #949ba4;
+    --od-text-heading: #8ea1ff;
+    --od-text-label: #87e8ff;
+    --od-text-meta: #949ba4;
+    --od-text-link: #00c7fc;
+    --od-text-value: #3ddc84;
+    --od-text-emphasis: #ff9c63;
+    --od-accent: #5865f2;
+    --od-accent-hover: #4752c4;
+    --od-accent-secondary: #4752c4;
+    --od-accent-secondary-hover: #3c44a8;
+    --od-link: #00a8fc;
+    --od-link-hover: #00c7fc;
+    --od-border: #2b2d31;
+    --od-border-strong: #3f4147;
+    --od-success: #23a55a;
+    --od-warning: #f0b232;
+    --od-error: #f23f42;
+    --od-info: #00a8fc;
+    --od-glass-bg: rgba(30, 31, 34, 0.58);
+    --od-glass-border: rgba(242, 243, 245, 0.12);
+    --od-glass-blur: 16px;
+    --od-surface-ghost: transparent;
+    --od-surface-ghost-hover: rgba(242, 243, 245, 0.07);
+    --od-surface-shell: color-mix(in srgb, var(--od-bg-secondary) 92%, black 8%);
+    --od-surface-content: color-mix(in srgb, var(--od-bg) 80%, var(--od-bg-secondary) 20%);
+    --od-surface-raised: color-mix(in srgb, var(--od-bg-tertiary) 76%, var(--od-bg) 24%);
+    --od-surface-floating: color-mix(in srgb, var(--od-bg) 88%, black 12%);
+    --od-surface-input: color-mix(in srgb, var(--od-bg-secondary) 74%, transparent 26%);
+    --od-surface-soft: color-mix(in srgb, var(--od-accent) 8%, transparent 92%);
+    --od-interactive-hover: color-mix(in srgb, var(--od-text-primary) 8%, transparent 92%);
+    --od-interactive-strong: color-mix(in srgb, var(--od-accent) 14%, transparent 86%);
+    --od-shell-line: color-mix(in srgb, var(--od-border) 76%, transparent);
+    --od-divider: color-mix(in srgb, var(--od-text-secondary) 28%, transparent);
+    --od-divider-strong: color-mix(in srgb, var(--od-text-primary) 38%, transparent);
+    --od-shadow-soft: 0 18px 48px rgb(0 0 0 / 0.14);
+    --od-shadow-floating: 0 26px 60px rgb(0 0 0 / 0.24);
+    --od-wallpaper-image: none;
+    --od-wallpaper-opacity: 0;
+    --od-wallpaper-dim: 0;
+
+    /* 核心排版 (Typography) & 圆角继承 */
+    --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    --od-text-xs: 0.75rem;
+    --od-text-sm: 0.875rem;
+    --od-text-base: 1rem;
+    --od-text-lg: 1.125rem;
+    --od-font-normal: 400;
+    --od-font-medium: 500;
+    --od-font-bold: 600;
+    --od-type-title: clamp(1rem, 0.9rem + 0.45vw, 1.25rem);
+    --od-type-hero: clamp(2rem, 1.4rem + 2vw, 3.5rem);
+    --od-type-section: clamp(1.2rem, 1.05rem + 0.55vw, 1.65rem);
+    --od-type-label: 0.875rem;
+    --od-type-body: 0.95rem;
+    --od-type-meta: 0.75rem;
+    --od-type-code: 0.83rem;
+    --od-weight-strong: 650;
+    --od-weight-medium: 550;
+    --od-weight-regular: 430;
+
+    /* UI 密度与间距系统 (Layout Density & Spacing) */
+    --od-space-xs: 0.25rem;
+    --od-space-sm: 0.5rem;
+    --od-space-md: 1rem;
+    --od-space-lg: 1.5rem;
+    --od-space-xl: 2rem;
+
+    /* 组件级语义 Token */
+    --od-modal-p: var(--od-space-lg);
+    --od-card-p: var(--od-space-md);
+    --od-card-gap: var(--od-space-md);
+    --od-list-gap: var(--od-space-sm);
+  }
+}

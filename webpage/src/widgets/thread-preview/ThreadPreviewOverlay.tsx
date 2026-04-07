@@ -108,14 +108,31 @@ export function ThreadPreviewOverlay({
         <div className="border-b border-[var(--od-shell-line)] bg-[var(--od-surface-floating)] px-6 py-5">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 flex flex-1 items-start gap-3">
-              <AuthorAvatar author={thread.author} className="h-10 w-10" />
+              {thread.author?.id ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleClose();
+                    navigate(`/u/${thread.author!.id}`);
+                  }}
+                  className="shrink-0"
+                  title={`查看作者主页：${authorName}`}
+                >
+                  <AuthorAvatar author={thread.author} className="h-10 w-10 transition-opacity hover:opacity-80" />
+                </button>
+              ) : (
+                <AuthorAvatar author={thread.author} className="h-10 w-10" />
+              )}
               <div className="min-w-0">
-                {searchableAuthorName ? (
+                {thread.author?.id ? (
                   <button
                     type="button"
-                    onClick={() => applySearchToken('author', searchableAuthorName)}
+                    onClick={() => {
+                      handleClose();
+                      navigate(`/u/${thread.author!.id}`);
+                    }}
                     className="truncate text-left font-bold text-[var(--od-text-primary)] hover:text-[var(--od-accent)] hover:underline"
-                    title={`搜索作者：${searchableAuthorName}`}
+                    title={`查看作者主页：${authorName}`}
                   >
                     {authorName}
                   </button>

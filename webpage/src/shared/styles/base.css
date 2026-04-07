@@ -1,0 +1,184 @@
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body {
+    @apply h-full w-full overscroll-none;
+  }
+
+  body {
+    @apply text-foreground;
+    background-color: var(--od-bg);
+    color: var(--od-text-primary);
+    position: relative;
+    font-size: var(--od-type-body);
+    font-weight: var(--od-weight-regular);
+    font-family: var(--font-sans);
+    scrollbar-width: thin;
+    scrollbar-color: var(--od-border-strong) var(--od-bg);
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image: var(--od-wallpaper-image);
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: var(--od-wallpaper-opacity);
+    filter: saturate(102%);
+    transition: opacity 320ms ease;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background: rgb(0 0 0 / var(--od-wallpaper-dim));
+    transition: background-color 280ms ease;
+  }
+
+  #root {
+    position: relative;
+    z-index: 1;
+  }
+
+  html[data-od-wallpaper='on'] body,
+  html[data-od-backgroundless='on'] body {
+    background-color: transparent;
+  }
+
+  html[data-od-wallpaper='off'] body::after {
+    background: transparent;
+  }
+
+  input[type='search'] {
+    -webkit-appearance: none;
+    appearance: none;
+    background-color: var(--od-bg-secondary);
+    color: var(--od-text-primary);
+  }
+
+  input[type='search']::-webkit-search-decoration,
+  input[type='search']::-webkit-search-cancel-button,
+  input[type='search']::-webkit-search-results-button,
+  input[type='search']::-webkit-search-results-decoration {
+    -webkit-appearance: none;
+  }
+
+  input[type='date'] {
+    color-scheme: dark;
+  }
+
+  input[type='date']::-webkit-calendar-picker-indicator {
+    filter: invert(0.8);
+    cursor: pointer;
+  }
+
+  *:focus-visible {
+    outline: 2px solid var(--od-accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible {
+    outline: 2px solid var(--od-accent);
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: var(--od-bg);
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: var(--od-border-strong);
+    border-radius: 4px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in_oklab, var(--od-border-strong) 80%, var(--od-bg) 20%);
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--od-border-strong) transparent;
+  }
+
+  .scrollbar-invisible::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .scrollbar-invisible::-webkit-scrollbar-track,
+  .scrollbar-invisible::-webkit-scrollbar-thumb,
+  .scrollbar-invisible::-webkit-scrollbar-thumb:hover {
+    background: transparent;
+  }
+
+  .scrollbar-invisible::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+  }
+
+  .scrollbar-invisible {
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  body::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  body::-webkit-scrollbar-track {
+    background: var(--od-bg);
+  }
+
+  body::-webkit-scrollbar-thumb {
+    background: var(--od-border-strong);
+    border-radius: 6px;
+  }
+
+  body::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in_oklab, var(--od-border-strong) 80%, var(--od-bg) 20%);
+  }
+
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: var(--od-bg-secondary);
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: var(--od-border-strong);
+    border-radius: 4px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in_oklab, var(--od-text-tertiary) 60%, transparent 40%);
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--od-border-strong) var(--od-bg-secondary);
+  }
+}

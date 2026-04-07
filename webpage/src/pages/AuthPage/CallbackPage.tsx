@@ -1,8 +1,9 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import { toast } from 'sonner';
 import { useRefreshAuth } from '@/features/auth/hooks/useAuth';
+import { showMascotToast } from '@/shared/lib/mascotToast';
+import { notifySuccess } from '@/shared/lib/notify';
 import { LOGIN_REDIRECT_STORAGE_KEY, sanitizeInternalRedirect } from '@/shared/lib/navigationSafety';
 import { OmicronLoader } from '@/shared/ui/loaders/OmicronLoader';
 
@@ -15,10 +16,19 @@ export function CallbackPage() {
     const error = searchParams.get('error');
 
     if (error) {
-      toast.error('登录失败: ' + error);
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
+      showMascotToast({
+        id: 'auth-callback-error',
+        emotion: 'sad_apology',
+        eyebrow: 'Login Interrupted',
+        title: '这次登录没接上',
+        message: 'Discord 登录流程中断了。先回到登录页，我陪你重新试一次。',
+        actionLabel: '返回登录页',
+        onAction: () => navigate('/login', { replace: true }),
+        cancelLabel: '稍后再说',
+        duration: 7000,
+      });
+
+      navigate('/login', { replace: true });
       return;
     }
 
@@ -31,12 +41,12 @@ export function CallbackPage() {
 
     const redirectPath = sanitizeInternalRedirect(savedRedirect || queryRedirect || '/');
 
-    toast.success('登录成功！');
+    notifySuccess('登录成功，正在回到你刚刚的位置', { id: 'auth-callback-success' });
 
     setTimeout(() => {
       refreshAuth();
       navigate(redirectPath, { replace: true });
-    }, 500);
+    }, 700);
   }, [searchParams, navigate, refreshAuth]);
 
   return (
