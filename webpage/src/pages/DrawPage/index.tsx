@@ -155,8 +155,7 @@ export function DrawPage() {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 flex flex-col gap-8 p-4 sm:p-6 lg:p-8">
       <section className="relative p-2 sm:p-6 lg:p-8">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.08),transparent_28%),radial-gradient(circle_at_bottom_left,rgba(255,208,92,0.06),transparent_24%)]" />
-        <div className="relative z-10 grid gap-8 lg:grid-cols-[minmax(0,1.24fr)_minmax(20rem,23rem)] lg:items-end">
+        <div className="relative z-10 grid gap-8 lg:grid-cols-[minmax(0,1.24fr)_minmax(20rem,23rem)] lg:items-start">
           <div>
             <div className="od-editorial-kicker mb-4 text-[var(--od-text-tertiary)]">
               <Sparkles className="h-3.5 w-3.5" />
@@ -164,10 +163,7 @@ export function DrawPage() {
             </div>
             <h1 className="od-hero-title max-w-3xl text-[var(--od-text-primary)]">随机抽卡</h1>
             <p className="mt-4 max-w-2xl text-sm leading-6 text-[var(--od-text-secondary)] sm:text-base sm:leading-7">
-              你要是懒得自己翻，我就帮你抽呀。抽出来的内容会尽量落在你平时能接受的范围里，像拆小盲盒一样，一张张看会很有意思呢。
-            </p>
-            <p className="mt-4 max-w-xl text-xs font-medium uppercase tracking-[0.2em] text-[var(--od-text-tertiary)] sm:text-[0.78rem]">
-              先告诉我大概要去哪一片逛，剩下的就交给运气啦。
+              你要是懒得自己翻，我就帮你抽呀。抽出来的内容像拆小盲盒一样，一张张看会很有意思呢。
             </p>
 
             <div className="mt-7 flex flex-wrap items-center gap-2 text-xs text-[var(--od-text-secondary)]">

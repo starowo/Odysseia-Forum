@@ -2,8 +2,8 @@ import ServerIcon from '@/assets/images/icon/A90C044F8DDF1959B2E9078CB629C239.pn
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useSearchURLParams } from '@/features/search/hooks/useSearchParams';
 import { clearStoredAuthToken } from '@/shared/lib/authSession';
-import { CHANNEL_CATEGORIES, VIRTUAL_TAG_CATEGORIES } from '@/shared/config/navigation';
-import { addToken, parseSearchQuery, removeToken } from '@/shared/lib/searchTokenizer';
+import { CHANNEL_CATEGORIES } from '@/shared/config/navigation';
+import { parseSearchQuery } from '@/shared/lib/searchTokenizer';
 import { ThemeToggle } from '@/shared/ui/ThemeToggle';
 import { AnimatedIcon } from '@/shared/ui/animation/AnimatedIcon';
 import { WordLogoStatic } from '@/shared/ui/loaders/WordLogoStatic';
@@ -28,9 +28,7 @@ export function AppSidebar() {
   const searchInput = params.query || '';
 
   const parsedTokens = parseSearchQuery(searchInput);
-  const activeTags = parsedTokens
-    .filter((token) => token.type === 'tag' && token.mode === 'include')
-    .map((token) => token.value);
+
   const currentURLParams = new URLSearchParams(location.search);
   const isFollowsPage = location.pathname === '/me' && currentURLParams.get('tab') === 'follows';
   const activeChannelId = params.channel;
@@ -48,24 +46,7 @@ export function AppSidebar() {
 
   const isActive = (path: string) => location.pathname === path;
 
-  const clearVirtualTags = () => {
-    const nextQuery = parseSearchQuery(searchInput)
-      .filter(
-        (token) => !(token.type === 'tag' && token.mode === 'include'),
-      )
-      .map((token) => token.raw)
-      .join(' ')
-      .trim();
 
-    if (location.pathname !== '/search') {
-      const nextParams = new URLSearchParams();
-      if (nextQuery) nextParams.set('q', nextQuery);
-      navigate(`/search${nextParams.toString() ? `?${nextParams.toString()}` : ''}`);
-      return;
-    }
-
-    setParams({ query: nextQuery });
-  };
 
   const clearChannelSelection = () => {
     if (isFollowsPage) {
@@ -311,68 +292,7 @@ export function AppSidebar() {
           </div>
         </div>
 
-        <div className="mb-6">
-          <div className="mb-2 flex items-center justify-between px-2">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--od-text-tertiary)]">
-              映射标签
-            </h2>
-            <button
-              type="button"
-              onClick={clearVirtualTags}
-              className="text-[10px] font-semibold uppercase tracking-widest text-[var(--od-text-tertiary)] transition-colors hover:text-[var(--od-text-primary)]"
-            >
-              清空
-            </button>
-          </div>
 
-          <div className="space-y-0.5">
-            {VIRTUAL_TAG_CATEGORIES.map((category) => (
-              <div key={category.name} className="mt-4 first:mt-0">
-                <div className="mb-1 px-2 text-[10px] font-bold uppercase tracking-widest text-[var(--od-text-tertiary)] opacity-60">
-                  {category.name}
-                </div>
-                <div className="space-y-0.5">
-                  {category.tags.map((tag) => {
-                    const active = activeTags.includes(tag.name);
-                    return (
-                      <button
-                        key={tag.id}
-                        onClick={() => {
-                          const existing = parseSearchQuery(searchInput).find(
-                            (token) => token.type === 'tag' && token.value === tag.name && token.mode === 'include',
-                          );
-
-                          const nextQuery = existing
-                            ? removeToken(searchInput, existing)
-                            : addToken(searchInput, 'tag', tag.name, 'include');
-
-                          if (location.pathname !== '/search') {
-                            navigateToSearchWithParams({ query: nextQuery.trim() });
-                            return;
-                          }
-
-                          setParams({ query: nextQuery.trim() });
-                        }}
-                        className={navItemClass(active)}
-                      >
-                        <span
-                          className={`inline-flex min-w-4 items-center justify-center text-[10px] font-bold leading-none transition-colors duration-200 ${
-                            active
-                              ? 'text-[var(--od-accent)]'
-                              : 'text-[var(--od-text-tertiary)] opacity-60 group-hover:text-[var(--od-text-secondary)]'
-                           }`}
-                        >
-                          #
-                        </span>
-                        <span className="truncate">{tag.name}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
 
       <div className="border-t border-[var(--od-border)] p-2">
