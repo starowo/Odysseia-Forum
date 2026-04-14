@@ -1,20 +1,19 @@
-import { MessageCircle, ThumbsUp, Eye, Clock3 } from 'lucide-react';
+import { MessageCircle, ThumbsUp, Eye, Clock3, Images } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import { LazyImage } from '@/shared/ui/LazyImage';
+import { memo } from 'react';
+import { useNavigate } from 'react-router-dom';
 
+import { LazyImage } from '@/shared/ui/LazyImage';
 import { HighlightText } from '@/shared/ui/HighlightText';
 import { MarkdownText } from '@/shared/ui/MarkdownText';
 import type { Thread } from '@/entities/thread/types';
-import { useFontSizeSetting } from '@/shared/hooks/useSettings';
+import { useFontSizeSetting, useImageModeSetting } from '@/shared/hooks/useSettings';
 import { fontSizeMap } from '@/shared/lib/settings';
 import { ThreadActions } from '@/features/threads/components/ThreadActions';
 import { AuthorAvatar } from '@/entities/user/AuthorAvatar';
 import { ThreadStatusBadges } from '@/entities/thread/ThreadStatusBadges';
 import { usePretextClampText } from '@/shared/hooks/usePretextClampText';
-import { useNavigate } from 'react-router-dom';
-import { memo } from 'react';
-
 
 interface ThreadListItemProps {
   thread: Thread;
@@ -27,6 +26,7 @@ interface ThreadListItemProps {
 function ThreadListItemImpl({ thread, onTagClick, searchQuery, onAuthorClick, onPreview }: ThreadListItemProps) {
   const navigate = useNavigate();
   const fontSize = useFontSizeSetting();
+  const imageMode = useImageModeSetting();
   const fontSizes = fontSizeMap[fontSize];
 
   const createdTime = formatDistanceToNow(new Date(thread.created_at), {
@@ -47,12 +47,13 @@ function ThreadListItemImpl({ thread, onTagClick, searchQuery, onAuthorClick, on
     thread.author?.name ??
     '未知用户';
   const authorId = thread.author?.id || '';
+  const hasExcerpt = !!thread.first_message_excerpt && thread.first_message_excerpt.trim() !== '...';
+  const thumbnails = imageMode === 'off' ? [] : (thread.thumbnail_urls || []).filter(Boolean).slice(0, 4);
 
-  const hasExcerpt =
-    !!thread.first_message_excerpt &&
-    thread.first_message_excerpt.trim() !== '...';
-  const { measureRef: titleMeasureRef, clampedText: clampedTitle } =
-    usePretextClampText<HTMLHeadingElement>(thread.title, { maxLines: 2 });
+  const { measureRef: titleMeasureRef, clampedText: clampedTitle } = usePretextClampText<HTMLHeadingElement>(
+    thread.title,
+    { maxLines: 2 },
+  );
 
   const handleAuthorClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -66,146 +67,201 @@ function ThreadListItemImpl({ thread, onTagClick, searchQuery, onAuthorClick, on
 
   return (
     <article
-      className="group relative flex min-h-[8rem] w-full max-w-full cursor-pointer gap-0 overflow-hidden rounded-[1.35rem] bg-[var(--od-surface-input)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-[var(--od-interactive-hover)] md:h-48"
+      className="group relative w-full cursor-pointer py-3 text-[var(--od-text-primary)] transition-colors duration-200"
       onClick={() => onPreview?.(thread)}
     >
-        {/* 左侧内容区 - 占据更多空间 */}
-        <div className="flex flex-1 flex-col justify-between p-3 min-w-0 md:p-5">
-          {/* 标题 */}
-          <div>
-            <h3
-              ref={titleMeasureRef}
-              className={`mb-1 font-bold leading-snug text-[var(--od-text-primary)] transition-colors duration-200 ${fontSizes.title} line-clamp-2 md:mb-2 break-all`}
+      <div className="absolute inset-x-0 bottom-0 h-px bg-[linear-gradient(90deg,transparent,color-mix(in_srgb,var(--od-divider-strong)_60%,transparent),transparent)]" />
+
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:gap-5">
+        <div className="min-w-0 flex-1">
+          <div className={`mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 ${fontSizes.meta} text-[var(--od-text-tertiary)]`}>
+            <button type="button" onClick={handleAuthorClick} className="shrink-0 rounded-full">
+              <AuthorAvatar author={thread.author} className="h-6 w-6 md:h-7 md:w-7" />
+            </button>
+            <button
+              type="button"
+              onClick={handleAuthorClick}
+              className="max-w-[9rem] truncate font-medium text-[var(--od-text-secondary)] transition-colors hover:text-[var(--od-text-primary)]"
             >
-              <HighlightText text={clampedTitle} highlight={searchQuery} />
-              <ThreadStatusBadges
-                isFollowing={thread.collected_flag}
-                hasUpdate={thread.has_update}
-                variant="list"
-                className="ml-2"
-              />
-            </h3>
-
-            {/* 作者和时间 */}
-            <div className={`mb-1 flex items-center gap-2 ${fontSizes.meta} text-[var(--od-text-tertiary)] md:mb-3`}>
-              {/* 头像 */}
-              <button type="button" onClick={handleAuthorClick} className="rounded-full">
-                <AuthorAvatar author={thread.author} className="h-6 w-6 md:h-8 md:w-8" />
-              </button>
-              <button
-                type="button"
-                onClick={handleAuthorClick}
-                className="truncate font-medium text-[var(--od-accent)] hover:underline max-w-[80px] md:max-w-none"
-              >
-                {authorName}
-              </button>
-              <span>·</span>
-              <span className="whitespace-nowrap">{createdTime}</span>
-              {lastActiveTime && (
-                <>
-                  <span>·</span>
-                  <span className="inline-flex items-center gap-1 whitespace-nowrap">
-                    <Clock3 className="h-3 w-3" />
-                    活跃 {lastActiveTime}
-                  </span>
-                </>
-              )}
-            </div>
-
-            {/* 内容摘要 - 列表模式也使用 Markdown 渲染 */}
-            {hasExcerpt && (
-              <div
-                className={`mb-1 od-md leading-relaxed text-[var(--od-text-secondary)] ${fontSizes.content} line-clamp-1 md:mb-3 md:line-clamp-2 break-all`}
-              >
-                <MarkdownText text={thread.first_message_excerpt!} />
-              </div>
+              {authorName}
+            </button>
+            <span className="text-[var(--od-divider-strong)]/75">/</span>
+            <span className="whitespace-nowrap">{createdTime}</span>
+            {lastActiveTime && (
+              <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                <Clock3 className="h-3 w-3" />
+                活跃 {lastActiveTime}
+              </span>
             )}
           </div>
 
-          {/* 底部信息 */}
-          <div className="flex items-center justify-between mt-2 md:mt-0">
-            {/* 标签 */}
-            <div className="flex flex-wrap gap-1.5 overflow-hidden h-6 md:h-auto">
-              {thread.tags?.slice(0, 3).map((tag) => (
+          <div className="mb-3 flex items-start gap-2.5">
+            <h3
+              ref={titleMeasureRef}
+              className={`min-w-0 flex-1 font-semibold leading-snug tracking-[-0.02em] text-[var(--od-text-primary)] transition-colors duration-200 group-hover:text-[var(--od-text-heading)] ${fontSizes.title}`}
+            >
+              <HighlightText text={clampedTitle} highlight={searchQuery} />
+            </h3>
+            <ThreadStatusBadges
+              isFollowing={thread.collected_flag}
+              hasUpdate={thread.has_update}
+              variant="list"
+              className="mt-0.5 shrink-0"
+            />
+          </div>
+
+          {hasExcerpt && (
+            <div
+              className={`mb-3 od-md line-clamp-2 break-all leading-relaxed text-[var(--od-text-secondary)] md:max-w-[72ch] ${fontSizes.content}`}
+            >
+              <MarkdownText text={thread.first_message_excerpt!} />
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[var(--od-text-tertiary)] md:text-xs">
+              {thread.tags?.slice(0, 4).map((tag) => (
                 <button
                   key={tag}
                   onClick={(e) => {
                     e.stopPropagation();
                     onTagClick?.(tag);
                   }}
-                  className="rounded-full bg-[var(--od-surface-shell)] px-2 py-0.5 text-[10px] font-medium text-[var(--od-text-secondary)] transition-colors duration-200 hover:text-[var(--od-text-primary)] md:px-2.5 md:py-1 md:text-xs"
+                  className="truncate transition-colors hover:text-[var(--od-text-primary)]"
                 >
-                  {tag}
+                  #{tag}
                 </button>
               ))}
-              {thread.tags && thread.tags.length > 3 && (
-                <span className="flex items-center text-[10px] text-[#949ba4] md:text-xs">+{thread.tags.length - 3}</span>
-              )}
+              {thread.tags && thread.tags.length > 4 && <span>+{thread.tags.length - 4}</span>}
               {virtualOnlyTags.slice(0, 2).map((tag) => (
-                <span
-                  key={`vt-${tag}`}
-                  className="rounded-full border border-[var(--od-accent)]/16 bg-[var(--od-accent)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--od-accent)] md:text-xs"
-                >
+                <span key={`vt-${tag}`} className="text-[var(--od-text-emphasis)]">
                   ~{tag}
                 </span>
               ))}
             </div>
 
-            {/* 统计信息和跳转按钮 */}
-            <div className="flex items-center gap-2 md:gap-4 shrink-0">
-              <div className="flex items-center gap-2 md:gap-3">
-                <div className="flex items-center gap-1 text-[var(--od-text-tertiary)]">
-                  <MessageCircle className="h-3 w-3 md:h-4 md:w-4" />
-                  <span className="text-xs md:text-sm">{thread.reply_count}</span>
-                </div>
-                <div className="flex items-center gap-1 text-[var(--od-text-tertiary)]">
-                  <ThumbsUp className="h-3 w-3 md:h-4 md:w-4" />
-                  <span className="text-xs md:text-sm">{thread.reaction_count}</span>
-                </div>
-                <div className="flex items-center gap-1 text-[var(--od-text-tertiary)]">
-                  <Eye className="h-3 w-3 md:h-4 md:w-4" />
-                  <span className="text-xs md:text-sm">{thread.display_count}</span>
-                </div>
-              </div>
+            <div className="flex items-center gap-3 text-[11px] text-[var(--od-text-tertiary)] md:text-xs">
+              <span className="inline-flex items-center gap-1 transition-colors group-hover:text-[var(--od-text-secondary)]">
+                <MessageCircle className="h-3.5 w-3.5" />
+                <span className="tabular-nums">{thread.reply_count}</span>
+              </span>
+              <span className="inline-flex items-center gap-1 transition-colors group-hover:text-[var(--od-text-secondary)]">
+                <ThumbsUp className="h-3.5 w-3.5" />
+                <span className="tabular-nums">{thread.reaction_count}</span>
+              </span>
+              <span className="inline-flex items-center gap-1 transition-colors group-hover:text-[var(--od-text-secondary)]">
+                <Eye className="h-3.5 w-3.5" />
+                <span className="tabular-nums">{thread.display_count}</span>
+              </span>
+            </div>
 
-              {/* 跳转按钮 */}
-              <div className="scale-90 md:scale-100">
-                <ThreadActions
-                  threadId={thread.thread_id}
-                  guildId={thread.guild_id}
-                  size="md"
-                />
-              </div>
+            <div className="ml-auto shrink-0 text-[var(--od-text-tertiary)] transition-colors group-hover:text-[var(--od-text-primary)]">
+              <ThreadActions
+                threadId={thread.thread_id}
+                guildId={thread.guild_id}
+                size="md"
+                alwaysVisible
+              />
             </div>
           </div>
         </div>
 
-        {/* 右侧图片区 - 带渐变遮罩，防止溢出 */}
-        <div className="relative w-32 flex-shrink-0 overflow-hidden bg-[var(--od-surface-shell)] md:w-80">
-          {thread.thumbnail_urls && thread.thumbnail_urls.length > 0 ? (
-            <>
-              <LazyImage
-                src={thread.thumbnail_urls[0]}
-                alt={thread.title}
-                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                threadId={thread.thread_id}
-                channelId={thread.channel_id}
-              />
-              {thread.thumbnail_urls && thread.thumbnail_urls.length > 1 && (
-                <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-md bg-black/60 px-1.5 py-0.5 text-xs font-bold text-white backdrop-blur-sm">
-                  <span className="material-symbols-outlined text-[10px]">image</span>
-                  <span>{thread.thumbnail_urls.length}</span>
+        {thumbnails.length > 0 && (
+          <div className="shrink-0 md:w-[13.5rem] lg:w-[14.5rem]">
+            <div className="grid h-[9.5rem] grid-cols-2 gap-1.5 md:h-[10.75rem]">
+              {thumbnails.length === 1 && (
+                <div className="relative col-span-2 overflow-hidden rounded-[1rem] bg-[var(--od-surface-shell)]">
+                  <LazyImage
+                    src={thumbnails[0]}
+                    alt={`${thread.title} 缩略图 1`}
+                    className="h-full w-full object-cover"
+                    threadId={thread.thread_id}
+                    channelId={thread.channel_id}
+                  />
                 </div>
               )}
-              {/* 左侧渐变遮罩 - 柔和过渡 */}
-              <div className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-[var(--od-bg-tertiary)] via-[color-mix(in_oklab,var(--od-bg-tertiary)_60%,transparent)] to-transparent transition-colors duration-300 group-hover:from-[var(--od-card-hover)] group-hover:via-[color-mix(in_oklab,var(--od-card-hover)_60%,transparent)] md:w-24" />
-              {/* 整体暗化遮罩 - 柔和 */}
-              <div className="pointer-events-none absolute inset-0 bg-black/10 transition-opacity duration-300 group-hover:bg-black/5" />
-            </>
-          ) : (
-            <div className="h-full w-full bg-[var(--od-bg-secondary)]" />
-          )}
-        </div>
+
+              {thumbnails.length === 2 && (
+                <>
+                  {thumbnails.map((src, index) => (
+                    <div
+                      key={`${thread.thread_id}-${src}-${index}`}
+                      className="relative overflow-hidden rounded-[1rem] bg-[var(--od-surface-shell)]"
+                    >
+                      <LazyImage
+                        src={src}
+                        alt={`${thread.title} 缩略图 ${index + 1}`}
+                        className="h-full w-full object-cover"
+                        threadId={thread.thread_id}
+                        channelId={thread.channel_id}
+                      />
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {thumbnails.length === 3 && (
+                <>
+                  <div className="relative row-span-2 overflow-hidden rounded-[1rem] bg-[var(--od-surface-shell)]">
+                    <LazyImage
+                      src={thumbnails[0]}
+                      alt={`${thread.title} 缩略图 1`}
+                      className="h-full w-full object-cover"
+                      threadId={thread.thread_id}
+                      channelId={thread.channel_id}
+                    />
+                  </div>
+                  <div className="relative overflow-hidden rounded-[1rem] bg-[var(--od-surface-shell)]">
+                    <LazyImage
+                      src={thumbnails[1]}
+                      alt={`${thread.title} 缩略图 2`}
+                      className="h-full w-full object-cover"
+                      threadId={thread.thread_id}
+                      channelId={thread.channel_id}
+                    />
+                  </div>
+                  <div className="relative overflow-hidden rounded-[1rem] bg-[var(--od-surface-shell)]">
+                    <LazyImage
+                      src={thumbnails[2]}
+                      alt={`${thread.title} 缩略图 3`}
+                      className="h-full w-full object-cover"
+                      threadId={thread.thread_id}
+                      channelId={thread.channel_id}
+                    />
+                  </div>
+                </>
+              )}
+
+              {thumbnails.length === 4 && (
+                <>
+                  {thumbnails.map((src, index) => (
+                    <div
+                      key={`${thread.thread_id}-${src}-${index}`}
+                      className="relative overflow-hidden rounded-[1rem] bg-[var(--od-surface-shell)]"
+                    >
+                      <LazyImage
+                        src={src}
+                        alt={`${thread.title} 缩略图 ${index + 1}`}
+                        className="h-full w-full object-cover"
+                        threadId={thread.thread_id}
+                        channelId={thread.channel_id}
+                      />
+                      {index === 3 && (thread.thumbnail_urls?.length || 0) > thumbnails.length && (
+                        <div className="absolute inset-0 flex items-end justify-end bg-[linear-gradient(180deg,transparent,rgba(0,0,0,0.42))] p-2 text-white">
+                          <span className="inline-flex items-center gap-1 text-[10px] font-medium tracking-[0.08em]">
+                            <Images className="h-3 w-3" />
+                            +{(thread.thumbnail_urls?.length || 0) - thumbnails.length}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </article>
   );
 }

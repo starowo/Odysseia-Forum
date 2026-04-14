@@ -6,6 +6,7 @@ import {
   clearSearchHistory,
   getSearchHistory,
   removeSearchHistory,
+  type SearchHistoryItem,
 } from '@/shared/lib/searchHistory';
 import {
   addToken,
@@ -92,12 +93,19 @@ export function useTopBarSearchController({
       }
 
       if (trimmed) {
-        addSearchHistory(trimmed);
+        addSearchHistory({
+          query: trimmed,
+          channel: params.channel,
+          sortMethod: params.sortMethod,
+          tagLogic: params.tagLogic,
+          includeTags: params.includeTags,
+          excludeTags: params.excludeTags,
+        });
         setHistoryItems(getSearchHistory());
       }
       closePanels();
     },
-    [closePanels, isSearchPage, navigate, setParams],
+    [closePanels, isSearchPage, navigate, params.channel, params.excludeTags, params.includeTags, params.sortMethod, params.tagLogic, setParams],
   );
 
   const applyInputChange = useCallback(
@@ -120,6 +128,33 @@ export function useTopBarSearchController({
   const handleSearch = useCallback(() => {
     executeSearch(searchInput);
   }, [executeSearch, searchInput]);
+
+  const applyHistoryItem = useCallback(
+    (item: SearchHistoryItem) => {
+      setSearchInput(item.query);
+
+      if (!isSearchPage) {
+        const nextParams = new URLSearchParams();
+        if (item.query.trim()) nextParams.set('q', item.query.trim());
+        if (item.channel) nextParams.set('channel', item.channel);
+        if (item.sortMethod && item.sortMethod !== 'last_active_desc') nextParams.set('sort', item.sortMethod);
+        if (item.tagLogic && item.tagLogic !== 'and') nextParams.set('tag_logic', item.tagLogic);
+        navigate(`/search${nextParams.toString() ? `?${nextParams.toString()}` : ''}`);
+      } else {
+        setParams({
+          query: item.query,
+          channel: item.channel || null,
+          sortMethod: (item.sortMethod as SearchParams['sortMethod']) || 'last_active_desc',
+          tagLogic: item.tagLogic || 'and',
+        });
+      }
+
+      addSearchHistory(item);
+      setHistoryItems(getSearchHistory());
+      closePanels();
+    },
+    [closePanels, isSearchPage, navigate, setParams],
+  );
 
   const toggleFilters = useCallback(() => {
     if (showFilters) {
@@ -196,8 +231,8 @@ export function useTopBarSearchController({
     });
   }, [setParams]);
 
-  const removeHistoryItem = useCallback((query: string) => {
-    removeSearchHistory(query);
+  const removeHistoryItem = useCallback((item: SearchHistoryItem | string) => {
+    removeSearchHistory(item);
     setHistoryItems(getSearchHistory());
   }, []);
 
@@ -217,6 +252,7 @@ export function useTopBarSearchController({
     executeSearch,
     handleInputFocus,
     handleSearch,
+    applyHistoryItem,
     historyItems,
     includeAuthorDraft,
     includeAuthorTokens,

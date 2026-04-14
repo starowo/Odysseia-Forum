@@ -80,10 +80,10 @@ export function BooklistsPage() {
                   内容整理
                 </p>
                 <div className="space-y-1.5">
-                  <h1 className="od-section-title">书单</h1>
-                  <p className="max-w-2xl text-sm leading-6 text-[var(--od-text-secondary)]">
-                    把喜欢的帖子整理成书单，可以公开分享，也可以留着自己看，或者收藏别人的精选合集。
-                  </p>
+                   <h1 className="od-section-title">书单</h1>
+                   <p className="max-w-2xl text-sm leading-6 text-[var(--od-text-secondary)]">
+                     喜欢的内容可以慢慢收进书单里呀。你可以自己偷偷留着，也可以整理好了再拿出来分享给别人看。
+                   </p>
                 </div>
               </div>
             </div>
@@ -121,7 +121,7 @@ export function BooklistsPage() {
               </div>
 
               <p className="text-sm leading-6 text-[var(--od-text-secondary)]">
-                切换看看公开书单、你自己整理的、或者已经收藏的，再用搜索和排序缩小范围。
+                 你可以先看看公开的，或者翻翻自己整理过、收藏过的那些，再慢慢搜就好，不用急。
               </p>
             </div>
 
@@ -178,13 +178,13 @@ export function BooklistsPage() {
         </div>
       ) : listQuery.isError ? (
         <div className="py-12 text-center text-sm text-[var(--od-text-secondary)]">
-          书单加载出了点问题，稍后再试试吧。
+          书单这边刚刚有点小迷糊，等一下再来，我会重新帮你拿一遍的。
         </div>
       ) : results.length === 0 ? (
         <div className="py-14 text-center">
           <p className="text-base font-semibold text-[var(--od-text-primary)]">暂无书单</p>
           <p className="mt-1 text-sm text-[var(--od-text-secondary)]">
-            {scope === 'public' ? '现在还没有公开书单，来创建第一个吧～' : '你还没有对应书单，可以新建一个试试。'}
+            {scope === 'public' ? '现在还没有公开书单呢，要不要顺手做第一个呀？' : '这里还空着呢，你可以慢慢新建一个试试。'}
           </p>
         </div>
       ) : (

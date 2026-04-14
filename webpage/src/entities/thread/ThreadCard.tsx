@@ -1,6 +1,8 @@
 import { MessageCircle, ThumbsUp, Image as ImageIcon, Eye, Calendar, Clock3 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
+import { useEffect, useMemo, useRef, useState, memo } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { HighlightText } from '@/shared/ui/HighlightText';
 import type { Thread } from '@/entities/thread/types';
@@ -8,13 +10,8 @@ import { ThreadActions } from '@/features/threads/components/ThreadActions';
 import { reportBrokenThreadThumbnail, subscribeThreadThumbnailRepair } from '@/features/threads/lib/thumbnailRepairQueue';
 import { AuthorAvatar } from '@/entities/user/AuthorAvatar';
 import { ThreadStatusBadges } from '@/entities/thread/ThreadStatusBadges';
-import { usePretextClampText } from '@/shared/hooks/usePretextClampText';
-import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { memo } from 'react';
 import { useFontSizeSetting, useCardSizeSetting } from '@/shared/hooks/useSettings';
-import { fontSizeMap, cardSizeMap } from '@/shared/lib/settings';
-
+import { fontSizeMap } from '@/shared/lib/settings';
 
 interface ThreadCardProps {
   thread: Thread;
@@ -29,7 +26,7 @@ function ThreadCardImpl({ thread, onTagClick, searchQuery, onAuthorClick, onPrev
   const fontSize = useFontSizeSetting();
   const fontSizes = fontSizeMap[fontSize];
   const cardSize = useCardSizeSetting();
-  const cardSizes = cardSizeMap[cardSize];
+
   const authorName =
     thread.author?.display_name ??
     thread.author?.global_name ??
@@ -38,6 +35,11 @@ function ThreadCardImpl({ thread, onTagClick, searchQuery, onAuthorClick, onPrev
   const authorId = thread.author?.id || '';
   const initialThumbnail = useMemo(() => thread.thumbnail_urls?.[0] || '', [thread.thumbnail_urls]);
   const [thumbnailSrc, setThumbnailSrc] = useState(initialThumbnail);
+  const titleViewportRef = useRef<HTMLSpanElement>(null);
+  const titleTrackRef = useRef<HTMLSpanElement>(null);
+  const [titleShift, setTitleShift] = useState(0);
+  const [isTitleHovered, setIsTitleHovered] = useState(false);
+  const shouldMarquee = isTitleHovered && titleShift > 0;
 
   useEffect(() => {
     setThumbnailSrc(initialThumbnail);
@@ -48,6 +50,19 @@ function ThreadCardImpl({ thread, onTagClick, searchQuery, onAuthorClick, onPrev
       if (urls.length > 0) setThumbnailSrc(urls[0]);
     });
   }, [thread.thread_id]);
+
+  useEffect(() => {
+    const updateTitleShift = () => {
+      const viewportWidth = titleViewportRef.current?.clientWidth || 0;
+      const trackWidth = titleTrackRef.current?.scrollWidth || 0;
+      setTitleShift(Math.max(trackWidth - viewportWidth + 12, 0));
+    };
+
+    updateTitleShift();
+    window.addEventListener('resize', updateTitleShift);
+    return () => window.removeEventListener('resize', updateTitleShift);
+  }, [thread.title, fontSize, searchQuery]);
+
   const createdTime = formatDistanceToNow(new Date(thread.created_at), {
     addSuffix: true,
     locale: zhCN,
@@ -59,16 +74,7 @@ function ThreadCardImpl({ thread, onTagClick, searchQuery, onAuthorClick, onPrev
       })
     : null;
   const virtualOnlyTags = (thread.virtual_tags || []).filter((tag) => !thread.tags.includes(tag));
-  const hasExcerpt =
-    !!thread.first_message_excerpt &&
-    thread.first_message_excerpt.trim() !== '...';
-  const { measureRef: titleMeasureRef, clampedText: clampedTitle } =
-    usePretextClampText<HTMLHeadingElement>(thread.title, { maxLines: 2 });
-  const { measureRef: excerptMeasureRef, clampedText: clampedExcerpt } =
-    usePretextClampText<HTMLParagraphElement>(thread.first_message_excerpt || '', {
-      maxLines: 2,
-      enabled: hasExcerpt,
-    });
+  const hasExcerpt = !!thread.first_message_excerpt && thread.first_message_excerpt.trim() !== '...';
 
   const handleAuthorClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -80,19 +86,94 @@ function ThreadCardImpl({ thread, onTagClick, searchQuery, onAuthorClick, onPrev
     navigate(`/u/${authorId}`);
   };
 
+  const mediaAspectClass =
+    cardSize === 'compact'
+      ? 'aspect-[3/4]'
+      : cardSize === 'large'
+      ? 'aspect-[5/7]'
+      : 'aspect-[3/4]';
+
   return (
     <article
-      className={`group relative flex w-full cursor-pointer flex-col overflow-hidden rounded-[1.4rem] border border-[var(--od-shell-line)] bg-[var(--od-surface-shell)]/30 backdrop-blur-[4px] shadow-[var(--od-shadow-soft)] transition-all duration-300 hover:-translate-y-1 hover:border-[color-mix(in_srgb,var(--od-accent)_28%,var(--od-border))] hover:bg-[var(--od-surface-shell)]/50 ${cardSizes.imageHeight}`}
+      className="group flex h-full w-full cursor-pointer flex-col"
       onClick={() => onPreview?.(thread)}
     >
-      {/* Background Image Layer */}
-      <div className="absolute inset-0 z-0">
+      <div className="flex flex-col gap-2 px-1 pb-3 pt-1 text-[var(--od-text-primary)]">
+        <div className="flex min-w-0 items-center gap-2 overflow-hidden">
+          <button type="button" onClick={handleAuthorClick} className="rounded-full shrink-0">
+            <AuthorAvatar author={thread.author} className="h-6 w-6 md:h-7 md:w-7 ring-1 ring-[var(--od-border-strong)]/25" />
+          </button>
+          <div className="min-w-0 flex-1">
+            <button
+              type="button"
+              onClick={handleAuthorClick}
+              className="block max-w-[140px] truncate text-xs font-medium text-[var(--od-text-secondary)] transition-colors duration-200 group-hover:text-[var(--od-text-primary)] hover:text-[var(--od-text-primary)]"
+            >
+              {authorName}
+            </button>
+            <div className="mt-0.5 flex items-center gap-2 text-[10px] text-[var(--od-text-tertiary)]">
+              <span className="inline-flex items-center gap-1 whitespace-nowrap">
+                <Calendar className="h-3 w-3 shrink-0" />
+                <span>{createdTime}</span>
+              </span>
+              {lastActiveTime && (
+                <span className="inline-flex items-center gap-1 min-w-0 whitespace-nowrap">
+                  <Clock3 className="h-3 w-3 shrink-0" />
+                  <span className="truncate max-w-[88px]">活跃 {lastActiveTime}</span>
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="overflow-hidden">
+          <h3
+            className={`whitespace-nowrap ${fontSizes.title} text-[var(--od-text-primary)] transition-colors duration-200 group-hover:text-[color-mix(in_srgb,var(--od-text-primary)_82%,var(--od-accent))]`}
+          >
+            <span
+              ref={titleViewportRef}
+              className="inline-block max-w-full overflow-hidden align-top"
+              onMouseEnter={() => setIsTitleHovered(true)}
+              onMouseLeave={() => setIsTitleHovered(false)}
+            >
+              <span
+                ref={titleTrackRef}
+                style={{
+                  ['--od-marquee-distance' as string]: `${titleShift}px`,
+                  ['--od-marquee-gap' as string]: '1.75rem',
+                  ['--od-marquee-duration' as string]: `${Math.max(5, titleShift / 22)}s`,
+                }}
+                className={`od-marquee-track inline-flex items-center font-extrabold leading-snug tracking-[-0.02em] ${
+                  shouldMarquee ? 'od-marquee-active' : ''
+                }`}
+              >
+                <span className="shrink-0">
+                  <HighlightText text={thread.title} highlight={searchQuery} className="text-[var(--od-text-primary)]" />
+                </span>
+                {titleShift > 0 && (
+                  <>
+                    <span className="mx-7 shrink-0 text-[var(--od-text-tertiary)]/55">/</span>
+                    <span className="shrink-0">
+                      <HighlightText text={thread.title} highlight={searchQuery} className="text-[var(--od-text-primary)]" />
+                    </span>
+                  </>
+                )}
+              </span>
+            </span>
+          </h3>
+        </div>
+      </div>
+
+      <div
+        className={`relative w-full overflow-hidden rounded-[1.45rem] border border-[var(--od-shell-line)] bg-[var(--od-surface-shell)] shadow-[var(--od-shadow-soft)] ${mediaAspectClass}`}
+      >
         {thumbnailSrc ? (
           <img
             src={thumbnailSrc}
             alt={thread.title}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+            className="h-full w-full object-cover"
             onError={() => {
+              setThumbnailSrc('');
               reportBrokenThreadThumbnail({
                 threadId: thread.thread_id,
                 channelId: thread.channel_id,
@@ -104,131 +185,81 @@ function ThreadCardImpl({ thread, onTagClick, searchQuery, onAuthorClick, onPrev
             <ImageIcon className="h-12 w-12 text-[var(--od-text-tertiary)]/20" />
           </div>
         )}
-      </div>
 
-      {/* Gradient Overlay - Theme aware fade to background color */}
-      <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(180deg,transparent_15%,color-mix(in_srgb,var(--od-bg)_35%,transparent)_45%,color-mix(in_srgb,var(--od-bg)_90%,transparent)_85%,var(--od-bg)_100%)]" />
+        <div className="absolute right-3 top-3 z-20 opacity-100 transition-opacity duration-200 md:opacity-0 md:group-hover:opacity-100">
+          <ThreadActions threadId={thread.thread_id} guildId={thread.guild_id} variant="glass" />
+        </div>
 
-      {/* Top Right Actions */}
-      <div className="absolute right-3 top-3 z-20 opacity-100 transition-opacity duration-200 md:opacity-0 md:group-hover:opacity-100">
-        <ThreadActions
-          threadId={thread.thread_id}
-          guildId={thread.guild_id}
-          variant="glass"
+        <ThreadStatusBadges
+          isFollowing={thread.collected_flag}
+          hasUpdate={thread.has_update}
+          variant="card"
         />
       </div>
 
-      {/* Status Badges */}
-      <ThreadStatusBadges
-        isFollowing={thread.collected_flag}
-        hasUpdate={thread.has_update}
-        variant="card"
-      />
+      <div className="flex flex-1 flex-col gap-3 px-1 pt-3 text-[var(--od-text-primary)]">
+        <div className="min-h-[2.75rem]">
+          {hasExcerpt && (
+            <p className={`${fontSizes.content} line-clamp-2 leading-relaxed text-[var(--od-text-secondary)] transition-colors duration-200 group-hover:text-[color-mix(in_srgb,var(--od-text-secondary)_72%,var(--od-text-primary))]`}>
+              {thread.first_message_excerpt}
+            </p>
+          )}
+        </div>
 
-      {/* Bottom Content Area */}
-      <div className={`absolute bottom-0 left-0 right-0 z-20 flex flex-col ${cardSizes.padding} text-[var(--od-text-primary)]`}>
-
-        {/* Tags */}
-        {thread.tags && thread.tags.length > 0 && (
-            <div className="mb-2.5 flex flex-wrap gap-1.5">
+        <div className="min-h-[2.75rem] content-start">
+          {(thread.tags.length > 0 || virtualOnlyTags.length > 0) && (
+            <div className="flex flex-wrap gap-1.5">
               {thread.tags.slice(0, 3).map((tag) => (
                 <button
-                key={tag}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onTagClick?.(tag);
-                }}
-                  className="od-card-tag border-[var(--od-border-strong)]/40 bg-[var(--od-surface-input)]/60 text-[var(--od-text-secondary)] hover:bg-[var(--od-surface-input)] text-[10px]"
+                  key={tag}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onTagClick?.(tag);
+                  }}
+                  className="rounded-md border border-[var(--od-border)]/30 bg-[var(--od-surface-raised)]/60 px-2 py-0.5 text-[10px] text-[var(--od-text-secondary)] transition-colors hover:bg-[var(--od-surface-raised)] hover:text-[var(--od-text-primary)]"
                 >
                   {tag}
-              </button>
-            ))}
-            {/* Show +N for explicit tags */}
-            {thread.tags.length > 3 && (
-              <span className="od-card-tag border-[var(--od-border-strong)]/40 bg-[var(--od-surface-input)]/60 text-[var(--od-text-secondary)] text-[10px]">
-                +{thread.tags.length - 3}
-              </span>
-            )}
-          </div>
-        )}
-        {virtualOnlyTags.length > 0 && (
-          <div className="mb-2.5 flex flex-wrap gap-1.5">
-            {virtualOnlyTags.slice(0, 2).map((tag) => (
-              <span
-                key={`vt-${tag}`}
-                className="od-card-tag border-cyan-200/20 bg-cyan-500/20 text-white"
-              >
-                ~{tag}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* Title */}
-        <h3
-          ref={titleMeasureRef}
-          className={`mb-2 font-extrabold leading-snug tracking-[-0.02em] ${cardSizes.titleLines} ${fontSizes.title} text-[var(--od-text-primary)]`}
-        >
-          <HighlightText text={clampedTitle} highlight={searchQuery} className="text-[var(--od-text-primary)]" />
-        </h3>
-        {hasExcerpt && (
-          <p
-            ref={excerptMeasureRef}
-            className={`mb-3 ${cardSizes.contentLines} ${fontSizes.content} leading-snug text-[var(--od-text-secondary)]`}
-          >
-            {clampedExcerpt}
-          </p>
-        )}
-        {/* Footer: Author + Time + Stats */}
-        <div className={`border-t pt-3 ${fontSizes.meta} border-[var(--od-border-strong)]/30 text-[var(--od-text-secondary)]`}>
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2">
-            <div className="flex min-w-0 items-center gap-2 overflow-hidden">
-              <button
-                type="button"
-                onClick={handleAuthorClick}
-                className="rounded-full"
-              >
-                <AuthorAvatar author={thread.author} className="h-6 w-6 md:h-7 md:w-7 ring-1 ring-[var(--od-border-strong)]/40" />
-              </button>
-              <button
-                type="button"
-                onClick={handleAuthorClick}
-                className="max-w-[120px] truncate font-medium hover:text-[var(--od-text-primary)]"
-              >
-                {authorName}
-              </button>
+                </button>
+              ))}
+              {thread.tags.length > 3 && (
+                <span className="rounded-md border border-[var(--od-border)]/30 bg-[var(--od-surface-raised)]/60 px-2 py-0.5 text-[10px] text-[var(--od-text-secondary)]">
+                  +{thread.tags.length - 3}
+                </span>
+              )}
+              {virtualOnlyTags.slice(0, 2).map((tag) => (
+                <span
+                  key={`vt-${tag}`}
+                  className="rounded-md border border-cyan-200/20 bg-cyan-500/10 px-2 py-0.5 text-[10px] text-cyan-500"
+                >
+                  ~{tag}
+                </span>
+              ))}
             </div>
-            <div className="flex flex-col items-end gap-1.5 text-[10px] text-[var(--od-text-tertiary)]">
-              <span className="text-[var(--od-border-strong)]/60">•</span>
-              <div className="flex items-center gap-2 whitespace-nowrap">
-                <span className="inline-flex items-center gap-1 shrink-0">
-                  <Calendar className="h-3 w-3 shrink-0" />
-                  <span>{createdTime}</span>
-                </span>
-                {lastActiveTime && (
-                  <span className="inline-flex items-center gap-1 min-w-0">
-                    <Clock3 className="h-3 w-3 shrink-0" />
-                    <span className="truncate max-w-[88px] md:max-w-[120px]">活跃 {lastActiveTime}</span>
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-3 whitespace-nowrap">
-                <span className="inline-flex items-center gap-1">
-                  <MessageCircle className="h-3.5 w-3.5 opacity-80" />
-                  {thread.reply_count}
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <ThumbsUp className="h-3.5 w-3.5 opacity-80" />
-                  {thread.reaction_count}
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <Eye className="h-3.5 w-3.5 opacity-80" />
-                  {thread.display_count}
-                </span>
-              </div>
-            </div>
-          </div>
+          )}
         </div>
+
+        <div className="mt-auto grid grid-cols-3 gap-2 text-[var(--od-text-tertiary)]">
+          <span className="inline-flex min-w-0 items-center gap-1 text-[11px]" title="浏览量">
+            <Eye className="h-3.5 w-3.5 shrink-0" />
+            <span className="min-w-0 truncate text-[clamp(9px,1.8vw,11px)] font-medium tabular-nums">
+              {thread.display_count}
+            </span>
+          </span>
+          <span className="inline-flex min-w-0 items-center gap-1 text-[11px]" title="回复数">
+            <MessageCircle className="h-3.5 w-3.5 shrink-0" />
+            <span className="min-w-0 truncate text-[clamp(9px,1.8vw,11px)] font-medium tabular-nums">
+              {thread.reply_count}
+            </span>
+          </span>
+          <span className="inline-flex min-w-0 items-center gap-1 text-[11px]" title="点赞数">
+            <ThumbsUp className="h-3.5 w-3.5 shrink-0" />
+            <span className="min-w-0 truncate text-[clamp(9px,1.8vw,11px)] font-medium tabular-nums">
+              {thread.reaction_count}
+            </span>
+          </span>
+        </div>
+
+        <div className="h-px w-full bg-[linear-gradient(90deg,transparent,color-mix(in_srgb,var(--od-border-strong)_36%,transparent),transparent)]" />
       </div>
     </article>
   );

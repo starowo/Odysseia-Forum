@@ -31,6 +31,8 @@ export function AppSidebar() {
   const activeTags = parsedTokens
     .filter((token) => token.type === 'tag' && token.mode === 'include')
     .map((token) => token.value);
+  const currentURLParams = new URLSearchParams(location.search);
+  const isFollowsPage = location.pathname === '/me' && currentURLParams.get('tab') === 'follows';
   const activeChannelId = params.channel;
 
   const handleLogout = async () => {
@@ -66,6 +68,13 @@ export function AppSidebar() {
   };
 
   const clearChannelSelection = () => {
+    if (isFollowsPage) {
+      const nextParams = new URLSearchParams(location.search);
+      nextParams.delete('channel');
+      navigate(`/me?${nextParams.toString()}`);
+      return;
+    }
+
     if (location.pathname !== '/search') {
       navigateToSearchWithParams({ channel: null });
       return;
@@ -84,6 +93,18 @@ export function AppSidebar() {
 
     navigate(`/search${nextParams.toString() ? `?${nextParams.toString()}` : ''}`);
   };
+
+  const navItemClass = (active: boolean) =>
+    `group flex w-full items-center gap-2 px-2 py-1.5 text-sm transition-colors duration-200 ${
+      active
+        ? 'font-medium text-[var(--od-text-primary)]'
+        : 'text-[var(--od-text-secondary)] hover:text-[var(--od-text-primary)]'
+    }`;
+
+  const navIndicatorClass = (active: boolean) =>
+    `h-1.5 w-1.5 rounded-full transition-colors duration-200 ${
+      active ? 'bg-[var(--od-accent)]' : 'bg-[var(--od-text-tertiary)]/45 group-hover:bg-[var(--od-text-secondary)]'
+    }`;
 
   return (
     <div className="flex h-full flex-col">
@@ -110,12 +131,9 @@ export function AppSidebar() {
           <div className="space-y-0.5">
             <Link
               to="/"
-              className={`group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${
-                isActive('/')
-                  ? 'bg-[var(--od-bg-secondary)] text-[var(--od-text-primary)]'
-                  : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
-              }`}
+              className={navItemClass(isActive('/'))}
             >
+              <span className={navIndicatorClass(isActive('/'))} />
               <AnimatedIcon
                 icon={Compass}
                 className={`h-4 w-4 flex-shrink-0 ${isActive('/') ? 'text-[var(--od-accent)]' : ''}`}
@@ -127,12 +145,9 @@ export function AppSidebar() {
 
             <Link
               to="/search"
-              className={`group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${
-                isActive('/search')
-                  ? 'bg-[var(--od-bg-secondary)] text-[var(--od-text-primary)]'
-                  : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
-              }`}
+              className={navItemClass(isActive('/search'))}
             >
+              <span className={navIndicatorClass(isActive('/search'))} />
               <AnimatedIcon
                 icon={SearchIcon}
                 className={`h-4 w-4 flex-shrink-0 ${isActive('/search') ? 'text-[var(--od-accent)]' : ''}`}
@@ -144,12 +159,9 @@ export function AppSidebar() {
 
             <Link
               to="/draw"
-              className={`group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${
-                isActive('/draw')
-                  ? 'bg-[var(--od-bg-secondary)] text-[var(--od-text-primary)]'
-                  : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
-              }`}
+              className={navItemClass(isActive('/draw'))}
             >
+              <span className={navIndicatorClass(isActive('/draw'))} />
               <AnimatedIcon
                 icon={Dices}
                 className={`h-4 w-4 flex-shrink-0 ${isActive('/draw') ? 'text-[var(--od-accent)]' : ''}`}
@@ -161,12 +173,9 @@ export function AppSidebar() {
 
             <Link
               to="/booklists"
-              className={`group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${
-                isActive('/booklists') || location.pathname.startsWith('/booklists/')
-                  ? 'bg-[var(--od-bg-secondary)] text-[var(--od-text-primary)]'
-                  : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
-              }`}
+              className={navItemClass(isActive('/booklists') || location.pathname.startsWith('/booklists/'))}
             >
+              <span className={navIndicatorClass(isActive('/booklists') || location.pathname.startsWith('/booklists/'))} />
               <AnimatedIcon
                 icon={BookOpen}
                 className={`h-4 w-4 flex-shrink-0 ${
@@ -182,12 +191,9 @@ export function AppSidebar() {
 
             <Link
               to="/tags"
-              className={`group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${
-                isActive('/tags')
-                  ? 'bg-[var(--od-bg-secondary)] text-[var(--od-text-primary)]'
-                  : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
-              }`}
+              className={navItemClass(isActive('/tags'))}
             >
+              <span className={navIndicatorClass(isActive('/tags'))} />
               <AnimatedIcon
                 icon={TagIcon}
                 className={`h-4 w-4 flex-shrink-0 ${isActive('/tags') ? 'text-[var(--od-accent)]' : ''}`}
@@ -199,12 +205,9 @@ export function AppSidebar() {
 
             <Link
               to="/settings"
-              className={`group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${
-                isActive('/settings')
-                  ? 'bg-[var(--od-bg-secondary)] text-[var(--od-text-primary)]'
-                  : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
-              }`}
+              className={navItemClass(isActive('/settings'))}
             >
+              <span className={navIndicatorClass(isActive('/settings'))} />
               <AnimatedIcon
                 icon={Settings}
                 className={`h-4 w-4 flex-shrink-0 ${isActive('/settings') ? 'text-[var(--od-accent)]' : ''}`}
@@ -216,12 +219,9 @@ export function AppSidebar() {
 
             <Link
               to="/about"
-              className={`group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${
-                isActive('/about')
-                  ? 'bg-[var(--od-bg-secondary)] text-[var(--od-text-primary)]'
-                  : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
-              }`}
+              className={navItemClass(isActive('/about'))}
             >
+              <span className={navIndicatorClass(isActive('/about'))} />
               <AnimatedIcon
                 icon={Info}
                 className={`h-4 w-4 flex-shrink-0 ${isActive('/about') ? 'text-[var(--od-accent)]' : ''}`}
@@ -234,12 +234,9 @@ export function AppSidebar() {
             {import.meta.env.VITE_API_MOCKING === 'true' && (
               <Link
                 to="/test"
-                className={`group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${
-                  isActive('/test')
-                    ? 'bg-[var(--od-bg-secondary)] text-[var(--od-text-primary)]'
-                    : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
-                }`}
+                className={navItemClass(isActive('/test'))}
               >
+                <span className={navIndicatorClass(isActive('/test'))} />
                 <AnimatedIcon
                   icon={TestTube}
                   className={`h-4 w-4 flex-shrink-0 ${isActive('/test') ? 'text-[var(--od-accent)]' : ''}`}
@@ -262,19 +259,9 @@ export function AppSidebar() {
           <div className="space-y-0.5">
             <button
               onClick={clearChannelSelection}
-              className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${
-                !activeChannelId
-                  ? 'bg-[var(--od-bg-secondary)] font-medium text-[var(--od-text-primary)]'
-                  : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
-              }`}
+              className={navItemClass(!activeChannelId)}
             >
-              <span
-                className={`h-1.5 w-1.5 rounded-full ${
-                  !activeChannelId
-                    ? 'bg-[var(--od-accent)]'
-                    : 'bg-[var(--od-text-tertiary)]'
-                }`}
-              />
+              <span className={navIndicatorClass(!activeChannelId)} />
               <span>全频道</span>
             </button>
 
@@ -292,6 +279,17 @@ export function AppSidebar() {
                         onClick={() => {
                           const nextChannel = active ? null : channel.id;
 
+                          if (isFollowsPage) {
+                            const nextParams = new URLSearchParams(location.search);
+                            if (nextChannel) {
+                              nextParams.set('channel', nextChannel);
+                            } else {
+                              nextParams.delete('channel');
+                            }
+                            navigate(`/me?${nextParams.toString()}`);
+                            return;
+                          }
+
                           if (location.pathname !== '/search') {
                             navigateToSearchWithParams({ channel: nextChannel });
                             return;
@@ -299,19 +297,9 @@ export function AppSidebar() {
 
                           setParams({ channel: nextChannel });
                         }}
-                        className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${
-                          active
-                            ? 'bg-[var(--od-bg-secondary)] font-medium text-[var(--od-text-primary)] shadow-sm'
-                            : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
-                        }`}
+                        className={navItemClass(active)}
                       >
-                        <span
-                          className={`h-1.5 w-1.5 rounded-full ${
-                            active
-                              ? 'bg-[var(--od-accent)]'
-                              : 'border border-[var(--od-text-tertiary)] opacity-30'
-                          }`}
-                        />
+                        <span className={navIndicatorClass(active)} />
                         <span className="truncate">{channel.name}</span>
                       </button>
                     );
@@ -365,18 +353,14 @@ export function AppSidebar() {
 
                           setParams({ query: nextQuery.trim() });
                         }}
-                        className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-all duration-200 ${
-                          active
-                            ? 'bg-[color-mix(in_srgb,var(--od-accent)_10%,transparent)] font-medium text-[var(--od-text-primary)] shadow-sm'
-                            : 'text-[var(--od-text-secondary)] hover:bg-[var(--od-bg-secondary)] hover:text-[var(--od-text-primary)]'
-                        }`}
+                        className={navItemClass(active)}
                       >
                         <span
-                          className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full border text-[10px] font-bold leading-none ${
+                          className={`inline-flex min-w-4 items-center justify-center text-[10px] font-bold leading-none transition-colors duration-200 ${
                             active
-                              ? 'border-[color-mix(in_srgb,var(--od-accent)_30%,transparent)] bg-[var(--od-accent)] text-white'
-                              : 'border-[var(--od-text-tertiary)] text-[var(--od-text-tertiary)] opacity-60'
-                          }`}
+                              ? 'text-[var(--od-accent)]'
+                              : 'text-[var(--od-text-tertiary)] opacity-60 group-hover:text-[var(--od-text-secondary)]'
+                           }`}
                         >
                           #
                         </span>

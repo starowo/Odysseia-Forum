@@ -17,6 +17,9 @@ export function ResizableSidebar({
   setIsCollapsed,
 }: ResizableSidebarProps) {
   const sidebarWidth = 170;
+  const mobileAsideVisibilityClass = isMobileOpen
+    ? 'translate-x-0 opacity-100 visible pointer-events-auto'
+    : '-translate-x-full opacity-0 invisible pointer-events-none';
 
   return (
     <>
@@ -32,12 +35,14 @@ export function ResizableSidebar({
       <aside
         style={{ width: `${sidebarWidth}px` }}
         className={`
-          fixed left-0 top-0 z-50 h-screen transition-transform duration-300 lg:z-40
+          fixed left-0 top-0 z-50 h-screen transition-[transform,opacity,visibility] duration-300 lg:z-40
           bg-[color-mix(in_srgb,var(--od-bg-secondary)_88%,transparent)] backdrop-blur-xl
-          lg:bg-transparent lg:backdrop-blur-none
-          ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
+          will-change-transform lg:bg-transparent lg:backdrop-blur-none
+          ${mobileAsideVisibilityClass}
           ${isCollapsed ? 'lg:-translate-x-full' : 'lg:translate-x-0'}
+          lg:visible lg:pointer-events-auto lg:opacity-100
         `}
+        aria-hidden={!isMobileOpen}
       >
         {/* 移动端关闭按钮 — 偏右上角，避开 logo 区域 */}
         <button

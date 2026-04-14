@@ -164,10 +164,10 @@ export function DrawPage() {
             </div>
             <h1 className="od-hero-title max-w-3xl text-[var(--od-text-primary)]">随机抽卡</h1>
             <p className="mt-4 max-w-2xl text-sm leading-6 text-[var(--od-text-secondary)] sm:text-base sm:leading-7">
-              让我帮你把广场式发现变成一次有仪式感的揭晓～抽到的内容只会来自你的偏好允许范围，频道越明确，结果越聚焦哦。
+              你要是懒得自己翻，我就帮你抽呀。抽出来的内容会尽量落在你平时能接受的范围里，像拆小盲盒一样，一张张看会很有意思呢。
             </p>
             <p className="mt-4 max-w-xl text-xs font-medium uppercase tracking-[0.2em] text-[var(--od-text-tertiary)] sm:text-[0.78rem]">
-              先划定这次抽取的边界，然后把随机性交给我，最后专注看揭晓结果就好。
+              先告诉我大概要去哪一片逛，剩下的就交给运气啦。
             </p>
 
             <div className="mt-7 flex flex-wrap items-center gap-2 text-xs text-[var(--od-text-secondary)]">
@@ -190,8 +190,8 @@ export function DrawPage() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--od-text-label)]">Draw Flow</p>
-                <p className="mt-2 text-sm font-semibold text-[var(--od-text-primary)]">先选范围，再决定这一轮怎么揭晓</p>
-                <p className="mt-1 text-xs leading-5 text-[var(--od-text-secondary)]">抽卡范围不会越过你的发现偏好。</p>
+                <p className="mt-2 text-sm font-semibold text-[var(--od-text-primary)]">先圈个大概范围，再决定抽一张还是抽十张</p>
+                <p className="mt-1 text-xs leading-5 text-[var(--od-text-secondary)]">我不会故意抽到你偏好外面去的，放心吧。</p>
               </div>
               <button
                 type="button"
@@ -254,7 +254,7 @@ export function DrawPage() {
 
               <div className="pt-2">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--od-text-label)]">揭晓方式</p>
-                <p className="mt-2 text-xs leading-5 text-[var(--od-text-secondary)]">单抽适合快速试水，十连更适合一次看完整批次的灵感落点。</p>
+                <p className="mt-2 text-xs leading-5 text-[var(--od-text-secondary)]">想随手碰碰运气就单抽，想一次看热闹一点就十连呀。</p>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
@@ -290,19 +290,19 @@ export function DrawPage() {
             <p className="od-metric-line-value">{effectiveChannelIds?.length ?? allChannels.length}</p>
             <p className="od-metric-line-note">
               {preferenceContext?.preferredChannelIds.length
-                ? '抽卡只会从你的偏好频道里取材，指定频道时会进一步收缩范围。'
-                : '你还没有设定偏好频道，所以当前候选池来自全部公开频道。'}
+                ? '我会优先从你平时更常看的频道里翻，指定频道以后范围还会再收一点。'
+                : '你还没给我偏好范围呢，所以我现在是从公开频道里一起翻。'}
             </p>
           </div>
           <div className="od-metric-line">
             <p className="od-metric-line-label">标签约束</p>
             <p className="od-metric-line-value">{(includeTags?.length || 0) + (excludeTags?.length || 0)}</p>
-            <p className="od-metric-line-note">包含标签 {includeTags?.length || 0} 个，排除标签 {excludeTags?.length || 0} 个。抽卡不会越过这些边界。</p>
+            <p className="od-metric-line-note">现在记着包含标签 {includeTags?.length || 0} 个、排除标签 {excludeTags?.length || 0} 个，我会乖乖照着这个边界来抽的。</p>
           </div>
           <div className="od-metric-line">
             <p className="od-metric-line-label">当前池深度</p>
             <p className="od-metric-line-value">{candidateThreads.length}</p>
-            <p className="od-metric-line-note">这是本轮可参与抽取的内容数。候选池越大，随机性越强；越小，越接近定向发现。</p>
+            <p className="od-metric-line-note">这里就是这一轮能被抽到的总数啦。池子越大越像乱逛，池子越小就越像冲着某种口味去找。</p>
           </div>
         </div>
       </section>
@@ -351,7 +351,7 @@ export function DrawPage() {
           </div>
         ) : (
           <div className="od-draw-slot text-sm text-[var(--od-text-secondary)]">
-            准备好了～单抽适合快速开盲盒，十连更适合一次看完整批次的灵感落点。
+            准备好啦。你想先轻轻试一张也行，想热闹一点直接十连也行，我都陪你。
           </div>
         )}
       </section>
@@ -404,7 +404,7 @@ export function DrawPage() {
                   <div>
                     <p className="text-sm font-semibold text-[var(--od-text-primary)]">其余结果</p>
                     <p className="mt-1 text-xs leading-5 text-[var(--od-text-secondary)]">
-                      {drawResults.length > 1 ? '右侧保持和主卡同构，只缩成更紧凑的卡片列。' : '单抽模式下，这里会在多抽时展开其余结果。'}
+                      {drawResults.length > 1 ? '剩下那些我也整整齐齐摆在旁边啦，你可以一起对着看。' : '现在是单抽，所以这里只会在多抽的时候热闹起来。'}
                     </p>
                   </div>
                   {drawResults.length > 1 && (
@@ -424,7 +424,7 @@ export function DrawPage() {
                   </div>
                 ) : (
                   <div className="od-draw-slot od-draw-slot-muted text-center text-sm text-[var(--od-text-secondary)]">
-                    十连时，右侧会展开更多同构小卡；移动端则自动变成上主卡、下小卡的纵向堆叠。
+                    等你十连的时候，这里就会一下子铺开很多张，看起来会更有抽卡的感觉哦。
                   </div>
                 )}
               </div>
@@ -437,7 +437,7 @@ export function DrawPage() {
             </div>
             <h3 className="mt-5 text-xl font-bold tracking-tight text-[var(--od-text-primary)]">第一张卡还在等你揭晓哦～</h3>
             <p className="mt-2 text-sm leading-6 text-[var(--od-text-secondary)]">
-              先选抽卡范围，再决定是单抽还是十连。结果会从你的偏好池子里随机生成。
+              先挑一下这轮想在哪片地方碰运气，再决定抽一张还是十张。我会把结果乖乖送到你面前的。
             </p>
           </div>
         )}

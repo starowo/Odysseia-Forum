@@ -1,4 +1,14 @@
 @layer utilities {
+  @keyframes od-marquee-loop {
+    0% {
+      transform: translateX(0);
+    }
+
+    100% {
+      transform: translateX(calc(-1 * (var(--od-marquee-distance, 0px) + var(--od-marquee-gap, 2rem))));
+    }
+  }
+
   @keyframes fade-in {
     from {
       opacity: 0;
@@ -58,6 +68,18 @@
 
   .duration-500 {
     animation-duration: 0.5s;
+  }
+
+  .od-marquee-track {
+    will-change: transform;
+  }
+
+  .od-marquee-active {
+    animation-name: od-marquee-loop;
+    animation-duration: var(--od-marquee-duration, 8s);
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    animation-delay: 0.35s;
   }
 
   @keyframes notification-bell-swing {

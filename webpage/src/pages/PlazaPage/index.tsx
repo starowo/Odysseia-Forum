@@ -119,10 +119,10 @@ export function PlazaPage() {
               </div>
               <h1 className="od-hero-title max-w-2xl text-[var(--od-text-primary)]">内容广场</h1>
               <p className="mt-4 max-w-2xl text-sm leading-6 text-[var(--od-text-secondary)] sm:text-base sm:leading-7">
-                把 Banner 曝光、趋势内容、编辑推荐和精选书单收拢成一个更连贯的阅读入口，减少卡片套卡片，让信息自己站出来。
+                我把今天广场里比较热闹、比较值得先看一眼的内容都理到这边啦。你不用急着挑，顺着往下逛就好，说不定一下子就碰到喜欢的。
               </p>
               <p className="mt-4 max-w-xl text-xs font-medium uppercase tracking-[0.2em] text-[var(--od-text-tertiary)] sm:text-[0.78rem]">
-                先看当下最值得点开的内容，再顺着趋势轨道继续深入。
+                先看看大家现在都在聊什么，再慢慢往下挖呀。
               </p>
             </div>
 
@@ -166,7 +166,7 @@ export function PlazaPage() {
                   <h2 className="max-w-xl text-2xl font-bold leading-tight tracking-tight text-[var(--od-text-primary)] group-hover:text-[var(--od-accent)] sm:text-3xl">
                     {heroBanner.title}
                   </h2>
-                  <p className="mt-3 max-w-lg text-sm leading-6 text-[var(--od-text-secondary)]">点击直接打开预览，先从这张头条封面进入，再沿着广场的轨道继续深挖。</p>
+                  <p className="mt-3 max-w-lg text-sm leading-6 text-[var(--od-text-secondary)]">这张我先帮你放在最前面啦，点开看看，说不定一眼就对胃口呢。</p>
                 </button>
               ) : bannersQuery.isLoading ? (
                 <div className="h-28 w-full animate-pulse rounded-[1.35rem] bg-[var(--od-surface-input)]" />
@@ -174,7 +174,7 @@ export function PlazaPage() {
                 <div className="py-4">
                   <p className="mb-2 text-xs font-semibold uppercase tracking-[0.24em] text-[var(--od-text-tertiary)]">Featured Thread</p>
                   <p className="text-lg font-semibold text-[var(--od-text-primary)]">当前没有可展示的 Banner。</p>
-                  <p className="mt-2 text-sm leading-6 text-[var(--od-text-secondary)]">广场仍会继续按趋势轨道和精选书单向下展开，不会因为头图空缺而中断发现节奏。</p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--od-text-secondary)]">没关系呀，今天就先不摆头图了，我还是会继续把下面值得看的内容给你摊开。</p>
                 </div>
               )}
             </div>
@@ -183,7 +183,7 @@ export function PlazaPage() {
               <div className="mb-4 flex items-end justify-between gap-3">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--od-text-label)]">More Exposure</p>
-                  <p className="mt-2 text-sm leading-6 text-[var(--od-text-secondary)]">其余副位保持轻量榜单感，不再单独做成厚重的侧栏卡片。</p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--od-text-secondary)]">旁边这些也都是我顺手挑出来的，你要是懒得自己翻，从这里接着点也很顺哦。</p>
                 </div>
                 <Sparkles className="h-4 w-4 text-[var(--od-text-tertiary)]" />
               </div>
@@ -213,7 +213,7 @@ export function PlazaPage() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm leading-6 text-[var(--od-text-secondary)]">更多 Banner 位暂时空缺，等新的内容冲上来之后，这里会继续补位。</p>
+                  <p className="text-sm leading-6 text-[var(--od-text-secondary)]">这边暂时还空着呢，等有新的帖子冒头了，我会再悄悄补上来。</p>
               )}
             </div>
           </div>
@@ -229,7 +229,7 @@ export function PlazaPage() {
               </div>
               <h2 className="mt-4 text-2xl font-bold tracking-tight text-[var(--od-text-primary)]">不想挑的话，就让抽卡替你开路</h2>
               <p className="mt-2 text-sm leading-6 text-[var(--od-text-secondary)]">
-                新的随机抽卡页已经上线，默认只会从你的偏好允许范围里取材。既能单抽，也能十连，把发现流做成一次更有仪式感的揭晓。
+                要是你今天只想随便逛逛，不想自己挑，我就帮你抽呀。单抽也行，十连也行，我会尽量从你平时爱看的范围里捞给你。
               </p>
             </div>
 
@@ -262,9 +262,9 @@ export function PlazaPage() {
                     <Compass className="h-3.5 w-3.5" />
                     Preference Filter Active
                   </div>
-                  <p className="od-inline-notice-title mt-3">广场已经按你的偏好筛了一遍</p>
+                  <p className="od-inline-notice-title mt-3">我先按你的口味帮你筛过一遍啦</p>
                   <p className="od-inline-notice-copy mt-2 max-w-3xl">
-                    不感兴趣的频道和标签已经帮你挡掉了，想看看完整广场也可以临时取消。
+                    那些你大概不会感兴趣的内容，我先帮你挡开了一点点。要是你今天想乱逛，也可以临时放开看看呀。
                   </p>
                 </div>
 
@@ -305,7 +305,7 @@ export function PlazaPage() {
           </div>
           <div>
             <h2 className="od-section-title">正在发生</h2>
-            <p className="mt-1 text-sm text-[var(--od-text-secondary)]">帮你整理了四条内容轨道：最新发布、热门反应、讨论活跃和编辑精选。</p>
+            <p className="mt-1 text-sm text-[var(--od-text-secondary)]">我把它们分成几条比较好逛的轨道啦，你可以先看新的，也可以挑热闹的那条慢慢翻。</p>
           </div>
         </div>
       </section>
@@ -350,7 +350,7 @@ export function PlazaPage() {
         <div className="mb-5 flex items-center justify-between gap-3">
           <div>
             <h2 className="od-section-title">书单精选</h2>
-            <p className="mt-1 text-sm text-[var(--od-text-secondary)]">大家收藏最多的书单合集，看看有没有合你口味的。</p>
+            <p className="mt-1 text-sm text-[var(--od-text-secondary)]">这些都是大家比较爱收的书单，我替你放在前面啦，说不定会刚好合你胃口。</p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -396,7 +396,7 @@ export function PlazaPage() {
           </div>
         ) : (
           <div className="rounded-[1.25rem] bg-[var(--od-surface-input)] p-6 text-sm text-[var(--od-text-secondary)]">
-            暂无可推荐书单。
+            这会儿还没有我想先塞给你的书单呢，晚点再来看看也许就有啦。
           </div>
         )}
       </section>
@@ -404,7 +404,7 @@ export function PlazaPage() {
       <div className="px-1 text-xs text-[var(--od-text-tertiary)]">
         <div className="inline-flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-[var(--od-accent)]" />
-          推荐由综合排序 + 时间窗规则生成，后续将加入个性化权重。
+          这些内容是我按最近的热度和时间顺手排出来的，先给你一个好逛的起点呀。
         </div>
       </div>
 

@@ -19,6 +19,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   Bell,
   Compass,
+  Eye,
   Hash,
   Menu,
   Search,
@@ -70,8 +71,9 @@ export function TopBar({ onMenuClick, sidebarCollapsed = false }: TopBarProps) {
     debouncedQuery,
     excludeAuthorDraft,
     excludeAuthorTokens,
-    executeSearch,
-    handleInputFocus,
+      executeSearch,
+      applyHistoryItem,
+      handleInputFocus,
     handleSearch,
     historyItems,
     includeAuthorDraft,
@@ -153,11 +155,16 @@ export function TopBar({ onMenuClick, sidebarCollapsed = false }: TopBarProps) {
         return;
       }
 
+      if (action.type === 'apply_history') {
+        applyHistoryItem(action.item);
+        return;
+      }
+
       const newValue = `${searchInput}${action.value}`.trim();
       applyInputChange(newValue);
       closePanels();
     },
-    [applyInputChange, closePanels, executeSearch, searchInput, setPreviewThread, setPreviewThreadId],
+    [applyHistoryItem, applyInputChange, closePanels, executeSearch, searchInput, setPreviewThread, setPreviewThreadId],
   );
 
   const hasActiveFilters =
@@ -199,13 +206,13 @@ export function TopBar({ onMenuClick, sidebarCollapsed = false }: TopBarProps) {
         sidebarCollapsed ? 'lg:left-0' : 'lg:left-[170px]'
       }`}
     >
-      <div className="flex items-center gap-3">
-        <button
-          onClick={onMenuClick}
-          className="rounded-lg p-2 text-[var(--od-text-secondary)] transition-all duration-200 hover:bg-white/[0.06] hover:text-[var(--od-text-primary)] lg:hidden"
-          aria-label="打开菜单"
-        >
-          <AnimatedIcon icon={Menu} className="h-5 w-5" animation="rotate" trigger="click" />
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onMenuClick}
+            className="p-2 text-[var(--od-text-secondary)] transition-colors duration-200 hover:text-[var(--od-text-primary)] lg:hidden"
+            aria-label="打开菜单"
+          >
+            <AnimatedIcon icon={Menu} className="h-5 w-5" animation="rotate" trigger="click" />
         </button>
 
         {breadcrumb && (
@@ -243,9 +250,9 @@ export function TopBar({ onMenuClick, sidebarCollapsed = false }: TopBarProps) {
             {needsFilter && (
               <button
                 onClick={toggleFilters}
-                className={`relative mr-2 shrink-0 rounded-md p-1.5 transition-all duration-200 ${
+                className={`relative mr-2 shrink-0 p-1.5 transition-colors duration-200 ${
                   showFilters || hasPanelFilters
-                    ? 'bg-[var(--od-accent)]/10 text-[var(--od-accent)]'
+                    ? 'text-[var(--od-accent)]'
                     : 'text-[var(--od-text-tertiary)] hover:text-[var(--od-text-primary)]'
                 }`}
                 aria-label="筛选"
@@ -341,7 +348,7 @@ export function TopBar({ onMenuClick, sidebarCollapsed = false }: TopBarProps) {
                     history={historyItems}
                     onSelect={handleSuggestionSelect}
                     onRemoveHistory={(item) => {
-                      removeHistoryItem(item.query);
+                      removeHistoryItem(item);
                     }}
                     onClearHistory={() => {
                       clearHistory();
@@ -357,13 +364,27 @@ export function TopBar({ onMenuClick, sidebarCollapsed = false }: TopBarProps) {
           </AnimatePresence>
         </div>
 
+        <button
+          type="button"
+          onClick={() => navigate('/me?tab=history')}
+          className={`relative flex h-8 w-8 shrink-0 items-center justify-center text-[var(--od-text-tertiary)] transition-colors sm:h-[34px] sm:w-[34px] ${
+            location.pathname === '/me' && new URLSearchParams(location.search).get('tab') === 'history'
+              ? 'text-[var(--od-accent)]'
+              : 'hover:text-[var(--od-text-primary)]'
+          }`}
+          aria-label="打开浏览足迹"
+          title="浏览足迹"
+        >
+          <AnimatedIcon icon={Eye} className="h-4 w-4" animation="scale" trigger="hover" />
+        </button>
+
         <div className="relative">
           <button
             onClick={() => setNotificationOpen((prev) => !prev)}
-            className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-colors sm:h-[34px] sm:w-[34px] ${
+            className={`relative flex h-8 w-8 shrink-0 items-center justify-center text-[var(--od-text-tertiary)] transition-colors sm:h-[34px] sm:w-[34px] ${
               notificationOpen
-                ? 'border-[var(--od-accent)]/50 bg-[var(--od-accent)]/10 text-[var(--od-accent)]'
-                : 'od-chrome-surface border-white/[0.06] text-[var(--od-text-tertiary)] hover:border-white/20 hover:text-[var(--od-text-primary)]'
+                ? 'text-[var(--od-accent)]'
+                : 'hover:text-[var(--od-text-primary)]'
             }`}
           >
             <AnimatedIcon icon={Bell} className="h-4 w-4" animation="shake" trigger="hover" />

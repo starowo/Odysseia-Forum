@@ -5,6 +5,7 @@ import { ThreadPreviewOverlay } from '@/widgets/thread-preview/ThreadPreviewOver
 import { searchApi } from '@/features/search/api/searchApi';
 import { searchKeys } from '@/features/search/lib/queryKeys';
 import { showMascotToast } from '@/shared/lib/mascotToast';
+import { addBrowseHistory } from '@/shared/lib/browseHistory';
 
 export function GlobalThreadPreview() {
     const previewThread = usePreviewStore((state) => state.previewThread);
@@ -36,6 +37,11 @@ export function GlobalThreadPreview() {
 
     // Determine which thread to show (fetched or directly provided)
     const threadToShow = previewThread || (previewThreadId && fetchedThread ? fetchedThread : null);
+
+    useEffect(() => {
+        if (!threadToShow) return;
+        addBrowseHistory(threadToShow);
+    }, [threadToShow]);
 
     if (!threadToShow) return null;
 

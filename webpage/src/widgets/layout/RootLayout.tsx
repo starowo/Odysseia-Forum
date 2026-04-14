@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { ResizableSidebar } from '@/widgets/sidebar/ResizableSidebar';
 import { AppSidebar } from '@/widgets/layout/AppSidebar';
 import { TopBar } from '@/widgets/layout/TopBar';
@@ -6,7 +6,7 @@ import { MobileTabBar } from '@/widgets/layout/MobileTabBar';
 import { MascotBar } from '@/features/mascot/components/MascotBar';
 import { GlobalThreadPreview } from '@/widgets/thread-preview/GlobalThreadPreview';
 import { useSidebarCollapsedSetting, useSettings } from '@/shared/hooks/useSettings';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 /**
  * AppShell — 全站布局骨架
@@ -30,6 +30,11 @@ export function RootLayout() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const sidebarCollapsed = useSidebarCollapsedSetting();
   const { updateSettings } = useSettings();
+  const location = useLocation();
+
+  useEffect(() => {
+    setIsMobileOpen(false);
+  }, [location.pathname, location.search, location.hash]);
 
   return (
     <div className="od-app-shell relative flex h-screen w-full overflow-hidden text-[var(--od-text-primary)]">

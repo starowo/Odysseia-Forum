@@ -3,6 +3,12 @@ import { themes, type ThemeName, type Theme } from '@/shared/styles/themes';
 import { useSettings, useThemeSettings } from '@/shared/hooks/useSettings';
 import type { UserSettings } from '@/shared/lib/settings';
 
+const LIGHT_THEME_NAMES: ThemeName[] = ['discordLight', 'sakuraDay'];
+
+function isLightThemeName(themeName: ThemeName) {
+  return LIGHT_THEME_NAMES.includes(themeName);
+}
+
 // 将用户设置中的 theme 字段映射到具体的 ThemeName
 function mapSettingsThemeToKey(
   settingsTheme: UserSettings['theme'],
@@ -94,26 +100,11 @@ export function useTheme() {
 
   const theme: Theme = themes[currentThemeName];
 
-  // 切换主题：在当前系列的 Light/Dark 之间切换
+  // 切换主题：只在浅色/深色之间切换，不轮播整套主题列表
   const toggleTheme = () => {
-    const nextSettingsTheme: UserSettings['theme'] =
-      currentThemeName === 'discordDark'
-        ? 'discord-light'
-        : currentThemeName === 'discordLight'
-        ? 'discord-dark'
-        : currentThemeName === 'claudeDark'
-        ? 'catppuccin'
-        : currentThemeName === 'catppuccin'
-        ? 'tokyo-night'
-        : currentThemeName === 'tokyoNight'
-        ? 'nord'
-        : currentThemeName === 'nord'
-        ? 'everforest'
-        : currentThemeName === 'everforest'
-        ? 'sakura-day'
-        : currentThemeName === 'sakuraDay'
-        ? 'yozakura-night'
-        : 'claude-dark';
+    const nextSettingsTheme: UserSettings['theme'] = isLightThemeName(currentThemeName)
+      ? 'claude-dark'
+      : 'discord-light';
 
     updateSettings({ theme: nextSettingsTheme });
   };
@@ -127,6 +118,7 @@ export function useTheme() {
   return {
     theme,
     currentTheme: currentThemeName,
+    isDarkTheme: !isLightThemeName(currentThemeName),
     toggleTheme,
     setTheme,
   };

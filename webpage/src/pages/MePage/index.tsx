@@ -1,16 +1,12 @@
-import { useEffect, useMemo, useState, type ComponentType } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { BookOpen, Bookmark, FileText, Heart, RefreshCw, Save, Search, Settings2 } from 'lucide-react';
+import { BookOpen, Bookmark, Eye, FileText, Heart, Settings2 } from 'lucide-react';
 
-import { UserHeaderCard } from '@/entities/user/UserHeaderCard';
-import { UserStatsGrid } from '@/entities/user/UserStatsGrid';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { ThreadResultsCollection } from '@/entities/thread/ThreadResultsCollection';
 import type { Thread } from '@/entities/thread/types';
 import { useFollowsFeed } from '@/features/follows/hooks/useFollowsData';
 import { searchApi } from '@/features/search/api/searchApi';
-import { BooklistCard } from '@/entities/booklist/BooklistCard';
 import type { Booklist } from '@/entities/booklist/types';
 import {
   useCollectedBooklistsList,
@@ -23,19 +19,24 @@ import {
 import { BooklistFormModal } from '@/features/booklists/components/BooklistFormModal';
 import { usePreviewThread } from '@/features/search/hooks/usePreviewThread';
 import { useUserPreferences } from '@/features/preferences/hooks/useUserPreferences';
-import { PreferenceTagSelector } from '@/features/preferences/components/PreferenceTagSelector';
 import { FluidDivider } from '@/shared/ui/FluidDivider';
 import {
   toPreferencesFormValue,
   toPreferencesUpdatePayload,
   type PreferencesFormValue,
 } from '@/features/preferences/lib/preferencesMapper';
+import { MeBooklistsSection, type BooklistSubTab } from '@/pages/MePage/MeBooklistsSection';
+import { MeFollowsSection } from '@/pages/MePage/MeFollowsSection';
+import { MeHistorySection } from '@/pages/MePage/MeHistorySection';
+import { MePageHeader, type MePageTabOption } from '@/pages/MePage/MePageHeader';
+import { MePreferencesSection } from '@/pages/MePage/MePreferencesSection';
+import { MeThreadsSection } from '@/pages/MePage/MeThreadsSection';
 import { CHANNEL_CATEGORIES } from '@/shared/config/navigation';
 import { GUILD_ID } from '@/shared/config/channelCategories.private';
+import { clearBrowseHistory, getBrowseHistory, removeBrowseHistory } from '@/shared/lib/browseHistory';
 import { notifyError, notifySuccess } from '@/shared/lib/notify';
 
-type MeTab = 'booklists' | 'follows' | 'threads' | 'preferences';
-type BooklistSubTab = 'mine' | 'collected';
+type MeTab = 'booklists' | 'follows' | 'threads' | 'history' | 'preferences';
 
 const DEFAULT_FORM: PreferencesFormValue = {
   preferredChannelIds: [],
@@ -48,15 +49,16 @@ const DEFAULT_FORM: PreferencesFormValue = {
   sortMethod: 'last_active_desc',
 };
 
-const tabOptions: Array<{ key: MeTab; label: string; icon: ComponentType<{ className?: string }> }> = [
+const tabOptions: MePageTabOption[] = [
   { key: 'booklists', label: '书单', icon: BookOpen },
   { key: 'follows', label: '关注', icon: Bookmark },
   { key: 'threads', label: '创建', icon: FileText },
+  { key: 'history', label: '足迹', icon: Eye },
   { key: 'preferences', label: '偏好', icon: Settings2 },
 ];
 
 function parseTab(value: string | null): MeTab {
-  if (value === 'booklists' || value === 'follows' || value === 'threads' || value === 'preferences') {
+  if (value === 'booklists' || value === 'follows' || value === 'threads' || value === 'history' || value === 'preferences') {
     return value;
   }
   return 'booklists';
@@ -70,13 +72,14 @@ export function MePage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
-  const { openPreview } = usePreviewThread();
+  const { openPreview, openPreviewById } = usePreviewThread();
 
   const tab = parseTab(searchParams.get('tab'));
   const booklistSubTab = parseBooklistSubTab(searchParams.get('booklists'));
 
   const [showCreateBooklist, setShowCreateBooklist] = useState(false);
   const [editingBooklist, setEditingBooklist] = useState<Booklist | null>(null);
+  const [browseHistoryVersion, setBrowseHistoryVersion] = useState(0);
 
   const {
     preferences,
@@ -93,6 +96,16 @@ export function MePage() {
     if (isDirty) return;
     setForm(toPreferencesFormValue(preferences));
   }, [preferences, isDirty]);
+
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key && event.key !== 'odysseia_browse_history') return;
+      setBrowseHistoryVersion((value) => value + 1);
+    };
+
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
 
   const channelOptions = useMemo(() => CHANNEL_CATEGORIES.flatMap((group) => group.channels), []);
   const { data: channelTagCatalog = [] } = useQuery({
@@ -147,6 +160,13 @@ export function MePage() {
   const deleteMutation = useDeleteBooklist();
 
   const createdThreads = (createdThreadsQuery.data?.results || []) as Thread[];
+  const browseHistory = useMemo(() => getBrowseHistory(), [browseHistoryVersion]);
+  const followedThreads = useMemo(() => {
+    const threads = followsQuery.data?.results || [];
+    const selectedFollowChannel = searchParams.get('channel');
+    if (!selectedFollowChannel) return threads;
+    return threads.filter((thread) => String(thread.channel_id) === String(selectedFollowChannel));
+  }, [followsQuery.data?.results, searchParams]);
   const totalReactions = createdThreads.reduce((sum, item) => sum + (Number(item.reaction_count) || 0), 0);
   const totalReplies = createdThreads.reduce((sum, item) => sum + (Number(item.reply_count) || 0), 0);
   const totalFollows = followsQuery.data?.total || 0;
@@ -221,366 +241,103 @@ export function MePage() {
       <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 flex flex-col gap-10 p-4 sm:p-6 lg:gap-14 lg:p-8">
         <section>
           <FluidDivider label="Me" tone="strong" className="mb-8 lg:mb-10" />
-          <div className="flex flex-col gap-8">
-            {user?.id && (
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => navigate(`/u/${user.id}`)}
-                  className="od-inline-action od-inline-action-ghost w-full justify-center sm:w-auto"
-                >
-                  查看作者页
-                </button>
-              </div>
-            )}
-
-        <UserHeaderCard
-          user={user}
-          subtitle="这里是你的个人空间，书单、关注、创建的内容和偏好都在这里啦。"
-        />
-
-        <UserStatsGrid items={stats} />
-
-            <div className="flex flex-col items-center gap-4 text-center">
-              <div className="flex flex-wrap items-center justify-center gap-2">
-          {tabOptions.map((item) => {
-            const Icon = item.icon;
-            const active = tab === item.key;
-            return (
-              <button
-                key={item.key}
-                  type="button"
-                  onClick={() => setTab(item.key)}
-                  className={`od-pill-chip inline-flex items-center gap-1.5 text-xs transition-colors ${
-                    active
-                      ? 'bg-[var(--od-accent)] text-white font-od-bold'
-                      : 'text-[var(--od-text-secondary)] hover:text-[var(--od-text-primary)] font-od-medium'
-                  }`}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                {item.label}
-              </button>
-            );
-          })}
-
-        </div>
-              <p className="text-sm leading-6 text-[var(--od-text-secondary)]">
-                在这里切换查看你的书单、关注、创建内容和搜索偏好，分类看更清晰。
-              </p>
-            </div>
-          </div>
+          <MePageHeader
+            currentTab={tab}
+            onOpenProfile={() => navigate(`/u/${user!.id}`)}
+            onSelectTab={(nextTab) => setTab(nextTab as MeTab)}
+            showProfileButton={Boolean(user?.id)}
+            stats={stats}
+            tabOptions={tabOptions}
+            user={user}
+          />
         </section>
 
         {tab === 'booklists' && (
-          <section className="px-1">
-            <FluidDivider label="Booklists" className="mb-8" />
-            <div className="mb-6 flex flex-col items-center gap-3 text-center">
-              <div className="flex items-center gap-2 justify-center">
-                <BookOpen className="h-4 w-4 text-[var(--od-accent)]" />
-                <h2 className="od-text-title">我的书单</h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowCreateBooklist(true)}
-                className="od-inline-action od-inline-action-primary w-full justify-center sm:w-auto"
-              >
-                新建书单
-              </button>
-            </div>
-
-            <div className="mb-6 flex flex-wrap items-center justify-center gap-2">
-              <button
-                type="button"
-                onClick={() => setBooklistSubTab('mine')}
-                className={`od-pill-chip text-xs ${
-                  booklistSubTab === 'mine'
-                    ? 'bg-[var(--od-accent)] text-white font-od-bold'
-                    : 'text-[var(--od-text-secondary)] font-od-medium'
-                }`}
-              >
-                我的创建
-              </button>
-              <button
-                type="button"
-                onClick={() => setBooklistSubTab('collected')}
-                className={`od-pill-chip text-xs ${
-                  booklistSubTab === 'collected'
-                    ? 'bg-[var(--od-accent)] text-white font-od-bold'
-                    : 'text-[var(--od-text-secondary)] font-od-medium'
-                }`}
-              >
-                我的收藏
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  void myBooklistsQuery.refetch();
-                  void collectedBooklistsQuery.refetch();
-                }}
-                className="od-inline-action od-inline-action-ghost"
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-                刷新
-              </button>
-            </div>
-
-            {(myBooklistsQuery.isLoading || collectedBooklistsQuery.isLoading) ? (
-              <p className="od-text-body">正在加载书单...</p>
-            ) : activeBooklists.length === 0 ? (
-              <p className="od-text-body">这个分组里还没有内容，去创建一个吧～</p>
-            ) : (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {activeBooklists.map((booklist) => (
-                  <BooklistCard
-                    key={booklist.id}
-                    booklist={booklist}
-                    canManage={String(booklist.owner_id) === String(user?.id)}
-                    onOpen={(id) => navigate(`/booklists/${id}`)}
-                    onToggleCollect={(item) =>
-                      collectMutation.mutate({ id: item.id, collected: Boolean(item.collected_flag) })
-                    }
-                    onEdit={(item) => setEditingBooklist(item)}
-                    onDelete={(item) => {
-                      if (!window.confirm(`确认删除书单「${item.title}」？`)) return;
-                      deleteMutation.mutate(item.id);
-                    }}
-                    collectLoading={collectMutation.isPending}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
+          <MeBooklistsSection
+            activeBooklists={activeBooklists}
+            collectLoading={collectMutation.isPending}
+            isLoading={myBooklistsQuery.isLoading || collectedBooklistsQuery.isLoading}
+            subTab={booklistSubTab}
+            userId={user?.id}
+            onCreate={() => setShowCreateBooklist(true)}
+            onDelete={(item) => {
+              if (!window.confirm(`确认删除书单「${item.title}」？`)) return;
+              deleteMutation.mutate(item.id);
+            }}
+            onEdit={(item) => setEditingBooklist(item)}
+            onOpen={(id) => navigate(`/booklists/${id}`)}
+            onRefresh={() => {
+              void myBooklistsQuery.refetch();
+              void collectedBooklistsQuery.refetch();
+            }}
+            onSetSubTab={setBooklistSubTab}
+            onToggleCollect={(item) => {
+              collectMutation.mutate({ id: item.id, collected: Boolean(item.collected_flag) });
+            }}
+          />
         )}
 
         {tab === 'follows' && (
-          <section className="px-1">
-            <FluidDivider label="Follows" className="mb-8" />
-            <div className="mb-6 flex flex-col items-center gap-3 text-center">
-              <div className="flex items-center justify-center gap-2">
-                <Bookmark className="h-4 w-4 text-[var(--od-accent)]" />
-                <h2 className="od-text-title">我的关注</h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => void followsQuery.refetch()}
-                className="od-inline-action od-inline-action-ghost"
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-                刷新
-              </button>
-            </div>
-
-            {followsQuery.isLoading ? (
-              <p className="od-text-body">正在加载关注列表...</p>
-            ) : followsQuery.isError ? (
-              <p className="od-text-body text-[var(--od-text-emphasis)]">关注列表加载失败了，稍后试试看。</p>
-            ) : (followsQuery.data?.results?.length || 0) === 0 ? (
-              <p className="od-text-body">还没有关注任何内容，去广场看看有没有感兴趣的吧。</p>
-            ) : (
-              <ThreadResultsCollection threads={followsQuery.data?.results || []} onPreview={openPreview} />
-            )}
-          </section>
+          <MeFollowsSection
+            hasAnyResults={(followsQuery.data?.results?.length || 0) > 0}
+            isError={followsQuery.isError}
+            isLoading={followsQuery.isLoading}
+            selectedChannel={searchParams.get('channel')}
+            threads={followedThreads}
+            onClearChannel={() => {
+              const nextParams = new URLSearchParams(searchParams);
+              nextParams.delete('channel');
+              setSearchParams(nextParams, { replace: true });
+            }}
+            onPreview={openPreview}
+            onRefresh={() => void followsQuery.refetch()}
+          />
         )}
 
         {tab === 'threads' && (
-          <section className="px-1">
-            <FluidDivider label="Threads" className="mb-8" />
-            <div className="mb-6 flex flex-col items-center gap-3 text-center">
-              <div className="flex items-center justify-center gap-2">
-                <FileText className="h-4 w-4 text-[var(--od-accent)]" />
-                <h2 className="od-text-title">我的创建</h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => void createdThreadsQuery.refetch()}
-                className="od-inline-action od-inline-action-ghost"
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-                刷新
-              </button>
-            </div>
+          <MeThreadsSection
+            isLoading={createdThreadsQuery.isLoading}
+            threads={createdThreads}
+            totalReplies={totalReplies}
+            totalReactions={totalReactions}
+            totalThreads={createdThreadsQuery.data?.total || 0}
+            onPreview={openPreview}
+            onRefresh={() => void createdThreadsQuery.refetch()}
+          />
+        )}
 
-            <div className="mb-8 mx-auto grid max-w-4xl grid-cols-2 gap-x-6 gap-y-5 text-center sm:grid-cols-4">
-              <div>
-                <p className="text-sm font-medium text-[var(--od-text-secondary)]">帖子数</p>
-                <p className="mt-2 text-[1.5rem] font-semibold tracking-tight text-[var(--od-text-value)] tabular-nums">
-                  {createdThreadsQuery.data?.total || 0}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-[var(--od-text-secondary)]">累计点赞</p>
-                <p className="mt-2 text-[1.5rem] font-semibold tracking-tight text-[var(--od-text-value)] tabular-nums">
-                  {totalReactions}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-[var(--od-text-secondary)]">累计回复</p>
-                <p className="mt-2 text-[1.5rem] font-semibold tracking-tight text-[var(--od-text-value)] tabular-nums">
-                  {totalReplies}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-[var(--od-text-secondary)]">当前加载</p>
-                <p className="mt-2 text-[1.5rem] font-semibold tracking-tight text-[var(--od-text-value)] tabular-nums">
-                  {createdThreads.length}
-                </p>
-              </div>
-            </div>
-
-            {createdThreadsQuery.isLoading ? (
-              <p className="od-text-body">正在加载你创建的内容...</p>
-            ) : createdThreads.length === 0 ? (
-              <p className="od-text-body">还没有找到你创建的内容，可能还没被索引到。</p>
-            ) : (
-              <ThreadResultsCollection threads={createdThreads} onPreview={openPreview} />
-            )}
-          </section>
+        {tab === 'history' && (
+          <MeHistorySection
+            historyItems={browseHistory}
+            onClear={() => {
+              clearBrowseHistory();
+              setBrowseHistoryVersion((value) => value + 1);
+            }}
+            onOpenThread={openPreviewById}
+            onRefresh={() => setBrowseHistoryVersion((value) => value + 1)}
+            onRemove={(threadId) => {
+              removeBrowseHistory(threadId);
+              setBrowseHistoryVersion((value) => value + 1);
+            }}
+          />
         )}
 
         {tab === 'preferences' && (
-          <section className="px-1">
-            <FluidDivider label="Preferences" className="mb-8" />
-            <div className="mb-6 flex items-center justify-center gap-2 text-center">
-              <Search className="h-4 w-4 text-[var(--od-accent)]" />
-              <h2 className="od-text-title">发现偏好</h2>
-            </div>
-
-            {isPrefsLoading ? (
-              <p className="od-text-body">正在加载你的偏好设置...</p>
-            ) : (
-              <div className="space-y-8">
-                <div className="space-y-3">
-                  <p className="text-sm font-medium text-[var(--od-text-primary)]">偏好频道</p>
-                  <p className="text-sm leading-6 text-[var(--od-text-secondary)]">
-                    这些频道会在探索和搜索建议里优先生效，这样你就不会看到你不感兴趣的频道内容被推荐啦。
-                  </p>
-                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {channelOptions.map((channel) => {
-                      const active = form.preferredChannelIds.includes(channel.id);
-                      return (
-                        <button
-                          key={channel.id}
-                          type="button"
-                          onClick={() => toggleChannel(channel.id)}
-                          className={`rounded-2xl border px-4 py-3 text-left text-sm transition-colors ${
-                            active
-                              ? 'border-[var(--od-accent)]/40 bg-[var(--od-accent)]/8 text-[var(--od-text-primary)] font-od-medium'
-                              : 'border-[var(--od-shell-line)] bg-[color-mix(in_srgb,var(--od-surface-input)_72%,transparent)] text-[var(--od-text-secondary)] font-od-normal'
-                          }`}
-                        >
-                          {channel.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <label className="block space-y-2">
-                    <span className="block text-sm font-medium text-[var(--od-text-secondary)]">默认排序</span>
-                    <select
-                      value={form.sortMethod}
-                      onChange={(e) => {
-                        setIsDirty(true);
-                        setForm((prev) => ({ ...prev, sortMethod: e.target.value as PreferencesFormValue['sortMethod'] }));
-                      }}
-                      className="w-full rounded-2xl border border-[var(--od-shell-line)] bg-[color-mix(in_srgb,var(--od-surface-input)_72%,transparent)] px-4 py-3 text-sm text-[var(--od-text-primary)]"
-                    >
-                      <option value="last_active_desc">最后活跃</option>
-                      <option value="created_desc">最新发布</option>
-                      <option value="reaction_desc">点赞热度</option>
-                      <option value="reply_desc">讨论热度</option>
-                      <option value="relevance">综合推荐</option>
-                    </select>
-                  </label>
-
-                  <label className="block space-y-2">
-                    <span className="block text-sm font-medium text-[var(--od-text-secondary)]">每页条数</span>
-                    <input
-                      type="number"
-                      min={1}
-                      max={100}
-                      value={form.resultsPerPage}
-                      onChange={(e) => {
-                        setIsDirty(true);
-                        setForm((prev) => ({ ...prev, resultsPerPage: Number(e.target.value) || 24 }));
-                      }}
-                      className="w-full rounded-2xl border border-[var(--od-shell-line)] bg-[color-mix(in_srgb,var(--od-surface-input)_72%,transparent)] px-4 py-3 text-sm text-[var(--od-text-primary)]"
-                    />
-                  </label>
-                </div>
-
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <PreferenceTagSelector
-                    label="包含标签"
-                    placeholder="还没有设置正选标签"
-                    selectedTags={form.includeTagsText.split(',').map((item) => item.trim()).filter(Boolean)}
-                    availableTags={availablePreferenceTags.filter((tag) => !form.excludeTagsText.split(',').map((item) => item.trim()).filter(Boolean).includes(tag))}
-                    tone="include"
-                    onChange={(tags) => {
-                      setIsDirty(true);
-                      setForm((prev) => ({ ...prev, includeTagsText: tags.join(', ') }));
-                    }}
-                  />
-                  <PreferenceTagSelector
-                    label="排除标签"
-                    placeholder="还没有设置反选标签"
-                    selectedTags={form.excludeTagsText.split(',').map((item) => item.trim()).filter(Boolean)}
-                    availableTags={availablePreferenceTags.filter((tag) => !form.includeTagsText.split(',').map((item) => item.trim()).filter(Boolean).includes(tag))}
-                    tone="exclude"
-                    onChange={(tags) => {
-                      setIsDirty(true);
-                      setForm((prev) => ({ ...prev, excludeTagsText: tags.join(', ') }));
-                    }}
-                  />
-                </div>
-
-                <div className="grid gap-6 sm:grid-cols-2">
-                  <label className="block space-y-2">
-                    <span className="block text-sm font-medium text-[var(--od-text-secondary)]">关键词包含</span>
-                    <textarea
-                      value={form.includeKeywordsText}
-                      onChange={(e) => {
-                        setIsDirty(true);
-                        setForm((prev) => ({ ...prev, includeKeywordsText: e.target.value }));
-                      }}
-                      className="min-h-[110px] w-full rounded-2xl border border-[var(--od-shell-line)] bg-[color-mix(in_srgb,var(--od-surface-input)_72%,transparent)] px-4 py-3 text-sm text-[var(--od-text-primary)]"
-                    />
-                  </label>
-                  <label className="block space-y-2">
-                    <span className="block text-sm font-medium text-[var(--od-text-secondary)]">关键词排除</span>
-                    <textarea
-                      value={form.excludeKeywordsText}
-                      onChange={(e) => {
-                        setIsDirty(true);
-                        setForm((prev) => ({ ...prev, excludeKeywordsText: e.target.value }));
-                      }}
-                      className="min-h-[110px] w-full rounded-2xl border border-[var(--od-shell-line)] bg-[color-mix(in_srgb,var(--od-surface-input)_72%,transparent)] px-4 py-3 text-sm text-[var(--od-text-primary)]"
-                    />
-                  </label>
-                </div>
-
-                <div className="rounded-[1.2rem] border border-[color-mix(in_srgb,var(--od-text-secondary)_14%,transparent)] bg-[color-mix(in_srgb,var(--od-surface-input)_56%,transparent)] px-4 py-4 text-sm leading-6 text-[var(--od-text-secondary)]">
-                  这些偏好主要影响“发现流”，不会偷偷改你的搜索框，也不会压过你手动选的频道。空搜索、全频道探索和搜索建议会参考它们，但你的主动操作始终优先。
-                </div>
-
-                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[color-mix(in_srgb,var(--od-text-secondary)_14%,transparent)] pt-5">
-                  <p className="od-text-meta">
-                    当前状态：{isPrefsFetching ? '同步中' : isDirty ? '有未保存修改' : '已同步'}
-                  </p>
-                  <button
-                    type="button"
-                    onClick={savePreferenceForm}
-                    disabled={isSaving}
-                    className="od-inline-action od-inline-action-primary disabled:opacity-60"
-                  >
-                    <Save className="h-4 w-4" />
-                    {isSaving ? '保存中...' : '保存偏好'}
-                  </button>
-                </div>
-              </div>
-            )}
-          </section>
+          <MePreferencesSection
+            availablePreferenceTags={availablePreferenceTags}
+            channelOptions={channelOptions}
+            form={form}
+            isDirty={isDirty}
+            isLoading={isPrefsLoading}
+            isSaving={isSaving}
+            isSyncing={isPrefsFetching}
+            onSave={savePreferenceForm}
+            onToggleChannel={toggleChannel}
+            onUpdateForm={(updater) => {
+              setIsDirty(true);
+              setForm((prev) => updater(prev));
+            }}
+          />
         )}
       </div>
 

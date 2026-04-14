@@ -26,6 +26,8 @@ export function MascotDialog({
     className = '',
 }: MascotDialogProps) {
     const [isRendered, setIsRendered] = useState(visible);
+    const [imageLoaded, setImageLoaded] = useState(false);
+    const [imageError, setImageError] = useState(false);
 
     useEffect(() => {
         if (visible) {
@@ -36,9 +38,24 @@ export function MascotDialog({
         }
     }, [visible]);
 
-    if (!isRendered) return null;
+    const imageSrc = MASCOT_IMAGES[emotion] || MASCOT_IMAGES['hi'];
+    const fallbackImageSrc = MASCOT_IMAGES['hi'] || imageSrc;
 
-    const imageSrc = MASCOT_IMAGES[emotion];
+    useEffect(() => {
+        setImageLoaded(false);
+        setImageError(false);
+    }, [imageSrc]);
+
+    useEffect(() => {
+        const preloadTargets = Array.from(new Set([imageSrc, fallbackImageSrc].filter(Boolean)));
+        preloadTargets.forEach((src) => {
+            const img = new Image();
+            img.decoding = 'async';
+            img.src = src;
+        });
+    }, [imageSrc, fallbackImageSrc]);
+
+    if (!isRendered) return null;
 
     return (
         <div
@@ -53,10 +70,30 @@ export function MascotDialog({
             >
                 {/* Character Image - Galgame Style (Left) */}
                 <div className="relative z-10 -mb-8 md:-mr-12 md:mb-0 flex-shrink-0">
+                    {!imageLoaded && (
+                        <div className="absolute inset-0 flex items-center justify-center rounded-[1.5rem] bg-white/8 backdrop-blur-sm">
+                            <div className="h-32 w-24 animate-pulse rounded-[1.2rem] bg-white/10 md:h-56 md:w-40" />
+                        </div>
+                    )}
                     <img
-                        src={imageSrc}
+                        src={imageError ? fallbackImageSrc : imageSrc}
                         alt={`Mascot ${emotion}`}
-                        className="h-48 w-auto object-contain drop-shadow-2xl md:h-80 transition-transform duration-300 hover:scale-105 animate-in slide-in-from-bottom-8 fade-in duration-700"
+                        className={`h-48 w-auto object-contain drop-shadow-2xl transition-all duration-500 hover:scale-105 md:h-80 ${
+                            imageLoaded ? 'opacity-100' : 'opacity-0'
+                        } animate-in slide-in-from-bottom-8 fade-in duration-700`}
+                        loading="eager"
+                        decoding="async"
+                        onLoad={() => {
+                            setImageLoaded(true);
+                            setImageError(false);
+                        }}
+                        onError={() => {
+                            if (!imageError && fallbackImageSrc && fallbackImageSrc !== imageSrc) {
+                                setImageError(true);
+                                return;
+                            }
+                            setImageLoaded(true);
+                        }}
                     />
                 </div>
 

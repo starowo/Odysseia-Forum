@@ -5,14 +5,14 @@ import { MascotDialog } from '@/features/mascot/components/MascotDialog';
 import { usePreviewThread } from '@/features/search/hooks/usePreviewThread';
 import { useSearchURLParams } from '@/features/search/hooks/useSearchParams';
 import { useSearchResults } from '@/features/search/hooks/useSearchResults';
-import { useCardGridClass } from '@/shared/hooks/useSettings';
+import { useCardGridClass, useSettings } from '@/shared/hooks/useSettings';
 import { useMascotStore } from '@/features/mascot/store/mascotStore';
 import { useUserPreferences } from '@/features/preferences/hooks/useUserPreferences';
 import { GUILD_ID } from '@/shared/config/channelCategories.private';
 import { useLayoutMode } from '@/shared/hooks/useSettings';
 import { addToken } from '@/shared/lib/searchTokenizer';
 import { FluidDivider } from '@/shared/ui/FluidDivider';
-import { Compass, Dices, Search, SlidersHorizontal } from 'lucide-react';
+import { Compass, Dices, LayoutGrid, Rows3, Search, SlidersHorizontal } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -34,6 +34,7 @@ export function SearchPage() {
   const reactToSearch = useMascotStore((state) => state.reactToSearch);
 
   const layoutMode = useLayoutMode();
+  const { updateSettings } = useSettings();
   const hasTriggeredSearchCueRef = useRef<string | null>(null);
 
   const {
@@ -140,6 +141,37 @@ export function SearchPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex items-center gap-1 rounded-full border border-[var(--od-shell-line)] bg-[color-mix(in_srgb,var(--od-surface-input)_76%,transparent)] p-1">
+              <button
+                type="button"
+                onClick={() => updateSettings({ layoutMode: 'list' })}
+                className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                  layoutMode === 'list'
+                    ? 'bg-[var(--od-accent)] text-white'
+                    : 'text-[var(--od-text-secondary)] hover:text-[var(--od-text-primary)]'
+                }`}
+                aria-label="切换到列表展示"
+                title="列表展示"
+              >
+                <Rows3 className="h-3.5 w-3.5" />
+                列表
+              </button>
+              <button
+                type="button"
+                onClick={() => updateSettings({ layoutMode: 'grid' })}
+                className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${
+                  layoutMode === 'grid'
+                    ? 'bg-[var(--od-accent)] text-white'
+                    : 'text-[var(--od-text-secondary)] hover:text-[var(--od-text-primary)]'
+                }`}
+                aria-label="切换到网格展示"
+                title="网格展示"
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+                网格
+              </button>
+            </div>
+
             {ignoreDiscoveryPreferences && discoveryPreferenceContext && !query.trim() && !selectedChannel && !hasExplicitFilters && (
               <button
                 type="button"
@@ -177,9 +209,9 @@ export function SearchPage() {
                     <Compass className="h-3.5 w-3.5" />
                     Preference Filter Active
                   </div>
-                  <p className="od-inline-notice-title mt-3">当前探索结果已按你的发现偏好收束</p>
+                  <p className="od-inline-notice-title mt-3">我先按你平时的口味帮你收了一下范围</p>
                   <p className="od-inline-notice-copy mt-2 max-w-3xl">
-                    现在看到的是更贴近你个人发现边界的浏览结果。它会优先尊重你保存过的频道与标签偏好，但不会改写你的搜索词。
+                    这样翻起来会省心一点点，不容易一上来就撞见你根本不想看的内容哦。
                   </p>
                 </div>
 
@@ -227,9 +259,9 @@ export function SearchPage() {
                     <Dices className="h-3.5 w-3.5" />
                     Surprise Discovery
                   </div>
-                  <p className="od-inline-notice-title mt-3">想逛，但暂时没有明确关键词？</p>
+                  <p className="od-inline-notice-title mt-3">一下子想不到搜什么吗？</p>
                   <p className="od-inline-notice-copy mt-2 max-w-3xl">
-                    去随机抽卡页，把当前偏好当作安全池来抽一张或十连。它不会改写你的搜索框，只是给你一个更有趣的发现入口。
+                    那就先去抽一抽呀。说不定运气好还能抽到个宝藏呢～
                   </p>
                 </div>
 
@@ -317,17 +349,17 @@ export function SearchPage() {
         onAction={preferences ? handleApplyPreferences : handleCloseOnboarding}
       >
         <p className="mb-3">
-          我是这里的看板娘<b>类脑娘</b>！这里是全新的 Odysseia 论坛，拥有极强的搜索与筛选能力哦！
+          我是这里的看板娘<b>类脑娘</b>！你要是想认真找东西，我最擅长陪你一起慢慢筛啦。
         </p>
         <ul className="list-disc space-y-1 pl-5 text-sm opacity-90">
           <li>
-            试试顶部搜索框，支持{' '}
+            顶上的搜索框很好用哦，像{' '}
             <code className="rounded bg-[var(--od-bg-tertiary)] px-1 font-mono text-[0.9em]">$author:</code>、
             <code className="rounded bg-[var(--od-bg-tertiary)] px-1 font-mono text-[0.9em]">-$tag:</code> 等高级语法
           </li>
-          <li>高级筛选支持标签正反选、作者过滤、时间和排序组合</li>
-          <li>点击卡片就能预览详情，不用跳页哦～</li>
-          {preferences && <li>你还可以一键套用已保存的偏好频道和排序配置</li>}
+          <li>筛选那边也能慢慢缩范围，标签、作者、时间和排序都可以一起配</li>
+          <li>点卡片就能先偷看内容，不用来回跳页，轻松一点呀</li>
+          {preferences && <li>如果你已经存过偏好，我也可以一键帮你套上</li>}
         </ul>
       </MascotDialog>
     </div>

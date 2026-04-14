@@ -14,7 +14,7 @@ interface ThreadResultsCollectionProps {
   listClassName?: string;
 }
 
-const DEFAULT_GRID_CLASS = 'grid grid-cols-2 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
+const DEFAULT_GRID_CLASS = 'grid auto-rows-fr grid-cols-2 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
 const DEFAULT_LIST_CLASS = 'flex flex-col space-y-od-list-gap';
 
 function ThreadResultsCollectionImpl({

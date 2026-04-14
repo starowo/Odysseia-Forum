@@ -1,15 +1,16 @@
 import type {
-  SearchHistoryItem,
   SearchSuggestionAuthor,
   SearchSuggestionThread,
 } from '@/features/search/api/searchApi';
 import { Clock, FileText, Flame, Hash, History, MessageCircle, User, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
+import { describeSearchHistoryContext, type SearchHistoryItem } from '@/shared/lib/searchHistory';
 
 export type SearchSuggestionAction =
   | { type: 'append'; value: string }
   | { type: 'replace_query'; value: string; submit?: boolean }
+  | { type: 'apply_history'; item: SearchHistoryItem }
   | { type: 'open_thread'; threadId: string; thread?: SearchSuggestionThread['source_thread'] };
 
 interface SearchSuggestionsProps {
@@ -238,7 +239,7 @@ export function SearchSuggestions({
     }
 
     if (item.type === 'history') {
-      onSelect({ type: 'replace_query', value: item.query, submit: true });
+      onSelect({ type: 'apply_history', item: item.historyItem });
       return;
     }
 
@@ -341,6 +342,11 @@ export function SearchSuggestions({
                             />
                           )}
                           <span className="truncate text-sm font-medium">{item.display}</span>
+                          {item.type === 'history' && describeSearchHistoryContext(item.historyItem) && (
+                            <span className="truncate text-[11px] text-[var(--od-text-tertiary)]">
+                              {describeSearchHistoryContext(item.historyItem)}
+                            </span>
+                          )}
                         </div>
                       )}
 

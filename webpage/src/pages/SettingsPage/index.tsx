@@ -186,9 +186,7 @@ export function SettingsPage() {
         {/* 标题栏 */}
         <div className="px-1 py-3">
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--od-surface-soft)] text-[var(--od-accent)]">
-              <Settings className="h-6 w-6" />
-            </div>
+            <Settings className="h-6 w-6 shrink-0 text-[var(--od-accent)]" />
             <div>
               <p className="mb-2 text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-[var(--od-text-label)]">Personal Workspace</p>
               <h1 className="od-section-title">设置</h1>

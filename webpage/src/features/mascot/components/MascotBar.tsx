@@ -1,6 +1,7 @@
 import { MASCOT_IMAGES } from '../assets';
 import { X } from 'lucide-react';
 import { useMascotStore } from '../store/mascotStore';
+import { useEffect, useState } from 'react';
 
 export function MascotBar() {
     const emotion = useMascotStore((state) => state.emotion);
@@ -8,6 +9,18 @@ export function MascotBar() {
     const isVisible = useMascotStore((state) => state.isVisible);
     const setVisible = useMascotStore((state) => state.setVisible);
     const reset = useMascotStore((state) => state.reset);
+    const imageSrc = MASCOT_IMAGES[emotion] || MASCOT_IMAGES['hi'];
+    const [imageLoaded, setImageLoaded] = useState(false);
+
+    useEffect(() => {
+        setImageLoaded(false);
+        const preloadTargets = Array.from(new Set([MASCOT_IMAGES['hi'], imageSrc].filter(Boolean)));
+        preloadTargets.forEach((src) => {
+            const img = new Image();
+            img.decoding = 'async';
+            img.src = src;
+        });
+    }, [imageSrc]);
 
     // Simple interaction: reset to random idle message on click
     const handleMascotClick = () => {
@@ -27,10 +40,24 @@ export function MascotBar() {
                 className="pointer-events-auto relative z-10 -mb-2 h-24 w-24 cursor-pointer transition-transform hover:scale-110 active:scale-95"
                 onClick={handleMascotClick}
             >
+                {!imageLoaded && (
+                    <div className="absolute inset-0 animate-pulse rounded-full bg-[color-mix(in_srgb,var(--od-surface-shell)_80%,transparent)]" />
+                )}
                 <img
-                    src={MASCOT_IMAGES[emotion] || MASCOT_IMAGES['hi']}
+                    src={imageSrc}
                     alt="Mascot"
-                    className="h-full w-full object-contain drop-shadow-lg"
+                    className={`h-full w-full object-contain drop-shadow-lg transition-opacity duration-300 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+                    loading="eager"
+                    decoding="async"
+                    onLoad={() => setImageLoaded(true)}
+                    onError={(event) => {
+                        const fallback = MASCOT_IMAGES['hi'];
+                        if (fallback && event.currentTarget.src !== fallback) {
+                            event.currentTarget.src = fallback;
+                            return;
+                        }
+                        setImageLoaded(true);
+                    }}
                 />
             </div>
 
