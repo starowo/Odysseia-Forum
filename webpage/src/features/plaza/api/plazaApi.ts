@@ -1,4 +1,4 @@
-import type { SearchResponse, Thread } from '@/entities/thread/types';
+import type { SearchResponse, Thread, Author } from '@/entities/thread/types';
 import type { Booklist } from '@/entities/booklist/types';
 import { searchApi } from '@/features/search/api/searchApi';
 import { bannerApi } from '@/features/banner/api/bannerApi';
@@ -9,6 +9,7 @@ export interface PlazaBannerItem {
   title: string;
   cover_image_url: string;
   channel_id?: string;
+  author?: Author;
 }
 
 export type PlazaRailKey =
@@ -70,6 +71,7 @@ export const plazaApi = {
       title: String(item.title ?? ''),
       cover_image_url: String(item.cover_image_url ?? ''),
       channel_id: item.channel_id ? String(item.channel_id) : undefined,
+      author: item.author,
     }));
   },
 

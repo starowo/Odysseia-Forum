@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Compass, Dices, Megaphone, Plus, Sparkles } from 'lucide-react';
+import { Compass, Dices, Plus, Sparkles } from 'lucide-react';
 
 import { ThreadCard } from '@/entities/thread/ThreadCard';
 import { BooklistCard } from '@/entities/booklist/BooklistCard';
+import { BannerCarousel } from '@/widgets/layout/BannerCarousel';
 import type { Booklist } from '@/entities/booklist/types';
 import { plazaApi, PLAZA_RAILS, type PlazaRailKey } from '@/features/plaza/api/plazaApi';
-import { BannerApplicationModal } from '@/features/banner/components/BannerApplicationModal';
 import { useToggleBooklistCollection } from '@/features/booklists/hooks/useBooklistsData';
 import { useUserPreferences } from '@/features/preferences/hooks/useUserPreferences';
 import { resolveDiscoveryPreferencePatch } from '@/features/preferences/lib/discoveryPreferences';
@@ -26,11 +26,9 @@ const railSortMap: Record<PlazaRailKey, string> = {
 
 export function PlazaPage() {
   const navigate = useNavigate();
-  const setPreviewThreadId = usePreviewStore((state) => state.setPreviewThreadId);
   const setPreviewThread = usePreviewStore((state) => state.setPreviewThread);
   const { preferences } = useUserPreferences({ guildId: GUILD_ID });
 
-  const [showBannerApply, setShowBannerApply] = useState(false);
   const [ignorePreferenceFilter, setIgnorePreferenceFilter] = useState(false);
 
   const plazaPreferencePatch = useMemo(
@@ -90,26 +88,9 @@ export function PlazaPage() {
 
   const collectMutation = useToggleBooklistCollection();
 
-  const heroBanner = bannersQuery.data?.[0] ?? null;
-  const secondaryBanners = bannersQuery.data?.slice(1, 4) ?? [];
-
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 flex flex-col gap-10 p-4 sm:p-6 lg:p-8">
       <section className="relative min-h-[22rem]">
-        {heroBanner && (
-          <button
-            type="button"
-            onClick={() => setPreviewThreadId(heroBanner.thread_id)}
-            className="absolute inset-x-0 top-0 h-48 w-full opacity-20 mask-image-linear-to-b"
-          >
-            <img
-              src={heroBanner.cover_image_url}
-              alt={heroBanner.title}
-              className="h-full w-full object-cover"
-            />
-          </button>
-        )}
-
         <div className="relative z-10 flex flex-col justify-between pt-6 sm:pt-8 lg:pt-10">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between mb-8">
             <div className="max-w-3xl">
@@ -137,14 +118,6 @@ export function PlazaPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setShowBannerApply(true)}
-                className="od-inline-action od-inline-action-soft"
-              >
-                <Megaphone className="h-4 w-4" />
-                申请 Banner
-              </button>
-              <button
-                type="button"
                 onClick={() => navigate('/booklists')}
                 className="od-inline-action od-inline-action-ghost"
               >
@@ -154,103 +127,35 @@ export function PlazaPage() {
             </div>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(18rem,0.92fr)] lg:items-end">
-            <div className="max-w-2xl">
-              {heroBanner ? (
-                <button
-                  type="button"
-                  onClick={() => setPreviewThreadId(heroBanner.thread_id)}
-                  className="text-left py-4 transition-transform duration-200 hover:-translate-y-0.5 group"
-                >
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-[0.24em] text-[var(--od-text-tertiary)]">Featured Thread</p>
-                  <h2 className="max-w-xl text-2xl font-bold leading-tight tracking-tight text-[var(--od-text-primary)] group-hover:text-[var(--od-accent)] sm:text-3xl">
-                    {heroBanner.title}
-                  </h2>
-                  <p className="mt-3 max-w-lg text-sm leading-6 text-[var(--od-text-secondary)]">这张我先帮你放在最前面啦，点开看看，说不定一眼就对胃口呢。</p>
-                </button>
-              ) : bannersQuery.isLoading ? (
-                <div className="h-28 w-full animate-pulse rounded-[1.35rem] bg-[var(--od-surface-input)]" />
-              ) : (
-                <div className="py-4">
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-[0.24em] text-[var(--od-text-tertiary)]">Featured Thread</p>
-                  <p className="text-lg font-semibold text-[var(--od-text-primary)]">当前没有可展示的 Banner。</p>
-                  <p className="mt-2 text-sm leading-6 text-[var(--od-text-secondary)]">没关系呀，今天就先不摆头图了，我还是会继续把下面值得看的内容给你摊开。</p>
-                </div>
-              )}
-            </div>
-
-            <div className="text-[var(--od-text-secondary)]">
-              <div className="mb-4 flex items-end justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--od-text-label)]">More Exposure</p>
-                  <p className="mt-2 text-sm leading-6 text-[var(--od-text-secondary)]">旁边这些也都是我顺手挑出来的，你要是懒得自己翻，从这里接着点也很顺哦。</p>
-                </div>
-                <Sparkles className="h-4 w-4 text-[var(--od-text-tertiary)]" />
+          <div className="w-full">
+            {bannersQuery.isLoading ? (
+              <div className="h-48 w-full animate-pulse rounded-[1.35rem] bg-[var(--od-surface-input)] xl:h-64" />
+            ) : bannersQuery.data && bannersQuery.data.length > 0 ? (
+              <BannerCarousel
+                banners={bannersQuery.data.map((b) => ({
+                  id: b.thread_id,
+                  image: b.cover_image_url,
+                  title: b.title,
+                  description: b.author ? `作者：${b.author.display_name || b.author.global_name || b.author.name}` : '点击可以直接探索原帖',
+                }))}
+                onBannerClick={(banner) => {
+                  const url = `https://discord.com/channels/${GUILD_ID}/${banner.id}`;
+                  window.open(url, '_blank', 'noopener,noreferrer');
+                }}
+              />
+            ) : (
+              <div className="py-4">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-[0.24em] text-[var(--od-text-tertiary)]">Featured Thread</p>
+                <p className="text-lg font-semibold text-[var(--od-text-primary)]">当前没有可展示的 Banner。</p>
+                <p className="mt-2 text-sm leading-6 text-[var(--od-text-secondary)]">没关系呀，今天就先不摆头图了，我还是会继续把下面值得看的内容给你摊开。</p>
               </div>
-              {bannersQuery.isLoading ? (
-                <div className="space-y-3">
-                  {Array.from({ length: 3 }).map((_, idx) => (
-                    <div key={idx} className="h-14 animate-pulse rounded-[1.1rem] bg-[var(--od-surface-input)]" />
-                  ))}
-                </div>
-              ) : secondaryBanners.length > 0 ? (
-                <div className="space-y-1.5">
-                  {secondaryBanners.map((banner, index) => (
-                    <button
-                      key={`${banner.thread_id}-${banner.cover_image_url}`}
-                      type="button"
-                      onClick={() => setPreviewThreadId(banner.thread_id)}
-                      className="od-spotlight-item w-full text-left"
-                    >
-                      <div className="min-w-0">
-                        <p className="od-spotlight-item-index text-[var(--od-text-tertiary)]">0{index + 2}</p>
-                        <p className="mt-1 line-clamp-2 text-sm font-semibold leading-5 text-[var(--od-text-primary)]">{banner.title}</p>
-                      </div>
-                      <div className="h-12 w-12 shrink-0 overflow-hidden rounded-[1rem] border border-[var(--od-border)] bg-[var(--od-surface-input)]">
-                        <img src={banner.cover_image_url} alt={banner.title} className="h-full w-full object-cover" />
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                  <p className="text-sm leading-6 text-[var(--od-text-secondary)]">这边暂时还空着呢，等有新的帖子冒头了，我会再悄悄补上来。</p>
-              )}
-            </div>
+            )}
           </div>
         </div>
       </section>
 
       <section className="px-1 py-8">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-2">
-            <div className="max-w-2xl">
-              <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--od-accent)] bg-[var(--od-surface-soft)]">
-                <Dices className="h-3.5 w-3.5" />
-                Surprise Mode
-              </div>
-              <h2 className="mt-4 text-2xl font-bold tracking-tight text-[var(--od-text-primary)]">不想挑的话，就让抽卡替你开路</h2>
-              <p className="mt-2 text-sm leading-6 text-[var(--od-text-secondary)]">
-                要是你今天只想随便逛逛，不想自己挑，我就帮你抽呀。单抽也行，十连也行，我会尽量从你平时爱看的范围里捞给你。
-              </p>
-            </div>
 
-            <div className="flex shrink-0 flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => navigate('/draw')}
-                className="od-inline-action od-inline-action-primary"
-              >
-                <Dices className="h-4 w-4" />
-                按偏好来一抽
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate('/draw')}
-                className="od-inline-action od-inline-action-ghost"
-              >
-                十连发现
-              </button>
-            </div>
-          </div>
 
         <FluidDivider label="Discovery Feed" tone="strong" className="mb-6" />
         {plazaPreferencePatch && (
@@ -408,7 +313,6 @@ export function PlazaPage() {
         </div>
       </div>
 
-      <BannerApplicationModal isOpen={showBannerApply} onClose={() => setShowBannerApply(false)} />
     </div>
   );
 }

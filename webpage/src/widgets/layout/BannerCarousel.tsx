@@ -70,7 +70,7 @@ export function BannerCarousel({ banners, autoPlayInterval = 5000, onBannerClick
         <img
           src={currentBanner.image}
           alt={currentBanner.title}
-          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+          className="h-full w-full object-cover transition-transform duration-700"
         />
 
         {/* 渐变遮罩 */}

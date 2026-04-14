@@ -17,7 +17,7 @@ export function ThemeToggle() {
       aria-label={nextLabel}
       title={nextLabel}
     >
-      <span className="relative inline-flex h-4.5 w-4.5 items-center justify-center">
+      <span className="relative inline-flex h-5 w-5 items-center justify-center">
         <Sun
           className={`absolute h-4 w-4 transition-all duration-250 ${
             isDarkTheme
