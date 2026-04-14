@@ -203,7 +203,6 @@ webpage/dist/
 webpage/.vite/
 webpage/coverage/
 webpage/.env
-webpage/src/shared/config/channelCategories.private.ts
 *.local
 *.log
 .DS_Store
