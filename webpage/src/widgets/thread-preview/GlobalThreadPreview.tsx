@@ -4,7 +4,7 @@ import { usePreviewStore } from '@/features/search/store/previewStore';
 import { ThreadPreviewOverlay } from '@/widgets/thread-preview/ThreadPreviewOverlay';
 import { searchApi } from '@/features/search/api/searchApi';
 import { searchKeys } from '@/features/search/lib/queryKeys';
-import { showMascotToast } from '@/shared/lib/mascotToast';
+import { showMascotToast } from '@/features/mascot/lib/mascotToast';
 import { addBrowseHistory } from '@/shared/lib/browseHistory';
 
 export function GlobalThreadPreview() {

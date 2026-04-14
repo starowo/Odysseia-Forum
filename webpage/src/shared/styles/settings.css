@@ -8,7 +8,7 @@
   }
 
   .od-setting-subsection {
-    border-top: 1px solid var(--od-shell-line);
+    border-top: 1px solid color-mix(in srgb, var(--od-divider-strong) 58%, transparent);
     padding-top: 1rem;
   }
 
@@ -59,7 +59,7 @@
     border-radius: 1rem;
     padding: 0.9rem 0;
     background: transparent;
-    border-top: 1px solid var(--od-shell-line);
+    border-top: 1px solid color-mix(in srgb, var(--od-divider) 82%, transparent);
   }
 
   .od-setting-row:first-child {
@@ -116,12 +116,21 @@
   }
 
   .od-toggle {
+    appearance: none;
+    border: 0;
     position: relative;
     height: 1.5rem;
     width: 2.75rem;
     border-radius: 9999px;
     background: var(--od-border-strong);
+    flex-shrink: 0;
+    cursor: pointer;
     transition: background-color 180ms ease;
+  }
+
+  .od-toggle:focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--od-accent) 54%, transparent);
+    outline-offset: 2px;
   }
 
   .od-toggle[data-checked='true'] {

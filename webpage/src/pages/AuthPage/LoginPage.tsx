@@ -5,7 +5,7 @@ import { DiscordIcon } from '@/shared/ui/icons/DiscordIcon';
 import { useAuth, useRefreshAuth } from '@/features/auth/hooks/useAuth';
 import { apiClient } from '@/shared/api/client';
 import forumIcon from '@/assets/images/icon/A90C044F8DDF1959B2E9078CB629C239.png';
-import { showMascotToast } from '@/shared/lib/mascotToast';
+import { showMascotToast } from '@/features/mascot/lib/mascotToast';
 import { notifySuccess } from '@/shared/lib/notify';
 import { WordLogoStatic } from '@/shared/ui/loaders/WordLogoStatic';
 import backgroundImage from '@/assets/images/background/spring2.png';

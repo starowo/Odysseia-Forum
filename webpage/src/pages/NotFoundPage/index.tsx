@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { showMascotErrorToast } from '@/shared/lib/mascotToast';
+import { showMascotErrorToast } from '@/features/mascot/lib/mascotToast';
 
 export function NotFoundPage() {
     const navigate = useNavigate();

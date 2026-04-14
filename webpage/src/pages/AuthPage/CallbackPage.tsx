@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { useRefreshAuth } from '@/features/auth/hooks/useAuth';
-import { showMascotToast } from '@/shared/lib/mascotToast';
+import { showMascotToast } from '@/features/mascot/lib/mascotToast';
 import { notifySuccess } from '@/shared/lib/notify';
 import { LOGIN_REDIRECT_STORAGE_KEY, sanitizeInternalRedirect } from '@/shared/lib/navigationSafety';
 import { OmicronLoader } from '@/shared/ui/loaders/OmicronLoader';

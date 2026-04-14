@@ -4,7 +4,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { RouterProvider } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { ErrorBoundary } from '@/app/providers/ErrorBoundary';
-import { showMascotErrorToast } from '@/shared/lib/mascotToast';
+import { showMascotErrorToast } from '@/features/mascot/lib/mascotToast';
 import { ThemeProvider } from '@/app/themes/ThemeProvider';
 import { bindThumbnailRepairQueryClient } from '@/features/threads/lib/thumbnailRepairQueue';
 import { consumeAuthTokenFromHash } from '@/shared/lib/authSession';
