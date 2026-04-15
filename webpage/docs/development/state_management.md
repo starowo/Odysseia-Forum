@@ -81,7 +81,7 @@ const store = useSearchStore();
 ### 3.3 URL 作为状态 (URL as State)
 对于诸如搜索参数（搜索词、筛选渠道、标签、作者等）的场景，**强制使用 URL 参数 (`URLSearchParams`) 代替 Zustand 作为数据源**。
 - 好处: 状态可分享、支持浏览器前进后退、解耦 UI Store 与请求逻辑。
-- 示例: `src/features/search/hooks/useSearchParams.ts` 中解析并维护 `query`, `channel`, `sort` 等查询参数。独立的业务逻辑（如 `src/features/search/store/previewStore.ts` 帖子预览）**已强制从通用 UI Store 中抽离解耦**，只保留最核心的纯 UI 控制逻辑在 `searchStore` 中。
+- 示例: 在 `src/features/search/hooks/useSearchParams.ts` 中，通过暴露 `useSearchURLParams` 钩子解析并维护 `query`, `channel`, `sortMethod` 等查询参数。独立的业务逻辑（如 `src/features/search/store/previewStore.ts` 帖子预览）**已强制从通用 UI Store 中抽离解耦**，只保留最核心的纯 UI 控制逻辑（如 Banner 可见性）在 `searchStore` 中。
 
-### 3.3 状态的局部化
+### 3.4 状态的局部化
 尽量只将 `跨组件通信` 或者 `页面级需要维持的草稿流` 放入 `zustand`。普通的单组件内部开关（如某个下拉菜单是否展现），优先使用 React 原生的 `useState`。

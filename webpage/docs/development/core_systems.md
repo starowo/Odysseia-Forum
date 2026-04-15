@@ -52,6 +52,7 @@ const ProfilePage = lazy(() => import('@/pages/UserProfilePage'));
 搜索词输入支持高级语法的精确匹配与条件剥离，前端使用 `src/shared/lib/searchTokenizer.ts` 作为统一解释器：
 - **可用语法**: `$tag:xxx$`, `-$tag:xxx$`, `$author:xxx$`, `-$author:xxx$`, `$channel:xxx$`。
 - **协议转换**: 当用户在 `TopBar` 键入字符或点击特定面板（如 `SearchFilterPanel`）按钮时，工具函数（如 `addToken`, `removeToken`）会改变全局查询字符串，随后 `tokenizeSearchPayload` 会将长字符串打散为 API 可接受的数据结构（`includeTags`, `excludeTags`, `includeAuthors`, `excludeAuthors`, `channels` 等）。
+- **向后兼容**: 为了兼容旧版未带 `$` 符号的语法，分词器中引入了 `migrateLegacySyntax` 函数，在处理 URL 查询参数时，它会自动把类似 `author:xxx` 的格式标准化为 `$author:xxx$`。
 
-### 5.2 参数层 (`useSearchParams`)
-`src/features/search/hooks/useSearchParams.ts` 钩子解析并暴露经过封装合并后的过滤状态，组件使用该钩子修改参数会自动触发 React Router 的导航方法，进而引发整个订阅此 Hooks 的查询模块重刷。
+### 5.2 参数层 (`useSearchURLParams`)
+`src/features/search/hooks/useSearchParams.ts` 中的 `useSearchURLParams` 钩子解析并暴露经过封装合并后的过滤状态，组件使用该钩子修改参数会自动触发 React Router 的导航方法，进而引发整个订阅此 Hooks 的查询模块重刷。
