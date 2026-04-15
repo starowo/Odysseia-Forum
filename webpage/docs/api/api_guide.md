@@ -68,7 +68,7 @@
     "channel_ids": ["string (可选)"],
     "include_tags": ["string (可选)"],
     "exclude_tags": ["string (可选)"],
-    "tag_logic": "and (可选, 默认'and')",
+    "tag_logic": "and (可选, 默认'and', 或 'or')",
     "keywords": "string (可选, 支持高级语法)",
     "exclude_keywords": "string (可选)",
     "author_name": "string (可选)",
@@ -83,6 +83,10 @@
     "search_by_collection": false
   }
   ```
+
+**参数说明**:
+- `tag_logic`: 决定标签的匹配逻辑，支持 `'and'` 和 `'or'`。
+- `search_by_collection`: 如果为 `true`，则说明当前正在针对收藏列表/书单内容执行检索。
 
 **核心逻辑变动**:
 1.  **多服务器支持 (`guild_id`)**: 若不传则搜索所有已索引服务器；若传则锁定特定服务器。
