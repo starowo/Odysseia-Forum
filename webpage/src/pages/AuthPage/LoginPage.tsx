@@ -61,8 +61,9 @@ export function LoginPage() {
     }
 
     // 真实环境：跳转到后端 OAuth 登录接口
-    const loginPath = import.meta.env.DEV ? '/auth/login-dev' : '/auth/login';
-    const finalUrl = `https://odysseia.jnai2d9kgnbs6xzx5c.com/v1${loginPath}`;
+    const loginPath = '/auth/login';
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'https://forum.shimmerday.top';
+    const finalUrl = `${backendUrl}/v1${loginPath}`;
       
     setTimeout(() => {
       window.location.href = finalUrl;

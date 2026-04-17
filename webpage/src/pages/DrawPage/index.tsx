@@ -7,7 +7,6 @@ import {
   Dices,
   Eye,
   Layers3,
-  MoveRight,
   RefreshCw,
   Sparkles,
   Wand2,
@@ -21,7 +20,7 @@ import { getDiscoveryPreferenceContext } from '@/features/preferences/lib/discov
 import { searchApi } from '@/features/search/api/searchApi';
 import { usePreviewThread } from '@/features/search/hooks/usePreviewThread';
 import { searchKeys } from '@/features/search/lib/queryKeys';
-import { GUILD_ID, CHANNELS, CHANNEL_CATEGORIES } from '@/shared/config/channelCategories.private';
+import { GUILD_ID, CHANNEL_CATEGORIES } from '@/shared/config/channelCategories.private';
 import { FluidDivider } from '@/shared/ui/FluidDivider';
 
 type DrawScopeMode = 'preferences' | 'channel';
@@ -139,7 +138,6 @@ export function DrawPage() {
   const candidateThreads = candidateQuery.data || [];
   const featuredResult = drawResults[0] || null;
   const trailingResults = drawResults.slice(1, revealedCount);
-  const drawChannelName = selectedChannelId ? CHANNELS[selectedChannelId] || '未命名频道' : '';
   const activeScopeLabel = scopeMode === 'channel' && selectedChannelId
     ? availableScopeChannels.find((c) => c.id === selectedChannelId)?.name || '未找到频道'
     : '我的偏好池范围';

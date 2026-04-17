@@ -3,7 +3,6 @@ import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useSearchURLParams } from '@/features/search/hooks/useSearchParams';
 import { clearStoredAuthToken } from '@/shared/lib/authSession';
 import { CHANNEL_CATEGORIES } from '@/shared/config/navigation';
-import { parseSearchQuery } from '@/shared/lib/searchTokenizer';
 import { ThemeToggle } from '@/shared/ui/ThemeToggle';
 import { AnimatedIcon } from '@/shared/ui/animation/AnimatedIcon';
 import { WordLogoStatic } from '@/shared/ui/loaders/WordLogoStatic';
@@ -25,9 +24,6 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { params, setParams } = useSearchURLParams();
-  const searchInput = params.query || '';
-
-  const parsedTokens = parseSearchQuery(searchInput);
 
   const currentURLParams = new URLSearchParams(location.search);
   const isFollowsPage = location.pathname === '/me' && currentURLParams.get('tab') === 'follows';
