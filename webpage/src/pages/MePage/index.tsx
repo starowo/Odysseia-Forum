@@ -31,7 +31,7 @@ import { MeHistorySection } from '@/pages/MePage/MeHistorySection';
 import { MePageHeader, type MePageTabOption } from '@/pages/MePage/MePageHeader';
 import { MePreferencesSection } from '@/pages/MePage/MePreferencesSection';
 import { MeThreadsSection } from '@/pages/MePage/MeThreadsSection';
-import { CHANNEL_CATEGORIES } from '@/shared/config/navigation';
+import { useChannels } from '@/shared/hooks/useChannels';
 import { GUILD_ID } from '@/shared/config/channelCategories.private';
 import { clearBrowseHistory, getBrowseHistory, removeBrowseHistory } from '@/shared/lib/browseHistory';
 import { notifyError, notifySuccess } from '@/shared/lib/notify';
@@ -116,7 +116,8 @@ export function MePage() {
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
-  const channelOptions = useMemo(() => CHANNEL_CATEGORIES.flatMap((group) => group.channels), []);
+  const { data: channelsData } = useChannels();
+  const channelOptions = useMemo(() => channelsData?.channels || [], [channelsData?.channels]);
   const { data: channelTagCatalog = [] } = useQuery({
     queryKey: ['me', 'preferences', 'channel-tag-catalog'],
     queryFn: () => searchApi.getChannelTagCatalog(),

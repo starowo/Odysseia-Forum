@@ -14,7 +14,6 @@ import {
 
 import { ThreadCard } from '@/entities/thread/ThreadCard';
 import type { Thread } from '@/entities/thread/types';
-import { useCardGridClass } from '@/shared/hooks/useSettings';
 import { useUserPreferences } from '@/features/preferences/hooks/useUserPreferences';
 import { getDiscoveryPreferenceContext } from '@/features/preferences/lib/discoveryPreferences';
 import { searchApi } from '@/features/search/api/searchApi';
@@ -148,7 +147,6 @@ export function DrawPage() {
     ? availableScopeChannels.find((c) => c.id === selectedChannelId)?.name || '未找到频道'
     : '我的偏好池范围';
 
-  const gridClass = useCardGridClass();
 
   const handleDraw = (count: number) => {
     const sampled = sampleThreads(candidateThreads, count);

@@ -202,7 +202,7 @@ function ThreadCardImpl({ thread, onTagClick, searchQuery, onAuthorClick, onPrev
         <div className="min-h-[2.75rem]">
           {hasExcerpt && (
             <p className={`${fontSizes.content} line-clamp-2 leading-relaxed text-[var(--od-text-secondary)] transition-colors duration-200 group-hover:text-[color-mix(in_srgb,var(--od-text-secondary)_72%,var(--od-text-primary))]`}>
-              <DiscordMarkdownText text={thread.first_message_excerpt} />
+              <DiscordMarkdownText text={thread.first_message_excerpt || ''} />
             </p>
           )}
         </div>
