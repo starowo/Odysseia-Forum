@@ -98,6 +98,15 @@ export function MePage() {
   }, [preferences, isDirty]);
 
   useEffect(() => {
+    if (tab === 'history') {
+      // Allow DOM to update first
+      setTimeout(() => {
+        document.getElementById('history-section')?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [tab]);
+
+  useEffect(() => {
     const handleStorage = (event: StorageEvent) => {
       if (event.key && event.key !== 'odysseia_browse_history') return;
       setBrowseHistoryVersion((value) => value + 1);

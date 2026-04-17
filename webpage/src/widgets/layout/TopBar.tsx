@@ -26,6 +26,7 @@ import {
   Settings as SettingsIcon,
   SlidersHorizontal,
   User,
+  X,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -246,6 +247,21 @@ export function TopBar({ onMenuClick, sidebarCollapsed = false }: TopBarProps) {
                 className="min-h-[40px] rounded-[24px] bg-transparent"
               />
             </div>
+
+            {searchInput.trim() && (
+              <button
+                type="button"
+                onClick={() => {
+                  applyInputChange('');
+                  executeSearch('');
+                }}
+                className="relative mr-1 shrink-0 p-1.5 text-[var(--od-text-tertiary)] hover:text-[var(--od-text-primary)] transition-colors duration-200"
+                aria-label="清除搜索词"
+                title="清除并重置"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
 
             {needsFilter && (
               <button

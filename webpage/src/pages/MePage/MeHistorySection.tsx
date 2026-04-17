@@ -19,7 +19,7 @@ export function MeHistorySection({
   onRemove,
 }: MeHistorySectionProps) {
   return (
-    <section className="px-1">
+    <section id="history-section" className="px-1">
       <FluidDivider label="History" className="mb-8" />
       <div className="mb-6 flex flex-col items-center gap-3 text-center">
         <div className="flex items-center justify-center gap-2">
@@ -79,7 +79,7 @@ export function MeHistorySection({
                 <button
                   type="button"
                   onClick={() => onOpenThread(item.threadId)}
-                  className="block truncate text-left text-base font-semibold text-[var(--od-text-primary)] transition-colors hover:text-[var(--od-accent)]"
+                  className="block max-w-full truncate text-left text-base font-semibold text-[var(--od-text-primary)] transition-colors hover:text-[var(--od-accent)]"
                 >
                   {item.title}
                 </button>

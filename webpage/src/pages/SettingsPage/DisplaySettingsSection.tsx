@@ -9,6 +9,8 @@ import {
   Monitor,
   Scan,
   Type,
+  ExternalLink,
+  AppWindow,
 } from 'lucide-react';
 
 import { themes } from '@/shared/styles/themes';
@@ -205,6 +207,41 @@ export function DisplaySettingsSection({ settings, updateSettings }: DisplaySett
               </button>
             </div>
           </div>
+        </div>
+
+        <div>
+           <label className="mb-1 block text-[1.1rem] font-semibold tracking-[-0.02em] text-[var(--od-text-primary)]">
+             端外跳转方式
+           </label>
+           <p className="mb-3 text-[0.82rem] leading-[1.55] text-[var(--od-text-secondary)]">
+             选择打开 Discord 帖子时，是唤起本地客户端还是在网页端打开。
+           </p>
+           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+             <button
+               type="button"
+               onClick={() => updateSettings({ openMode: 'app' })}
+               data-active={settings.openMode === 'app'}
+               className={`${rowChoiceClass} ${settings.openMode === 'app' ? '' : ''}`}
+             >
+               <AppWindow className={`od-choice-icon h-5 w-5 ${settings.openMode === 'app' ? 'text-[var(--od-accent)]' : 'text-[var(--od-text-secondary)]'}`} />
+               <div className="text-left">
+                 <div className="od-choice-title text-sm font-medium text-[var(--od-text-primary)]">Discord 客户端</div>
+                 <div className="text-xs text-[var(--od-text-tertiary)]">使用 discord:// 协议直接唤起 App</div>
+               </div>
+             </button>
+             <button
+               type="button"
+               onClick={() => updateSettings({ openMode: 'web' })}
+               data-active={settings.openMode === 'web'}
+               className={`${rowChoiceClass} ${settings.openMode === 'web' ? '' : ''}`}
+             >
+               <ExternalLink className={`od-choice-icon h-5 w-5 ${settings.openMode === 'web' ? 'text-[var(--od-accent)]' : 'text-[var(--od-text-secondary)]'}`} />
+               <div className="text-left">
+                 <div className="od-choice-title text-sm font-medium text-[var(--od-text-primary)]">网页版</div>
+                 <div className="text-xs text-[var(--od-text-tertiary)]">在当前浏览器新标签页中打开</div>
+               </div>
+             </button>
+           </div>
         </div>
 
         <div>

@@ -20,7 +20,8 @@ import { getDiscoveryPreferenceContext } from '@/features/preferences/lib/discov
 import { searchApi } from '@/features/search/api/searchApi';
 import { usePreviewThread } from '@/features/search/hooks/usePreviewThread';
 import { searchKeys } from '@/features/search/lib/queryKeys';
-import { GUILD_ID, CHANNEL_CATEGORIES } from '@/shared/config/channelCategories.private';
+import { GUILD_ID } from '@/shared/config/channelCategories.private';
+import { useChannels } from '@/shared/hooks/useChannels';
 import { FluidDivider } from '@/shared/ui/FluidDivider';
 
 type DrawScopeMode = 'preferences' | 'channel';
@@ -45,7 +46,7 @@ function sampleThreads(threads: Thread[], count: number) {
   return pool.slice(0, Math.min(count, pool.length));
 }
 
-const allChannels = CHANNEL_CATEGORIES.flatMap((category) => category.channels);
+// allChannels moved to component context
 
 export function DrawPage() {
   const navigate = useNavigate();
@@ -55,6 +56,11 @@ export function DrawPage() {
     () => getDiscoveryPreferenceContext(preferences),
     [preferences],
   );
+  
+  const { data: channelsData } = useChannels();
+  const allChannels = useMemo(() => {
+    return channelsData?.channels || [];
+  }, [channelsData?.channels]);
 
   const [scopeMode, setScopeMode] = useState<DrawScopeMode>('preferences');
   const [selectedChannelId, setSelectedChannelId] = useState<string>('');
@@ -153,7 +159,7 @@ export function DrawPage() {
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 flex flex-col gap-8 p-4 sm:p-6 lg:p-8">
       <section className="relative p-2 sm:p-6 lg:p-8">
-        <div className="relative z-10 grid gap-8 lg:grid-cols-[minmax(0,1.24fr)_minmax(20rem,23rem)] lg:items-start">
+        <div className="relative z-10 flex flex-col gap-10 max-w-4xl">
           <div>
             <div className="od-editorial-kicker mb-4 text-[var(--od-text-tertiary)]">
               <Sparkles className="h-3.5 w-3.5" />
@@ -354,14 +360,14 @@ export function DrawPage() {
         <FluidDivider label="Reveal" tone="strong" className="mb-6" />
         {featuredResult ? (
           <div className="flex flex-col gap-6">
-            <div className="grid gap-5 lg:grid-cols-[minmax(0,1.18fr)_minmax(18rem,0.92fr)] lg:items-start">
+            <div className="flex flex-col gap-12">
               <div className="space-y-4">
                 <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--od-accent)_18%,transparent)] bg-[color-mix(in_srgb,var(--od-accent)_10%,transparent)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--od-accent)]">
                   <Sparkles className="h-3.5 w-3.5" />
                   {lastDrawCount > 1 ? '十连主卡' : '本次命中'}
                 </div>
 
-                <div className="od-draw-panel max-w-[44rem]">
+                <div className="w-full lg:max-w-4xl">
                   <ThreadCard thread={featuredResult} onPreview={openPreview} />
                 </div>
 
@@ -409,9 +415,9 @@ export function DrawPage() {
                 </div>
 
                 {drawResults.length > 1 ? (
-                  <div className={gridClass}>
+                  <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-6 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
                     {trailingResults.map((thread, index) => (
-                      <div key={thread.thread_id} className="od-draw-panel animate-in fade-in zoom-in-95 duration-300" style={{ animationDelay: `${index * 90}ms` }}>
+                      <div key={thread.thread_id} className="w-[18rem] shrink-0 snap-start animate-in fade-in zoom-in-95 duration-300" style={{ animationDelay: `${index * 90}ms` }}>
                         <ThreadCard thread={thread} onPreview={openPreview} />
                       </div>
                     ))}

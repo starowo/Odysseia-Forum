@@ -77,15 +77,16 @@ export function TagsPage() {
         });
       }
 
-      for (const tag of virtualSet) {
-        entries.push({
-          key: `${channel.channel_id}::virtual::${tag}`,
-          name: tag,
-          channelId: channel.channel_id,
-          channelName: channel.channel_name,
-          isVirtual: true,
-        });
-      }
+      // 排除虚拟标签，不在总览中展示
+      // for (const tag of virtualSet) {
+      //   entries.push({
+      //     key: `${channel.channel_id}::virtual::${tag}`,
+      //     name: tag,
+      //     channelId: channel.channel_id,
+      //     channelName: channel.channel_name,
+      //     isVirtual: true,
+      //   });
+      // }
     }
 
     return entries;

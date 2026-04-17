@@ -2,7 +2,7 @@ import ServerIcon from '@/assets/images/icon/A90C044F8DDF1959B2E9078CB629C239.pn
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useSearchURLParams } from '@/features/search/hooks/useSearchParams';
 import { clearStoredAuthToken } from '@/shared/lib/authSession';
-import { CHANNEL_CATEGORIES } from '@/shared/config/navigation';
+import { useChannels } from '@/shared/hooks/useChannels';
 import { ThemeToggle } from '@/shared/ui/ThemeToggle';
 import { AnimatedIcon } from '@/shared/ui/animation/AnimatedIcon';
 import { WordLogoStatic } from '@/shared/ui/loaders/WordLogoStatic';
@@ -18,12 +18,31 @@ import {
   TestTube,
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useMemo } from 'react';
 
 export function AppSidebar() {
   const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const { params, setParams } = useSearchURLParams();
+  const { data: channelsData } = useChannels();
+
+  const groupedChannels = useMemo(() => {
+    if (!channelsData?.channels) return [];
+    interface Group {
+      groupName: string;
+      channels: typeof channelsData.channels;
+    }
+    const map = new Map<string, Group>();
+    for (const c of channelsData.channels) {
+      const gid = c.groupId || 'other';
+      if (!map.has(gid)) {
+        map.set(gid, { groupName: c.groupName || '其他区', channels: [] });
+      }
+      map.get(gid)!.channels.push(c);
+    }
+    return Array.from(map.values());
+  }, [channelsData?.channels]);
 
   const currentURLParams = new URLSearchParams(location.search);
   const isFollowsPage = location.pathname === '/me' && currentURLParams.get('tab') === 'follows';
@@ -242,10 +261,10 @@ export function AppSidebar() {
               <span>全频道</span>
             </button>
 
-            {CHANNEL_CATEGORIES.map((category) => (
-              <div key={category.name} className="mt-4 first:mt-0">
+            {groupedChannels.map((category) => (
+              <div key={category.groupName} className="mt-4 first:mt-0">
                 <div className="mb-1 px-2 text-[10px] font-bold uppercase tracking-widest text-[var(--od-text-tertiary)] opacity-60">
-                  {category.name}
+                  {category.groupName}
                 </div>
                 <div className="space-y-0.5">
                   {category.channels.map((channel) => {
