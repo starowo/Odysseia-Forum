@@ -4,12 +4,12 @@ from typing import TYPE_CHECKING, Dict
 import discord
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from config.config_service import ConfigService
+from core.config_repository import ConfigRepository
 from config.embed_builder import ConfigEmbedBuilder
 from config.views.components.edit_config_modal import EditConfigModal
 from config.views.config_panel_view import ConfigPanelView
 from models import BotConfig
-from shared.enum.search_config_type import SearchConfigType
+from shared.enum import SearchConfigType
 from shared.safe_defer import safe_defer
 
 if TYPE_CHECKING:
@@ -23,17 +23,17 @@ class GeneralConfigHandler:
         self,
         bot: "MyBot",
         session_factory: async_sessionmaker,
-        config_service: ConfigService,
     ):
         self.bot = bot
         self.session_factory = session_factory
-        self.config_service = config_service
 
     async def start_flow(self, interaction: discord.Interaction):
         """启动通用配置流程"""
         await safe_defer(interaction, ephemeral=True)
 
-        all_configs = await self.config_service.get_all_configurable_search_configs()
+        async with self.session_factory() as session:
+            config_repository = ConfigRepository(session)
+            all_configs = await config_repository.get_all_configurable_search_configs()
 
         # 默认选中第一个可配置项
         initial_selection = SearchConfigType.UCB1_EXPLORATION_FACTOR
@@ -75,9 +75,11 @@ class GeneralConfigHandler:
         await safe_defer(interaction, ephemeral=True)
         try:
             # 更新数据库
-            updated = await self.config_service.update_search_config(
-                config_type, new_values, interaction.user.id
-            )
+            async with self.session_factory() as session:
+                config_repository = ConfigRepository(session)
+                updated = await config_repository.update_search_config(
+                    config_type, new_values, interaction.user.id
+                )
             if not updated:
                 await interaction.followup.send(
                     "❌ 更新配置失败，未找到对应配置项。", ephemeral=True
@@ -92,9 +94,11 @@ class GeneralConfigHandler:
             )
 
             # 刷新UI
-            all_configs = (
-                await self.config_service.get_all_configurable_search_configs()
-            )
+            async with self.session_factory() as session:
+                config_repository = ConfigRepository(session)
+                all_configs = (
+                    await config_repository.get_all_configurable_search_configs()
+                )
 
             original_message = await interaction.original_response()
             view = ConfigPanelView(self, all_configs, config_type)

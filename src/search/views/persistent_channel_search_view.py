@@ -11,9 +11,7 @@ if TYPE_CHECKING:
 
 
 class PersistentChannelSearchView(discord.ui.View):
-    """
-    一个持久化的视图，包含一个按钮，用于在特定频道启动搜索。
-    """
+    """一个持久化的视图，包含一个按钮，用于在特定频道及其映射频道中启动搜索"""
 
     def __init__(self, cog: "Search"):
         super().__init__(timeout=None)
@@ -27,9 +25,7 @@ class PersistentChannelSearchView(discord.ui.View):
     async def start_search(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
-        """
-        当用户点击“搜索本频道”按钮时，启动一个预设了频道ID的通用搜索流程。
-        """
+        """当用户点击“搜索本频道”按钮时，启动一个预设了该频道ID的搜索流程。"""
 
         await safe_defer(interaction, ephemeral=True)
 
@@ -53,7 +49,7 @@ class PersistentChannelSearchView(discord.ui.View):
 
         # 获取父频道 (channel) 和它的 ID (channel_id)
         channel = interaction.channel.parent
-        if not channel:  # 预防帖子父频道丢失的罕见情况
+        if not channel:
             await self.cog.bot.api_scheduler.submit(
                 coro_factory=lambda: interaction.followup.send(
                     "❌ 无法找到该帖子的父频道\n如果重试后依然出现该提示，请联系技术员",
@@ -81,7 +77,6 @@ class PersistentChannelSearchView(discord.ui.View):
             "page": 1,
         }
 
-        # 使用 cog 中的辅助函数创建初始状态，确保所有偏好（包括时间）都被加载
         initial_state = await self.cog._create_initial_state_from_prefs(
             interaction.user.id, overrides
         )
@@ -104,10 +99,7 @@ class PersistentChannelSearchView(discord.ui.View):
     async def preferences_button(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
-        """
-        分派一个事件来打开搜索偏好设置面板。
-        """
-        # 分派事件由 PreferencesCog 监听
+        """分派事件来打开搜索偏好设置面板。"""
         self.cog.bot.dispatch("open_preferences_panel", interaction)
 
     @discord.ui.button(
@@ -119,8 +111,5 @@ class PersistentChannelSearchView(discord.ui.View):
     async def collections_button(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
-        """
-        分派一个事件来启动收藏搜索流程。
-        """
-        # 分派事件由 SearchCog 监听
+        """分派事件来启动收藏搜索流程。"""
         self.cog.bot.dispatch("open_collection_search", interaction)

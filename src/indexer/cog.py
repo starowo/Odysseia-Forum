@@ -1,17 +1,17 @@
 import asyncio
 import logging
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from core.sync_service import SyncService
-from core.tag_cache_service import TagCacheService
+from core.thread_deletion_service import ThreadDeletionService
 from indexer.views import IndexerDashboard
+from shared.permissions import is_admin_or_bot_admin
 from shared.safe_defer import safe_defer
-from ThreadManager.cog import ThreadManager
+from dto.events import IndexUpdatedEvent
 
 if TYPE_CHECKING:
     from bot_main import MyBot
@@ -28,19 +28,18 @@ class Indexer(commands.Cog):
         bot: "MyBot",
         session_factory: async_sessionmaker,
         config: dict,
-        tag_service: TagCacheService,
-        sync_service: SyncService,
     ):
         self.bot = bot
         self.session_factory = session_factory
         self.config = config
-        self.tag_service = tag_service
-        self.sync_service = sync_service
+        self.tag_service = bot.tag_cache_service
+        self.sync_service = bot.sync_service
         logger.info("Indexer 模块已加载")
 
     @app_commands.command(
         name="构建索引", description="对当前论坛频道的所有帖子进行索引"
     )
+    @is_admin_or_bot_admin()
     async def build_index(self, interaction: discord.Interaction):
         await safe_defer(interaction, ephemeral=True)
         if not isinstance(interaction.channel, discord.Thread):
@@ -65,19 +64,64 @@ class Indexer(commands.Cog):
         dashboard = IndexerDashboard(self, channel, self.config)
         await dashboard.start(interaction)
 
+    @app_commands.command(name="移除索引", description="移除当前论坛频道的所有帖子索引")
+    @is_admin_or_bot_admin()
+    async def remove_index(self, interaction: discord.Interaction):
+        """移除当前所在帖子所属论坛频道的全部索引。"""
+        await safe_defer(interaction, ephemeral=True)
+
+        if not isinstance(interaction.channel, discord.Thread):
+            await self.bot.api_scheduler.submit(
+                coro_factory=lambda: interaction.followup.send(
+                    "请在论坛频道的帖子内使用此命令", ephemeral=True
+                ),
+                priority=1,
+            )
+            return
+
+        channel = interaction.channel.parent
+        if not isinstance(channel, discord.ForumChannel):
+            await self.bot.api_scheduler.submit(
+                coro_factory=lambda: interaction.followup.send(
+                    "此命令仅适用于论坛频道。", ephemeral=True
+                ),
+                priority=1,
+            )
+            return
+
+        try:
+            async with self.session_factory() as session:
+                await ThreadDeletionService(session).delete_channel(channel.id)
+                await session.commit()
+
+            await self.bot.api_scheduler.submit(
+                coro_factory=lambda: interaction.followup.send(
+                    f"✅ 已成功移除频道「{channel.name}」的所有索引。",
+                    ephemeral=True,
+                ),
+                priority=1,
+            )
+
+            # 分发全局事件以刷新缓存
+            await self.bot.event_mediator.publish(IndexUpdatedEvent())
+
+        except Exception as e:
+            error_msg = str(e)
+            logger.error(f"移除索引时出错: {e}", exc_info=True)
+            await self.bot.api_scheduler.submit(
+                coro_factory=lambda: interaction.followup.send(
+                    f"❌ 移除索引失败: {error_msg}", ephemeral=True
+                ),
+                priority=1,
+            )
+
     async def run_indexer(self, dashboard: IndexerDashboard):
         """运行生产者和消费者任务"""
         logging.debug(f"[{dashboard.channel.id}] run_indexer 开始")
 
         # 步骤 1: 预同步该频道的所有可用标签，避免后续的并发冲突
         try:
-            thread_manager_cog = cast(ThreadManager, self.bot.get_cog("ThreadManager"))
-            if thread_manager_cog:
-                await thread_manager_cog.pre_sync_forum_tags(dashboard.channel)
-            else:
-                logging.warning(
-                    f"[{dashboard.channel.id}] 无法获取 ThreadManager Cog，跳过标签预同步。"
-                )
+            await self.sync_service.pre_sync_forum_tags(dashboard.channel)
         except Exception as e:
             # 如果预同步失败，记录一个致命错误并停止索引
             logging.error(
@@ -154,7 +198,7 @@ class Indexer(commands.Cog):
                 logging.info(
                     f"[{dashboard.channel.id}] 索引完成，分发 'index_updated' 事件。"
                 )
-                self.bot.dispatch("index_updated")
+                await self.bot.event_mediator.publish(IndexUpdatedEvent())
 
     async def producer(self, dashboard: IndexerDashboard):
         """生产者：发现帖子并放入队列"""
@@ -236,11 +280,15 @@ class Indexer(commands.Cog):
     ):
         """
         监听频道更新事件。
-        只要论坛频道的标签发生任何变化（增、删、改），就重建 TagService 的缓存。
+        当变动的频道为已索引频道且标签发生任何变化（增、删、改）时，重建 TagService 的缓存。
         """
         if not isinstance(after, discord.ForumChannel) or not isinstance(
             before, discord.ForumChannel
         ):
+            return
+
+        # 仅当频道是已索引频道时才继续处理
+        if not self.bot.cache_service.is_channel_indexed(after.id):
             return
 
         # 如果可用标签列表没有发生任何变化，则提前返回，避免不必要的操作。
@@ -248,10 +296,11 @@ class Indexer(commands.Cog):
             return
 
         logging.info(
-            f"检测到论坛频道 '{after.name}' (ID: {after.id}) 的标签发生变化，准备刷新 TagService 缓存。"
+            f"检测到已索引论坛频道 '{after.name}' (ID: {after.id}) 的标签发生变化，准备刷新 TagService 缓存。"
         )
 
         try:
+            await self.sync_service.pre_sync_forum_tags(after)
             # 调用服务重建整个缓存，确保数据完全同步
             await self.tag_service.build_cache()
             logging.info("TagService 缓存已因频道更新而成功刷新。")
@@ -259,3 +308,26 @@ class Indexer(commands.Cog):
             logging.error(
                 f"因频道更新事件刷新 TagService 缓存时出错: {e}", exc_info=True
             )
+
+    async def cog_app_command_error(
+        self, interaction: discord.Interaction, error: app_commands.AppCommandError
+    ):
+        """
+        Cog 级别的应用程序命令错误处理器。
+        """
+        if isinstance(error, app_commands.CheckFailure):
+            await interaction.response.send_message(
+                "❌ 你没有权限使用此命令。需要服务器管理员或被指定为机器人管理员。",
+                ephemeral=True,
+            )
+        else:
+            command_name = interaction.command.name if interaction.command else "未知"
+            logger.error(f"命令 '{command_name}' 发生错误", exc_info=error)
+            if not interaction.response.is_done():
+                await interaction.response.send_message(
+                    f"❌ 命令执行时发生未知错误: {error}", ephemeral=True
+                )
+            else:
+                await interaction.followup.send(
+                    f"❌ 命令执行时发生未知错误: {error}", ephemeral=True
+                )

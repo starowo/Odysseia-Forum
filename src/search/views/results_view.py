@@ -23,7 +23,7 @@ class SearchResultsView(discord.ui.View):
         results_per_page: int,
         preview_image_mode: str,
     ):
-        super().__init__(timeout=900)
+        super().__init__(timeout=14400)
         self.cog = cog
         self.interaction = interaction
         self.search_qo = search_qo
@@ -104,16 +104,5 @@ class SearchResultsView(discord.ui.View):
         await self.go_to_page(interaction, self.max_page)
 
     async def on_timeout(self):
-        for item in self.children:
-            if isinstance(item, (discord.ui.Button, discord.ui.Select)):
-                item.disabled = True
-
-        # 确保超时后禁用按钮的交互也能被调度
-        try:
-            await self.cog.bot.api_scheduler.submit(
-                coro_factory=lambda: self.interaction.edit_original_response(view=self),
-                priority=1,
-            )
-        except discord.errors.NotFound:
-            # 如果原始消息被删除，忽略错误
-            pass
+        """分页视图超时，私密消息的 Token 已失效，放弃任何 API 编辑请求。"""
+        pass

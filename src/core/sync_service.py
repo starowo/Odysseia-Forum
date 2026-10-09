@@ -1,15 +1,27 @@
+from models.discord_tag_source import DiscordTagSource
+from sqlalchemy import select
+from models import Thread, TagBinding
+from types import SimpleNamespace
+from dto.events.discord_tags_snapshot import DiscordTagsSnapshot
+from shared.time_utils import utc_now
 import asyncio
 import datetime
 import logging
 import re
-from typing import TYPE_CHECKING, Coroutine, List, Optional, Union
+from typing import TYPE_CHECKING, List, Optional, Union
 
 import discord
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from core.author_service import AuthorRepository
-from core.thread_service import ThreadService
+from core.author_repository import AuthorRepository
+from core.notification_fanout_service import NotificationFanoutService
+from core.tag_repository import TagRepository
+from core.thread_repository import ThreadRepository
+from dto.open_graph import ThreadSyncResult
 from shared.discord_utils import DiscordUtils
+from shared.image_url_utils import extract_message_image_urls
+from shared.redis_client import RedisManager
+from shared.similar_threads_cache import invalidate_similar_candidate_pools
 
 if TYPE_CHECKING:
     from bot_main import MyBot
@@ -29,6 +41,31 @@ class SyncService:
     ):
         self.bot = bot
         self.session_factory = session_factory
+
+    async def pre_sync_forum_tags(self, channel: discord.ForumChannel) -> None:
+        """预同步论坛频道的全部可用标签。"""
+        observed_at = utc_now()
+        fresh = await self.bot.fetch_channel(channel.id)
+        if not isinstance(fresh, discord.ForumChannel):
+            return
+        await self.bot.event_mediator.publish(
+            DiscordTagsSnapshot(
+                fresh.id,
+                {tag.id: tag.name for tag in fresh.available_tags},
+                observed_at,
+            )
+        )
+
+    async def _invalidate_similarity_cache(self, thread_id: int) -> None:
+        """尽力失效源帖候选池，Redis 故障不影响同步主流程。"""
+        try:
+            await invalidate_similar_candidate_pools(
+                RedisManager.get_client(), thread_id
+            )
+        except Exception:
+            logger.warning(
+                "失效相似帖子候选池失败: thread_id=%s", thread_id, exc_info=True
+            )
 
     async def _save_author_to_db(
         self,
@@ -81,7 +118,11 @@ class SyncService:
 
         # 默认值
         final_author_id = thread.owner_id or 0
-        final_created_at = thread.created_at
+        final_created_at = (
+            thread.created_at.replace(tzinfo=None)
+            if thread.created_at
+            else thread.created_at
+        )
         source_user_for_author_service = thread.owner
         excerpt = ""
         thumbnail_urls: List[str] = []
@@ -91,34 +132,6 @@ class SyncService:
         )
 
         first_msg_content = first_msg.content or ""
-
-        image_extensions = (".jpg", ".jpeg", ".png", ".gif", ".webp")
-
-        def _is_image_attachment(attachment: discord.Attachment) -> bool:
-            content_type = (getattr(attachment, "content_type", None) or "").lower()
-            filename = (attachment.filename or "").lower()
-            return content_type.startswith("image/") or filename.endswith(
-                image_extensions
-            )
-
-        def _collect_attachment_urls(message: Optional[discord.Message]) -> List[str]:
-            if not message:
-                return []
-            result = [
-                att.url for att in message.attachments if _is_image_attachment(att)
-            ]
-            for embed in message.embeds:
-                if embed.type != "image":
-                    continue
-                if embed.thumbnail.proxy_url:
-                    result.append(embed.thumbnail.proxy_url)
-                elif embed.thumbnail.url:
-                    result.append(embed.thumbnail.url)
-                elif embed.image.proxy_url:
-                    result.append(embed.image.proxy_url)
-                elif embed.image.url:
-                    result.append(embed.image.url)
-            return result
 
         # --- 检查是否为重建帖 ---
         match_id = re.search(r"发帖人[:：\s*]*<@(\d+)>", first_msg_content)
@@ -140,7 +153,9 @@ class SyncService:
                     local_dt = datetime.datetime(
                         year, month, day, hour, minute, tzinfo=local_tz
                     )
-                    final_created_at = local_dt.astimezone(datetime.timezone.utc)
+                    final_created_at = local_dt.astimezone(
+                        datetime.timezone.utc
+                    ).replace(tzinfo=None)
             except Exception as e:
                 logger.warning(
                     f"重建帖 {thread.id} 解析作者或时间失败: {e}。中止对其的索引"
@@ -176,20 +191,23 @@ class SyncService:
                     priority=5,  # 中等优先级
                 )
 
-                if not target_message or not target_message.attachments:
+                if not target_message:
                     logger.debug(
-                        f"重建帖 {thread.id} 的补档消息 ({message_id}) 不存在或没有附件。中止对其的索引"
+                        f"重建帖 {thread.id} 的补档消息 ({message_id}) 不存在。中止对其的索引"
                     )
                     return None
 
-                attachment_urls = _collect_attachment_urls(target_message)
+                attachment_urls = extract_message_image_urls(
+                    attachments=target_message.attachments,
+                    embeds=target_message.embeds,
+                    content=target_message.content,
+                )
                 if not attachment_urls:
                     logger.debug(
-                        f"重建帖 {thread.id} 的补档消息 ({message_id}) 没有图片附件。中止对其的索引"
+                        f"重建帖 {thread.id} 的补档消息 ({message_id}) 没有图片，将保存空数组"
                     )
-                    return None
-
-                thumbnail_urls.extend(attachment_urls)
+                else:
+                    thumbnail_urls.extend(attachment_urls)
 
             except (discord.NotFound, discord.Forbidden, Exception) as e:
                 logger.error(
@@ -238,18 +256,13 @@ class SyncService:
         else:
             # --- 是普通帖 ---
             excerpt = first_msg.content
-            attachment_urls = _collect_attachment_urls(first_msg)
-            if attachment_urls:
-                thumbnail_urls.extend(attachment_urls)
-            else:
-                # 如果没有附件，则尝试从首楼内容中提取所有图片 URL
-                inline_image_urls = re.findall(
-                    r"https?://[^\s]+\.(?:jpg|jpeg|png|gif|webp)",
-                    first_msg.content or "",
-                    re.IGNORECASE,
+            thumbnail_urls.extend(
+                extract_message_image_urls(
+                    attachments=first_msg.attachments,
+                    embeds=first_msg.embeds,
+                    content=first_msg.content,
                 )
-                if inline_image_urls:
-                    thumbnail_urls.extend(inline_image_urls)
+            )
 
         if final_author_id and thread.guild:
             asyncio.create_task(
@@ -267,9 +280,15 @@ class SyncService:
             "title": thread.name,
             "author_id": final_author_id,
             "created_at": final_created_at,
-            "last_active_at": discord.utils.snowflake_time(thread.last_message_id)
-            if thread.last_message_id
-            else thread.created_at,
+            "last_active_at": (
+                discord.utils.snowflake_time(thread.last_message_id).replace(
+                    tzinfo=None
+                )
+                if thread.last_message_id
+                else thread.created_at.replace(tzinfo=None)
+                if thread.created_at
+                else thread.created_at
+            ),
             "reaction_count": reaction_count,
             "reply_count": thread.message_count,
             "not_found_count": 0,
@@ -283,7 +302,7 @@ class SyncService:
         priority: int = 10,
         *,
         fetch_if_incomplete: bool = False,
-    ):
+    ) -> ThreadSyncResult:
         """
         同步一个帖子的数据到数据库，包括其标签。
         该方法可以接受一个完整的帖子对象，或者一个帖子ID。
@@ -300,24 +319,34 @@ class SyncService:
                         f"sync_thread: 获取到的 channel {thread_id} 不是一个帖子，将标记为未找到。"
                     )
                     async with self.session_factory() as session:
-                        repo = ThreadService(session=session)
-                        await repo.increment_not_found_count(thread_id=thread_id)
-                    return
+                        repo = ThreadRepository(session=session)
+                        changed = await repo.increment_not_found_count(
+                            thread_id=thread_id
+                        )
+                    if changed:
+                        await self._invalidate_similarity_cache(thread_id)
+                    return ThreadSyncResult(
+                        success=False, error_code="discord_invalid_channel"
+                    )
                 thread = fetched_channel
             except discord.NotFound:
                 logger.warning(
                     f"sync_thread: 无法找到帖子 {thread_id}，可能已被删除。将增加其 not_found_count。"
                 )
                 async with self.session_factory() as session:
-                    repo = ThreadService(session=session)
-                    await repo.increment_not_found_count(thread_id=thread_id)
-                return
+                    repo = ThreadRepository(session=session)
+                    changed = await repo.increment_not_found_count(thread_id=thread_id)
+                if changed:
+                    await self._invalidate_similarity_cache(thread_id)
+                return ThreadSyncResult(success=False, error_code="discord_not_found")
             except Exception as e:
                 logger.error(
                     f"sync_thread: 通过ID {thread_id} 获取帖子时发生未知错误: {e}",
                     exc_info=True,
                 )
-                return
+                return ThreadSyncResult(
+                    success=False, error_code="discord_fetch_failed"
+                )
 
         elif fetch_if_incomplete:
             try:
@@ -331,50 +360,126 @@ class SyncService:
                     f"sync_thread (fetch_if_incomplete): 无法找到帖子 {thread.id}，可能已被删除。将增加其 not_found_count。"
                 )
                 async with self.session_factory() as session:
-                    repo = ThreadService(session=session)
-                    await repo.increment_not_found_count(thread_id=thread.id)
-                return
+                    repo = ThreadRepository(session=session)
+                    changed = await repo.increment_not_found_count(thread_id=thread.id)
+                if changed:
+                    await self._invalidate_similarity_cache(thread.id)
+                return ThreadSyncResult(success=False, error_code="discord_not_found")
+            except Exception as e:
+                logger.error(
+                    f"sync_thread: 重新获取帖子 {thread.id} 时发生错误: {e}",
+                    exc_info=True,
+                )
+                return ThreadSyncResult(
+                    success=False, error_code="discord_fetch_failed"
+                )
 
         assert isinstance(thread, discord.Thread)
 
         # 调用辅助方法解析帖子数据
-        thread_data = await self._parse_thread_data(thread)
+        try:
+            thread_data = await self._parse_thread_data(thread)
+        except Exception:
+            logger.exception(f"帖子 {thread.id} 解析失败")
+            return ThreadSyncResult(success=False, error_code="parse_failed")
 
         # 检查解析结果，如果为 None 则中止同步
         if thread_data is None:
             # logger.info(f"帖子 {thread.id} 不满足索引条件或无效，同步中止。")
-            return
+            return ThreadSyncResult(success=False, error_code="parse_failed")
 
         # 准备标签数据并存入数据库
         tags_data = {t.id: t.name for t in thread.applied_tags or []}
 
-        # 先保存帖子数据
-        async with self.session_factory() as session:
-            repo = ThreadService(session=session)
-            await repo.add_or_update_thread_with_tags(
-                thread_data=thread_data, tags_data=tags_data
-            )
+        # 移除原生绑定前先确认源频道标签是否被删除，避免事件乱序丢失应转换的绑定。
+        try:
+            async with self.session_factory() as session:
+                existing = set(
+                    (
+                        await session.execute(
+                            select(DiscordTagSource.discord_tag_id)
+                            .join(
+                                TagBinding,
+                                TagBinding.discord_source_id == DiscordTagSource.id,
+                            )
+                            .join(Thread, Thread.id == TagBinding.target_id)
+                            .where(
+                                Thread.thread_id == thread.id,
+                                TagBinding.target_type == "thread",
+                                TagBinding.binding_source == "discord_sync",
+                                TagBinding.ended_at.is_(None),
+                            )
+                        )
+                    ).scalars()
+                )
+                known = list(
+                    (
+                        await session.execute(
+                            select(DiscordTagSource).where(
+                                DiscordTagSource.discord_tag_id.in_(tags_data)
+                            )
+                        )
+                    ).scalars()
+                )
+                needs_refresh = set(tags_data) - {
+                    s.discord_tag_id for s in known
+                } or any(
+                    s.channel_id is None
+                    or s.name != tags_data[s.discord_tag_id]
+                    or s.deleted_at is not None
+                    for s in known
+                )
+            if existing - set(tags_data) or needs_refresh:
+                await self.pre_sync_forum_tags(SimpleNamespace(id=thread.parent_id))
+            async with self.session_factory() as session:
+                tag_repo = TagRepository(session=session)
+                tags = await tag_repo.get_or_create_tags(
+                    tags_data, update_names=False, channel_id=thread.parent_id
+                )
 
-        # 检查是否是首次被关注（检查关注表而不是帖子表）
-        is_first_follow = False
-        async with self.session_factory() as session:
-            from sqlmodel import func, select
+                repo = ThreadRepository(session=session)
+                mutation = await repo.add_or_update_thread_with_tags(
+                    thread_data=thread_data, tags=tags
+                )
+                if mutation.created:
+                    # 在当前事务中直接从作者关注关系生成通知
+                    await NotificationFanoutService(session).fanout_author_new_thread(
+                        author_id=thread_data["author_id"],
+                        event_source_id=thread.id,
+                        thread_id=thread.id,
+                    )
+                await session.commit()
+        except Exception:
+            logger.exception(f"帖子 {thread.id} 数据库提交失败")
+            return ThreadSyncResult(success=False, error_code="database_failed")
 
-            from models import ThreadFollow
+        if mutation.tags_changed:
+            await self._invalidate_similarity_cache(thread.id)
 
-            # 检查该帖子是否有任何关注记录
-            statement = (
-                select(func.count())
-                .select_from(ThreadFollow)
-                .where(ThreadFollow.thread_id == thread.id)
-            )
-            result = await session.execute(statement)
-            follow_count = result.scalar() or 0
-            is_first_follow = follow_count == 0
+        try:
+            # 检查是否是首次被关注（检查关注表而不是帖子表）
+            is_first_follow = False
+            async with self.session_factory() as session:
+                from sqlmodel import func
 
-        # 如果是首次被关注的老帖子，批量添加所有成员到关注列表
-        if is_first_follow:
-            await self._auto_follow_on_first_detect(thread)
+                from models import ThreadFollow
+
+                statement = (
+                    select(func.count())
+                    .select_from(ThreadFollow)
+                    .where(ThreadFollow.thread_id == thread.id)
+                )
+                result = await session.execute(statement)
+                follow_count = result.scalar() or 0
+                is_first_follow = follow_count == 0
+
+            # 如果是首次被关注的帖子，批量添加所有成员到关注列表
+            if is_first_follow:
+                await self._auto_follow_on_first_detect(thread)
+        except Exception:
+            logger.exception(f"帖子 {thread.id} 提交后的自动关注检查失败")
+
+        return ThreadSyncResult(success=True)
 
     async def _auto_follow_on_first_detect(self, thread: discord.Thread):
         """首次检测到老帖子时，自动为所有成员添加关注"""
@@ -389,20 +494,20 @@ class SyncService:
                 member_ids.append(member.id)
 
             if member_ids:
-                from ThreadManager.services.follow_service import FollowService
+                from core.follow_repository import ThreadFollowRepository
 
                 async with self.session_factory() as session:
-                    follow_service = FollowService(session)
+                    follow_service = ThreadFollowRepository(session)
                     added_count = await follow_service.batch_add_follows(
                         thread_id=thread.id, user_ids=member_ids
                     )
                     if added_count > 0:
                         logger.info(
-                            f"老帖子 {thread.id} 首次检测，为 {added_count} 个成员添加了自动关注"
+                            f"帖子 {thread.id} 首次检测，为 {added_count} 个成员添加了自动关注"
                         )
         except discord.NotFound:
-            logger.warning(f"老帖子 {thread.id} 已被删除，跳过自动关注")
+            logger.warning(f"帖子 {thread.id} 已被删除，跳过自动关注")
         except discord.Forbidden:
-            logger.warning(f"老帖子 {thread.id} 没有权限获取成员列表，跳过自动关注")
+            logger.warning(f"帖子 {thread.id} 没有权限获取成员列表，跳过自动关注")
         except Exception as e:
-            logger.error(f"老帖子自动关注失败 (帖子 {thread.id}): {e}", exc_info=True)
+            logger.error(f"帖子自动关注失败 (帖子 {thread.id}): {e}", exc_info=True)

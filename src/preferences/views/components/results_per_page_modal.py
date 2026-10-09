@@ -5,14 +5,14 @@ import discord
 from shared.safe_defer import safe_defer
 
 if TYPE_CHECKING:
-    from preferences.preferences_service import PreferencesService
+    from preferences.preferences_logic import PreferencesLogic
     from preferences.views.preferences_view import PreferencesView
 
 
 class ResultsPerPageModal(discord.ui.Modal, title="设置每页结果数量"):
     def __init__(
         self,
-        service: "PreferencesService",
+        service: "PreferencesLogic",
         parent_view: "PreferencesView",
         current_page_size: int,
     ):
@@ -42,9 +42,8 @@ class ResultsPerPageModal(discord.ui.Modal, title="设置每页结果数量"):
                 )
                 return
 
-            guild_id = interaction.guild_id or 0
             await self.service.save_user_preferences(
-                interaction.user.id, {"results_per_page": num}, guild_id
+                interaction.user.id, {"results_per_page": num}
             )
             await self.parent_view.refresh(interaction)
         except ValueError:

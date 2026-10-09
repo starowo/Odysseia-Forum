@@ -1,7 +1,10 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional
 
-from sqlmodel import Field, SQLModel, UniqueConstraint
+from sqlalchemy import BigInteger
+from sqlmodel import Column, Field, SQLModel, UniqueConstraint
+
+from shared.time_utils import utc_now
 
 
 class BooklistItem(SQLModel, table=True):
@@ -15,25 +18,50 @@ class BooklistItem(SQLModel, table=True):
     )
 
     id: Optional[int] = Field(default=None, primary_key=True)
+    """主键ID"""
 
-    booklist_id: int = Field(index=True, description="所属书单ID")
-    thread_id: int = Field(index=True, description="关联的帖子ID")
+    owner_id: int = Field(
+        default=0,
+        sa_column=Column(BigInteger, index=True),
+        description="所属用户的ID",
+    )
+    """所属用户的ID"""
 
-    # （可选的）排序数据，用于控制展示顺序
+    booklist_id: int = Field(
+        sa_column=Column(BigInteger, index=True), description="所属书单ID"
+    )
+    """所属书单ID"""
+
+    thread_id: int = Field(
+        sa_column=Column(BigInteger, index=True), description="关联的帖子ID"
+    )
+    """关联的帖子ID"""
+
     display_order: int = Field(default=0, index=True)
+    """（可选的）排序数据，用于控制展示顺序"""
 
     # 推荐语/备注 (用户在这个书单里对这个帖子的特殊评价)
     comment: Optional[str] = Field(default=None, description="书单主对该帖子的备注")
+    """书单主对该帖子的备注"""
 
-    # Discord 展示消息ID
-    display_message_id: Optional[int] = Field(default=None, description="展示消息的ID")
-
-    created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc), description="加入书单的时间"
+    tournament_participated_at: Optional[datetime] = Field(
+        default=None, description="参赛时间（赛事专用）"
     )
+    """参赛时间（赛事专用）"""
+
+    display_message_id: Optional[int] = Field(
+        default=None,
+        sa_column=Column(BigInteger),
+        description="展示消息的ID",
+    )
+    """展示消息的 Discord ID"""
+
+    created_at: datetime = Field(default_factory=utc_now, description="加入书单的时间")
+    """加入书单的时间"""
 
     updated_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
-        sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
+        default_factory=utc_now,
+        sa_column_kwargs={"onupdate": utc_now},
         description="最后更新时间",
     )
+    """最后更新时间"""

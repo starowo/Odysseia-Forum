@@ -1,7 +1,7 @@
 """Banner申请和管理Cog"""
 
 import logging
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 import discord
 from discord import app_commands
@@ -11,35 +11,15 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from banner.banner_service import BannerService
 from banner.views.banner_application_button_view import BannerApplicationButtonView
 from banner.views.review_view import ReviewView
+from banner.views.banner_status_view import BannerStatusView
+from shared.permissions import is_admin_or_bot_admin
 from shared.safe_defer import safe_defer
+from shared.time_utils import utc_now
 
 if TYPE_CHECKING:
     from bot_main import MyBot
 
 logger = logging.getLogger(__name__)
-
-
-def is_admin_or_bot_admin():
-    """检查用户是否为管理员或bot管理员"""
-
-    async def predicate(interaction: discord.Interaction) -> bool:
-        bot = cast("MyBot", interaction.client)
-        if not hasattr(bot, "config"):
-            return False
-
-        bot_admin_ids = bot.config.get("bot_admin_user_ids", [])
-        if interaction.user.id in bot_admin_ids:
-            return True
-
-        if (
-            isinstance(interaction.user, discord.Member)
-            and interaction.user.guild_permissions.administrator
-        ):
-            return True
-
-        return False
-
-    return app_commands.check(predicate)
 
 
 class BannerManagement(commands.Cog):
@@ -61,20 +41,18 @@ class BannerManagement(commands.Cog):
 
     async def cog_load(self):
         """Cog加载时注册持久化视图"""
+        # 解析申请人角色 ID
+        applicant_role_ids_str = self.config.get("applicant_role_ids", "")
+        allowed_role_ids = [
+            int(rid.strip()) for rid in applicant_role_ids_str.split(",") if rid.strip()
+        ]
+
         # 注册申请按钮持久化视图
-        application_view = BannerApplicationButtonView(
-            bot=self.bot,
-            session_factory=self.session_factory,
-            config=self.config,
-        )
+        application_view = BannerApplicationButtonView(allowed_role_ids)
         self.bot.add_view(application_view)
 
         # 注册审核按钮持久化视图
-        review_view = ReviewView(
-            bot=self.bot,
-            session_factory=self.session_factory,
-            config=self.config,
-        )
+        review_view = ReviewView()
         self.bot.add_view(review_view)
 
         logger.info("Banner持久化视图已注册")
@@ -108,9 +86,7 @@ class BannerManagement(commands.Cog):
     )
     @is_admin_or_bot_admin()
     async def create_application_channel(self, interaction: discord.Interaction):
-        """
-        创建Banner申请按钮（从config.json读取配置）
-        """
+        """创建Banner申请按钮（从config.json读取配置）"""
         await safe_defer(interaction, ephemeral=True)
 
         try:
@@ -159,17 +135,13 @@ class BannerManagement(commands.Cog):
                 role_mention = "指定身份组"
 
             # 创建申请按钮视图
-            view = BannerApplicationButtonView(
-                bot=self.bot,
-                session_factory=self.session_factory,
-                config=self.config,
-            )
+            view = BannerApplicationButtonView(applicant_role_ids)
 
             # 发送带按钮的消息
             embed = discord.Embed(
                 title="🎨 Banner申请",
                 description=(
-                    "点击下方按钮申请将您的帖子展示在论坛Banner轮播中！\n\n"
+                    "点击下方按钮申请将您的帖子或赛事展示在论坛Banner轮播中！\n\n"
                     f"**申请资格**: {role_mention}\n"
                     "**展示时长**: 3天\n"
                     "**全频道限制**: 最多3个\n"
@@ -183,7 +155,8 @@ class BannerManagement(commands.Cog):
             if isinstance(channel, discord.TextChannel):
                 message = await channel.send(embed=embed, view=view)
                 await interaction.followup.send(
-                    f"✅ Banner申请按钮已创建！\n消息ID: {message.id}", ephemeral=True
+                    f"✅ Banner申请按钮已创建！\n消息ID: {message.id}",
+                    ephemeral=True,
                 )
             else:
                 await interaction.followup.send(
@@ -221,32 +194,24 @@ class BannerManagement(commands.Cog):
             async with self.session_factory() as session:
                 service = BannerService(session)
 
-                # 获取全频道banner
-                global_banners = await service.get_active_banners(channel_id=None)
+                # 所有查询和剩余时间计算共用同一 UTC 时刻。
+                now = utc_now()
+                names = {
+                    int(cid): name
+                    for cid, name in self.config.get("available_channels", {}).items()
+                }
+                scopes = await service.get_status(list(names), now)
 
-                # 构建状态消息
-                status_msg = "📊 **Banner系统状态**\n\n"
-                status_msg += f"**全频道Banner**: {len(global_banners)}/{service.GLOBAL_MAX_BANNERS}\n"
-
-                if global_banners:
-                    for banner in global_banners:
-                        remaining = (banner.end_time - discord.utils.utcnow()).days
-                        status_msg += f"  • 帖子 {banner.thread_id}: {banner.title[:30]}... (剩余{remaining}天)\n"
-
-                # 获取配置的频道（dict格式）
-                channels_dict = self.config.get("available_channels", {})
-
-                status_msg += "\n**频道Banner统计**:\n"
-                for idx, (ch_id, ch_name) in enumerate(channels_dict.items()):
-                    if idx >= 5:  # 只显示前5个
-                        break
-
-                    ch_banners = await service.get_active_banners(channel_id=int(ch_id))
-                    # 只计算该频道特定的banner，不包括全频道的
-                    ch_specific = [b for b in ch_banners if b.channel_id is not None]
-                    status_msg += f"  • {ch_name}: {len(ch_specific)}/{service.CHANNEL_MAX_BANNERS}\n"
-
-                await interaction.followup.send(status_msg, ephemeral=True)
+            # 会话外只使用 DTO，未配置频道通过 Bot 缓存补充名称。
+            for scope in scopes:
+                cid = scope.channel_id
+                if cid is not None and cid not in names:
+                    channel = self.bot.get_channel(cid)
+                    names[cid] = channel.name if channel else str(cid)
+            for message in BannerStatusView.build_messages(scopes, names, now):
+                await interaction.followup.send(
+                    message, ephemeral=True, allowed_mentions=discord.AllowedMentions.none()
+                )
 
         except Exception as e:
             logger.error(f"查看状态时出错: {e}", exc_info=True)
@@ -256,7 +221,9 @@ class BannerManagement(commands.Cog):
 
     @view_status.error
     async def on_view_status_error(
-        self, interaction: discord.Interaction, error: app_commands.AppCommandError
+        self,
+        interaction: discord.Interaction,
+        error: app_commands.AppCommandError,
     ):
         if isinstance(error, app_commands.CheckFailure):
             await interaction.response.send_message(
@@ -268,9 +235,94 @@ class BannerManagement(commands.Cog):
                 f"❌ 命令执行失败: {error}", ephemeral=True
             )
 
+    @banner_group.command(
+        name="删除轮播",
+        description="从轮播或等待列表中删除指定Banner（管理员）",
+    )
+    @app_commands.describe(
+        thread_id="要删除的Banner对应的帖子ID（使用 /banner 查看状态 获取ID）"
+    )
+    @is_admin_or_bot_admin()
+    async def delete_carousel_banner(
+        self, interaction: discord.Interaction, thread_id: str
+    ):
+        """从轮播或等待列表中删除指定的Banner"""
+        await safe_defer(interaction, ephemeral=True)
+
+        # 验证帖子ID格式
+        if not thread_id.isdigit():
+            await interaction.followup.send(
+                "❌ 帖子ID必须是纯数字。请使用 `/banner 查看状态` 获取正确的帖子ID。",
+                ephemeral=True,
+            )
+            return
+
+        tid = int(thread_id)
+
+        try:
+            async with self.session_factory() as session:
+                service = BannerService(session)
+                result = await service.delete_banner_by_thread(tid)
+
+                if not result.success:
+                    await interaction.followup.send(
+                        f"❌ {result.message}", ephemeral=True
+                    )
+                    return
+
+                # 构建成功 Embed
+                location_label = (
+                    "轮播列表" if result.deleted_from == "carousel" else "等待列表"
+                )
+                embed = discord.Embed(
+                    title="✅ Banner已删除",
+                    description=(
+                        f"已从 **{location_label}** 中移除Banner\n"
+                        f"**帖子ID**: `{result.thread_id}`\n"
+                        f"**标题**: {result.banner_title}\n"
+                        f"**范围**: {result.scope_label}"
+                    ),
+                    color=discord.Color.green(),
+                )
+                if result.promoted_from_waitlist:
+                    embed.add_field(
+                        name="🔄 自动补充",
+                        value="已将等待列表中的下一个Banner提升至轮播列表",
+                        inline=False,
+                    )
+
+                await interaction.followup.send(embed=embed, ephemeral=True)
+
+        except Exception as e:
+            logger.error(f"删除Banner时出错: {e}", exc_info=True)
+            await interaction.followup.send(
+                f"❌ 删除Banner时发生错误: {str(e)}", ephemeral=True
+            )
+
+    @delete_carousel_banner.error
+    async def on_delete_carousel_banner_error(
+        self,
+        interaction: discord.Interaction,
+        error: app_commands.AppCommandError,
+    ):
+        if isinstance(error, app_commands.CheckFailure):
+            await interaction.response.send_message(
+                "❌ 您没有权限使用此命令。需要服务器管理员或bot管理员权限。",
+                ephemeral=True,
+            )
+        else:
+            logger.error("删除轮播命令出错", exc_info=error)
+            await interaction.response.send_message(
+                f"❌ 命令执行失败: {error}", ephemeral=True
+            )
+
 
 async def setup(bot: "MyBot"):
     """设置Cog"""
+    from banner.listeners.banner_event_listener import BannerEventListener
     from shared.database import AsyncSessionFactory
 
+    banner_config = bot.config.get("banner", {})
+
     await bot.add_cog(BannerManagement(bot, AsyncSessionFactory))
+    await bot.add_cog(BannerEventListener(bot, AsyncSessionFactory, banner_config))

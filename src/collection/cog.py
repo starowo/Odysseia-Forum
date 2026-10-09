@@ -8,9 +8,10 @@ from discord.ext import commands
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from collection.listeners import CollectionListenerCog
-from core.collection_service import CollectionService
-from core.thread_service import ThreadService
-from shared.enum.collection_type import CollectionType
+from collection.stats_listener import StatsListenerCog
+from core.collection_repository import CollectionRepository
+from core.thread_repository import ThreadRepository
+from shared.enum import CollectionType
 from shared.safe_defer import safe_defer
 
 if TYPE_CHECKING:
@@ -28,16 +29,16 @@ class CollectionCog(commands.Cog, name="CollectionCog"):
         self.session_factory = session_factory
 
     @asynccontextmanager
-    async def get_collection_service(self) -> AsyncIterator[CollectionService]:
+    async def get_collection_service(self) -> AsyncIterator[CollectionRepository]:
         """提供一个 CollectionService 的实例，并管理 session 的生命周期"""
         async with self.session_factory() as session:
-            yield CollectionService(session)
+            yield CollectionRepository(session)
 
     @asynccontextmanager
-    async def get_thread_service(self) -> AsyncIterator[ThreadService]:
+    async def get_thread_service(self) -> AsyncIterator[ThreadRepository]:
         """提供一个 ThreadService 的实例，并管理 session 的生命周期"""
         async with self.session_factory() as session:
-            yield ThreadService(session)
+            yield ThreadRepository(session)
 
     @asynccontextmanager
     async def get_session(self) -> AsyncIterator[AsyncSession]:
@@ -48,8 +49,11 @@ class CollectionCog(commands.Cog, name="CollectionCog"):
     async def cog_load(self):
         """在Cog加载时，注册上下文菜单并加载监听器 Cog"""
 
-        # 加载监听器 Cog
+        # 加载内部事件监听器
         await self.bot.add_cog(CollectionListenerCog(self.bot, self))
+
+        # 加载统计数据修改监听器
+        await self.bot.add_cog(StatsListenerCog(self.bot, self.session_factory))
 
         # 注册上下文菜单
         collect_menu = app_commands.ContextMenu(
@@ -80,17 +84,27 @@ class CollectionCog(commands.Cog, name="CollectionCog"):
         user_id = interaction.user.id
 
         async with self.get_session() as session:
-            collection_service = CollectionService(session)
+            collection_service = CollectionRepository(session)
+
+            # 增量判定：如果用户其他书单尚未收藏此贴，则视为净增
+            already_collected = await collection_service.get_collected_target_ids(
+                user_id, CollectionType.THREAD, [thread_id]
+            )
+            is_net_new = len(already_collected) == 0
+
+            # 执行收藏业务逻辑
             success = await collection_service.add_collection(
                 user_id=user_id, target_type=CollectionType.THREAD, target_id=thread_id
             )
-            if success:
-                thread_service = ThreadService(session)
-                await thread_service.update_collection_counts([thread_id], 1)
+
+            # 抛出事件以更新收藏统计
+            if success and is_net_new:
+                self.bot.dispatch("thread_collection_updated", [thread_id], 1)
 
         if success:
             await interaction.followup.send(
-                f"✅ 「 **{message.channel.name}** 」已成功添加至您的收藏！", ephemeral=True
+                f"✅ 「 **{message.channel.name}** 」已成功添加至您的收藏！",
+                ephemeral=True,
             )
         else:
             await interaction.followup.send(
@@ -113,13 +127,14 @@ class CollectionCog(commands.Cog, name="CollectionCog"):
         user_id = interaction.user.id
 
         async with self.get_session() as session:
-            collection_service = CollectionService(session)
+            collection_service = CollectionRepository(session)
+            # 对于移除操作，底层逻辑是"从所有书单中移除该帖子"，因此一旦成功必然是净减
             success = await collection_service.remove_collection(
                 user_id=user_id, target_type=CollectionType.THREAD, target_id=thread_id
             )
+
             if success:
-                thread_service = ThreadService(session)
-                await thread_service.update_collection_counts([thread_id], -1)
+                self.bot.dispatch("thread_collection_updated", [thread_id], -1)
 
         if success:
             await interaction.followup.send(

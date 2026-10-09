@@ -1,3 +1,5 @@
+"""标签投票按钮组件。"""
+
 from typing import Callable, Coroutine
 
 import discord

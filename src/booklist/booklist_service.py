@@ -1,352 +1,303 @@
+import asyncio
 import logging
-from typing import List, Optional, Tuple
+from datetime import datetime, timedelta, timezone
+from typing import List
 
-from sqlalchemy import update
+from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import and_, asc, delete, desc, func, or_, select
+from sqlmodel import select
 
 from api.v1.schemas.booklist.booklist_item_add_data import BooklistItemAddData
-from models import Booklist, BooklistItem, UserCollection
-from shared.enum.collection_type import CollectionType
+from core.booklist_repository import BooklistRepository
+from core.redis_trend_service import RedisTrendService
+from core.thread_repository import ThreadRepository
+from dto.booklist_item_dto import BooklistItemDTO
+from dto.booklist_items_sync_dto import BooklistItemsSyncDTO
+from models import Booklist, BooklistItem, Thread
+from shared.enum import ConstantEnum
 
 logger = logging.getLogger(__name__)
 
+# 由 api_main.py 注入的发布配置
+_booklist_publish_base_url: str = ""
+_booklist_publish_api_key: str = ""
+
+
+async def _delayed_publish_sync(booklist_id: int, delay: float = 5.0) -> None:
+    """等待 delay 秒后，若书单已发布则重新同步 embed 到 Discord"""
+    if not _booklist_publish_base_url:
+        return
+    await asyncio.sleep(delay)
+    try:
+        from booklist.booklist_publish_service import BooklistPublishService
+        from shared.database import AsyncSessionFactory
+
+        async with AsyncSessionFactory() as session:
+            service = BooklistPublishService(
+                session,
+                base_url=_booklist_publish_base_url,
+                api_key=_booklist_publish_api_key,
+            )
+            await service.sync_published_booklist(booklist_id)
+    except Exception:
+        logger.warning("延迟同步书单 %d 的发布内容失败", booklist_id, exc_info=True)
+
 
 class BooklistService:
-    """书单服务，提供书单的CRUD操作"""
+    """书单业务逻辑服务层，负责协调书单表与帖子表的数据互通"""
 
     def __init__(self, session: AsyncSession):
         self.session = session
+        self.booklist_repo = BooklistRepository(session)
+        self.thread_repo = ThreadRepository(session)
 
-    async def create_booklist(
-        self,
-        owner_id: int,
-        title: str,
-        description: Optional[str] = None,
-        cover_image_url: Optional[str] = None,
-        is_public: bool = True,
-        display_type: int = 1,
-    ) -> Booklist:
+    async def add_threads(
+        self, user_id: int, booklist_id: int, items: List[BooklistItemAddData]
+    ) -> List[BooklistItemDTO]:
         """
-        创建新书单
-        """
-        booklist = Booklist(
-            owner_id=owner_id,
-            title=title,
-            description=description,
-            cover_image_url=cover_image_url,
-            is_public=is_public,
-            display_type=display_type,
-            item_count=0,
-            collection_count=0,
-            view_count=0,
-        )
-        self.session.add(booklist)
-        try:
-            await self.session.commit()
-            await self.session.refresh(booklist)
-            logger.info(f"用户 {owner_id} 创建书单 {booklist.id}: {title}")
-            return booklist
-        except Exception as e:
-            logger.error(f"创建书单失败: {e}", exc_info=True)
-            await self.session.rollback()
-            raise
+        将帖子批量加入书单，并同步帖子的被收藏次数（跨书单去重）
 
-    async def get_booklist(self, booklist_id: int) -> Optional[Booklist]:
+        返回 DTO 列表，确保在 session 外也能安全访问。
         """
-        根据ID获取书单
-        """
-        statement = select(Booklist).where(Booklist.id == booklist_id)
-        result = await self.session.execute(statement)
-        return result.scalar_one_or_none()
-
-    async def update_booklist(
-        self,
-        booklist_id: int,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        cover_image_url: Optional[str] = None,
-        is_public: Optional[bool] = None,
-        display_type: Optional[int] = None,
-        display_thread_id: Optional[int] = None,
-        display_channel_id: Optional[int] = None,
-        display_guild_id: Optional[int] = None,
-    ) -> Optional[Booklist]:
-        """
-        更新书单信息
-        """
-        update_values = {
-            "title": title,
-            "description": description,
-            "cover_image_url": cover_image_url,
-            "is_public": is_public,
-            "display_type": display_type,
-            "display_thread_id": display_thread_id,
-            "display_channel_id": display_channel_id,
-            "display_guild_id": display_guild_id,
-        }
-
-        # 移除未提供值的键
-        update_data = {k: v for k, v in update_values.items() if v is not None}
-
-        if not update_data:
-            return await self.get_booklist(booklist_id)
-
-        try:
-            statement = (
-                update(Booklist)
-                .where(Booklist.id == booklist_id)  # type: ignore
-                .values(**update_data)
+        # 权限校验：确认书单存在且属于当前用户
+        booklist = await self.booklist_repo.get_booklist(booklist_id)
+        if not booklist:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="书单不存在"
             )
-            result = await self.session.execute(statement)
-
-            if result.rowcount == 0:
-                await self.session.rollback()
-                return None  # 书单不存在
-
-            await self.session.commit()
-            logger.info(f"书单 {booklist_id} 已更新")
-            return await self.get_booklist(booklist_id)
-
-        except Exception as e:
-            logger.error(f"更新书单失败: {e}", exc_info=True)
-            await self.session.rollback()
-            raise
-
-    async def delete_booklist(self, booklist_id: int) -> bool:
-        """
-        删除书单及其所有关联项
-        """
-        # 先删除所有关联项
-        statement_items = delete(BooklistItem).where(
-            BooklistItem.booklist_id == booklist_id  # type: ignore
-        )
-        await self.session.execute(statement_items)
-        # 删除书单
-        statement = delete(Booklist).where(Booklist.id == booklist_id)  # type: ignore
-        result = await self.session.execute(statement)
-        await self.session.commit()
-        deleted = result.rowcount > 0
-        if deleted:
-            logger.info(f"书单 {booklist_id} 已删除")
-        return deleted
-
-    async def list_booklists(
-        self,
-        owner_id: Optional[int] = None,
-        is_public: Optional[bool] = None,
-        keywords: Optional[str] = None,
-        included_thread_id: Optional[int] = None,
-        collected_by_user_id: Optional[int] = None,
-        sort_method: int = 4,
-        sort_order: str = "desc",
-        limit: int = 10,
-        offset: int = 0,
-    ) -> Tuple[List[Booklist], int]:
-        """
-        分页搜索书单
-        """
-        query = select(Booklist)
-
-        if owner_id is not None:
-            query = query.where(Booklist.owner_id == owner_id)
-        if is_public is not None:
-            query = query.where(Booklist.is_public == is_public)
-        if keywords:
-            search_pattern = f"%{keywords}%"
-            query = query.where(
-                or_(
-                    getattr(Booklist.title, "ilike")(search_pattern),
-                    getattr(Booklist.description, "ilike")(search_pattern),
-                )
+        if booklist.owner_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="无权修改此书单"
             )
-        if collected_by_user_id is not None:
-            query = query.join(
-                UserCollection,
-                and_(
-                    Booklist.id == UserCollection.target_id,
-                    UserCollection.user_id == collected_by_user_id,
-                    UserCollection.target_type == CollectionType.BOOKLIST.value,
-                ),
-            )
-        if included_thread_id is not None:
-            query = query.join(
-                BooklistItem,
-                Booklist.id == BooklistItem.booklist_id,  # type: ignore
-            ).where(BooklistItem.thread_id == included_thread_id)
 
-        # 排序
-        sort_field_map = {
-            1: Booklist.item_count,
-            2: Booklist.view_count,
-            3: Booklist.collection_count,
-            4: Booklist.created_at,
-            5: Booklist.updated_at,
-            6: UserCollection.created_at,
-        }
-        sort_field = sort_field_map.get(sort_method, Booklist.created_at)
-
-        # 如果按收藏时间排序，但 collected_by_user_id 未提供，则回退到默认排序
-        if sort_method == 6 and collected_by_user_id is None:
-            sort_field = Booklist.created_at
-
-        order_func = asc if sort_order.lower() == "asc" else desc
-        query = query.order_by(order_func(sort_field))
-
-        # 计数
-        count_stmt = select(func.count()).select_from(query.alias("sub"))
-        count_result = await self.session.execute(count_stmt)
-        total = count_result.scalar_one_or_none() or 0
-
-        # 获取数据
-        data_stmt = query.offset(offset * limit).limit(limit)
-        result = await self.session.execute(data_stmt)
-        booklists = result.scalars().all()
-
-        return list(booklists), total
-
-    async def add_threads_to_booklist(
-        self,
-        booklist_id: int,
-        items: List[BooklistItemAddData],
-    ) -> List[BooklistItem]:
-        """
-        向书单批量添加帖子
-        """
-        thread_ids = [item.thread_id for item in items]
+        # 提取并转换帖子 ID 列表
+        thread_ids = [int(item.thread_id) for item in items]
         if not thread_ids:
             return []
 
-        # 检查已存在的帖子
-        existing_stmt = select(BooklistItem.thread_id).where(
-            BooklistItem.booklist_id == booklist_id,
-            BooklistItem.thread_id.in_(thread_ids),  # type: ignore
+        # 查询这些帖子是否已存在于该用户的其他书单中，用于后续净增量计算
+        existing_anywhere = await self.booklist_repo.get_threads_in_users_booklists(
+            user_id, thread_ids
         )
-        result = await self.session.execute(existing_stmt)
-        existing_thread_ids = set(result.scalars().all())
 
-        # 确定需要添加的新帖子
-        new_items_to_add = [
-            item for item in items if item.thread_id not in existing_thread_ids
-        ]
+        # 执行书单添加操作（内部会 commit + refresh，返回 ORM 对象）
+        added_items = await self.booklist_repo.add_threads_to_booklist(
+            booklist_id, items
+        )
 
-        if not new_items_to_add:
+        if not added_items:
             return []
 
-        # 获取当前最大的 display_order 以便追加
-        max_order_result = await self.session.execute(
-            select(func.max(BooklistItem.display_order)).where(
-                BooklistItem.booklist_id == booklist_id
-            )  # type: ignore
+        # 在第二次 commit 之前立即转为 DTO，避免 update_collection_counts
+        # 内部的 commit 过期 ORM 对象导致 MissingGreenlet
+        item_dtos = [BooklistItemDTO.from_orm(item) for item in added_items]
+        added_thread_ids = [dto.thread_id for dto in item_dtos]
+        net_new_ids = list(
+            {tid for tid in added_thread_ids if tid not in existing_anywhere}
         )
-        max_order = max_order_result.scalar_one_or_none() or 0
 
-        # 创建新的 BooklistItem 对象
-        new_booklist_items = []
-        for i, item_data in enumerate(new_items_to_add):
-            display_order = item_data.display_order
-            if display_order is None:
-                display_order = max_order + 1 + i
+        if net_new_ids:
+            # 更新数据库中的帖子全局收藏数（内部会 commit，但 DTO 不受影响）
+            await self.thread_repo.update_collection_counts(net_new_ids, 1)
 
-            new_booklist_items.append(
-                BooklistItem(
-                    booklist_id=booklist_id,
-                    thread_id=item_data.thread_id,
-                    comment=item_data.comment,
-                    display_order=display_order,
-                )
+            # 同步 Redis 飙升榜数据：仅统计近期发布的帖子，防止老帖屠榜
+            threshold = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
+                days=ConstantEnum.STATISTICS_THRESHOLD_DAYS.value
             )
+            stmt = select(Thread.thread_id, Thread.channel_id).where(
+                Thread.thread_id.in_(net_new_ids),  # type: ignore
+                Thread.created_at >= threshold,
+            )
+            valid_threads = (await self.session.execute(stmt)).all()
 
-        self.session.add_all(new_booklist_items)
+            if valid_threads:
+                trend_service = RedisTrendService()
+                for tid, channel_id in valid_threads:
+                    await trend_service.record_increment(
+                        "collection", int(tid), int(channel_id), count=1
+                    )
 
-        # 更新书单的 item_count
-        booklist = await self.get_booklist(booklist_id)
-        if booklist:
-            booklist.item_count += len(new_booklist_items)
-            self.session.add(booklist)
+        # 触发发布内容同步（异步后台，5 秒延迟）
+        asyncio.create_task(_delayed_publish_sync(booklist_id))
 
-        try:
-            await self.session.commit()
-            for item in new_booklist_items:
-                await self.session.refresh(item)
-            # logger.info(f"{len(new_booklist_items)} 个帖子已添加到书单 {booklist_id}")
-            return new_booklist_items
-        except Exception as e:
-            logger.error(f"批量添加帖子到书单失败: {e}", exc_info=True)
-            await self.session.rollback()
-            raise
+        return item_dtos
 
-    async def remove_threads_from_booklist(
-        self, booklist_id: int, thread_ids: List[int]
+    async def remove_threads(
+        self, user_id: int, booklist_id: int, thread_ids: List[int]
     ) -> int:
         """
-        从书单批量移除帖子
+        从书单批量移除帖子，并同步帖子的被收藏次数（跨书单去重）
         """
+        # 权限校验：确认书单存在且属于当前用户
+        booklist = await self.booklist_repo.get_booklist(booklist_id)
+        if not booklist:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="书单不存在"
+            )
+        if booklist.owner_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="无权修改此书单"
+            )
+
         if not thread_ids:
             return 0
 
-        statement = delete(BooklistItem).where(
-            and_(
-                BooklistItem.booklist_id == booklist_id,  # type: ignore
-                BooklistItem.thread_id.in_(thread_ids),  # type: ignore
-            )
+        # 执行书单移除操作
+        deleted_count = await self.booklist_repo.remove_threads_from_booklist(
+            booklist_id, thread_ids
         )
-        result = await self.session.execute(statement)
-        deleted_count = result.rowcount
 
         if deleted_count > 0:
-            # 更新书单的item_count
-            booklist = await self.get_booklist(booklist_id)
-            if booklist:
-                booklist.item_count -= deleted_count
-                if booklist.item_count < 0:
-                    booklist.item_count = 0
-                self.session.add(booklist)
-                await self.session.commit()
-            # logger.info(f"{deleted_count} 个帖子已从书单 {booklist_id} 移除")
+            # 检查移除后这些帖子是否仍存在于该用户的其他书单中
+            still_existing = await self.booklist_repo.get_threads_in_users_booklists(
+                user_id, thread_ids
+            )
+
+            # 筛选出全书单级别的净减帖子（从所有书单中彻底移除）
+            net_removed_ids = list(set(thread_ids) - still_existing)
+
+            if net_removed_ids:
+                # 更新数据库中的帖子全局收藏数（仅递减净减项）
+                await self.thread_repo.update_collection_counts(net_removed_ids, -1)
+
+        # 触发发布内容同步（异步后台，5 秒延迟）
+        if deleted_count > 0:
+            asyncio.create_task(_delayed_publish_sync(booklist_id))
 
         return deleted_count
 
-    async def increment_view_count(self, booklist_id: int) -> None:
+    async def sync_thread_in_booklists(
+        self,
+        user_id: int,
+        thread_id: int,
+        scope_booklist_ids: List[int],
+        target_booklist_ids: List[int],
+        comment: str | None = None,
+    ):
         """
-        增加书单的查看次数
-        """
-        booklist = await self.get_booklist(booklist_id)
-        if booklist:
-            booklist.view_count += 1
-            self.session.add(booklist)
-            await self.session.commit()
+        批量同步一个帖子在用户多个书单中的存在性。
 
-    async def update_collection_count(self, booklist_id: int, delta: int) -> None:
+        - scope_booklist_ids：操作范围（必须全属于当前用户）
+        - target_booklist_ids：操作后应包含该帖子的书单（必须是 scope 的子集）
+        - comment：应用于目标书单项的推荐语
         """
-        更新书单的被收藏次数（delta 为 +1 或 -1）
-        """
-        booklist = await self.get_booklist(booklist_id)
-        if booklist:
-            booklist.collection_count += delta
-            if booklist.collection_count < 0:
-                booklist.collection_count = 0
-            self.session.add(booklist)
-            await self.session.commit()
-
-    async def update_collection_counts(
-        self, booklist_ids: List[int], delta: int
-    ) -> None:
-        """
-        批量更新书单的被收藏次数
-        """
-        if not booklist_ids:
-            return
-
-        try:
-            statement = (
-                update(Booklist)
-                .where(Booklist.id.in_(booklist_ids))  # type: ignore
-                .values(collection_count=Booklist.collection_count + delta)
+        # 1. 校验 scope 不能为空
+        if not scope_booklist_ids:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="scope_booklist_ids 不能为空",
             )
-            await self.session.execute(statement)
-            await self.session.commit()
-        except Exception as e:
-            logger.error(f"批量更新书单收藏数失败: {e}", exc_info=True)
-            await self.session.rollback()
-            raise
+
+        # 2. 校验 target ⊆ scope
+        target_set = set(target_booklist_ids)
+        scope_set = set(scope_booklist_ids)
+        if not target_set.issubset(scope_set):
+            outside = list(target_set - scope_set)
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=f"target_booklist_ids 包含不在 scope 中的书单: {outside}",
+            )
+
+        # 3. 校验所有权：所有 scope 书单必须属于当前用户
+        stmt = (
+            select(Booklist.id, Booklist.owner_id).where(
+                Booklist.id.in_(list(scope_set))
+            )  # type: ignore
+        )
+        booklist_rows = (await self.session.execute(stmt)).all()
+        found_ids = {row[0] for row in booklist_rows}
+
+        for row in booklist_rows:
+            if row[1] != user_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"书单 {row[0]} 不属于当前用户",
+                )
+
+        # 检查是否有 scope 中书单不存在
+        missing = scope_set - found_ids
+        if missing:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"书单不存在: {list(missing)}",
+            )
+
+        # 4. 查询 scope 中哪些书单已包含该帖子
+        existing_stmt = select(BooklistItem.booklist_id).where(
+            BooklistItem.thread_id == thread_id,  # type: ignore
+            BooklistItem.booklist_id.in_(list(scope_set)),  # type: ignore
+        )
+        existing_rows = await self.session.execute(existing_stmt)
+        existing_set = set(existing_rows.scalars().all())
+
+        # 记录操作前用户任意书单是否已收藏，避免局部 scope 导致重复计数趋势。
+        collected_before = await self.booklist_repo.get_threads_in_users_booklists(
+            user_id, [thread_id]
+        )
+
+        # 5. 计算 add_to / remove_from / unchanged
+        add_to = list(target_set - existing_set)
+        remove_from = list(existing_set - target_set)
+        unchanged = list(scope_set - set(add_to) - set(remove_from))
+
+        # 6. 执行添加和删除
+        added_ids = []
+        removed_ids = []
+        if add_to:
+            added_ids = await self.booklist_repo.add_thread_to_booklists(
+                thread_id, add_to, user_id, comment
+            )
+        if remove_from:
+            removed_ids = await self.booklist_repo.remove_thread_from_booklists(
+                thread_id, remove_from
+            )
+
+        # 已有目标项需要单独同步推荐语，新增项已在插入时写入
+        existing_target_ids = target_set & existing_set
+        if comment is not None and existing_target_ids:
+            await self.booklist_repo.update_thread_comment_in_booklists(
+                thread_id, list(existing_target_ids), comment
+            )
+
+        # 7. 跨域同步 Thread.collection_count（净增减）
+        # 查询操作前：thread 是否已在用户任何书单中
+        had_before = bool(collected_before)
+
+        # 查询操作后：thread 是否仍在用户任何书单中
+        still_exists = await self.booklist_repo.get_threads_in_users_booklists(
+            user_id, [thread_id]
+        )
+        has_after = bool(still_exists)
+
+        if not had_before and has_after:
+            # 用户首次收藏此帖
+            await self.thread_repo.update_collection_counts([thread_id], 1)
+
+            # Redis 飙升榜
+            threshold = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(
+                days=ConstantEnum.STATISTICS_THRESHOLD_DAYS.value
+            )
+            check_stmt = select(Thread.thread_id, Thread.channel_id).where(
+                Thread.thread_id == thread_id,  # type: ignore
+                Thread.created_at >= threshold,
+            )
+            valid_thread = (await self.session.execute(check_stmt)).one_or_none()
+            if valid_thread:
+                trend_service = RedisTrendService()
+                await trend_service.record_increment(
+                    "collection",
+                    thread_id,
+                    int(valid_thread.channel_id),
+                    count=1,
+                )
+
+        elif had_before and not has_after:
+            # 用户完全取消收藏此帖
+            await self.thread_repo.update_collection_counts([thread_id], -1)
+
+        return BooklistItemsSyncDTO(
+            thread_id=thread_id,
+            added_to_booklist_ids=added_ids,
+            removed_from_booklist_ids=removed_ids,
+            unchanged_booklist_ids=unchanged,
+        )

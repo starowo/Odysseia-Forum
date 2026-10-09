@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, List, Optional
 import discord
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from config.config_service import ConfigService
+from core.config_repository import ConfigRepository
 from config.views.add_mutex_group_view import AddMutexGroupView
 from config.views.components.delete_group_modal import DeleteGroupModal
 from config.views.mutex_config_view import MutexConfigView
@@ -52,7 +52,7 @@ class MutexTagsHandler:
             color=0xE74C3C,
         )
         async with self.session_factory() as session:
-            repo = ConfigService(session)
+            repo = ConfigRepository(session)
             groups = await repo.get_all_mutex_groups_with_rules()
 
         if not groups and not selected_priority_tags:
@@ -143,7 +143,7 @@ class MutexTagsHandler:
         )
 
         async with self.session_factory() as session:
-            repo = ConfigService(session)
+            repo = ConfigRepository(session)
             await repo.add_mutex_group(priority_tags, override_tag_name)
             logger.info(
                 f"成功添加新的互斥标签组，包含标签: {priority_tags}，覆盖标签: {override_tag_name}"
@@ -170,7 +170,7 @@ class MutexTagsHandler:
         try:
             group_id = int(group_id_str)
             async with self.session_factory() as session:
-                repo = ConfigService(session)
+                repo = ConfigRepository(session)
                 success = await repo.delete_mutex_group(group_id)
 
             if success:

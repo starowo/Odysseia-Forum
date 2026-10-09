@@ -21,4 +21,10 @@ class MutexTagGroup(SQLModel, table=True):
     )
 
     # 反向关系，用于ORM查询，方便地获取一个组下的所有规则
-    rules: List["MutexTagRule"] = Relationship(back_populates="group")
+    rules: List["MutexTagRule"] = Relationship(
+        back_populates="group",
+        sa_relationship_kwargs={
+            "primaryjoin": "MutexTagGroup.id == MutexTagRule.group_id",
+            "foreign_keys": "[MutexTagRule.group_id]",
+        },
+    )

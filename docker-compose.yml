@@ -1,0 +1,161 @@
+services:
+  odysseia-postgres:
+    image: postgres:16-alpine
+    container_name: odysseia-postgres
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:15432:5432"
+    volumes:
+      - ./data/pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: odysseia
+      POSTGRES_USER: odysseia
+      POSTGRES_PASSWORD: "${PG_PASSWORD:-changeme}"
+    command:
+      - postgres
+      - -c
+      - shared_buffers=128MB
+      - -c
+      - effective_cache_size=256MB
+      - -c
+      - max_connections=150
+      - -c
+      - random_page_cost=1.1
+      - -c
+      - effective_io_concurrency=200
+      - -c
+      - autovacuum_vacuum_cost_limit=400
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odysseia -d odysseia"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  odysseia-forum-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base
+    container_name: odysseia-forum-bot
+    restart: unless-stopped
+    working_dir: /app
+    command: ["uv", "run", "bot_main.py"]
+    volumes:
+      - ./config.json:/app/config.json:ro
+      - ./.env:/app/.env:ro
+      - ./data:/app/data
+      - ./logs:/app/logs
+    depends_on:
+      odysseia-postgres:
+        condition: service_healthy
+      odysseia-redis:
+        condition: service_healthy
+    environment:
+      PYTHONPATH: /app/src
+      BOT_TOKEN: "${BOT_TOKEN}"
+      DEEPSEEK_API_KEY: "${DEEPSEEK_API_KEY:-}"
+      REDIS_URL: redis://odysseia-redis:6379/0
+      DATABASE_URL: "postgresql+asyncpg://odysseia:${PG_PASSWORD:-changeme}@odysseia-postgres:5432/odysseia"
+      BACKUP_ENCRYPTION_KEY: "${BACKUP_ENCRYPTION_KEY:-}"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+    cap_add:
+      - SYS_PTRACE
+    healthcheck:
+      test: ["CMD", "python3", "healthcheck.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 2
+      start_period: 120s
+
+  odysseia-forum-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base
+    container_name: odysseia-forum-api
+    restart: unless-stopped
+    working_dir: /app
+    ports:
+      - "127.0.0.1:10810:10810"
+    volumes:
+      - ./config.json:/app/config.json:ro
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      PYTHONPATH: /app/src
+      BOT_TOKEN: "${BOT_TOKEN}"
+      AUTH_BOT_TOKENS: "${AUTH_BOT_TOKENS:-}"
+      REDIS_URL: redis://odysseia-redis:6379/0
+      DATABASE_URL: "postgresql+asyncpg://odysseia:${PG_PASSWORD:-changeme}@odysseia-postgres:5432/odysseia"
+      DB_POOL_SIZE: "8"
+      DB_MAX_OVERFLOW: "14"
+    depends_on:
+      odysseia-postgres:
+        condition: service_healthy
+      odysseia-redis:
+        condition: service_healthy
+      odysseia-forum-bot:
+        condition: service_healthy
+    cap_add:
+      - SYS_PTRACE
+    command: ["uv", "run", "api_main.py"]
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:10810/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  odysseia-forum-migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    container_name: odysseia-forum-migrate
+    profiles:
+      - migrate
+    working_dir: /app
+    volumes:
+      - ./config.json:/app/config.json:ro
+      - ./data:/app/data
+    environment:
+      PYTHONPATH: /app/src
+      DATABASE_URL: "postgresql+asyncpg://odysseia:${PG_PASSWORD:-changeme}@odysseia-postgres:5432/odysseia"
+    depends_on:
+      odysseia-postgres:
+        condition: service_healthy
+    command: ["uv", "run", "scripts/migrate.py"]
+
+  odysseia-redis:
+    image: redis:alpine
+    container_name: odysseia-redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:11810:6379"
+    volumes:
+      - ./data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    command: ["redis-server", "--appendonly", "yes"]
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"

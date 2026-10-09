@@ -5,9 +5,9 @@ import discord
 from shared.safe_defer import safe_defer
 
 if TYPE_CHECKING:
-    from preferences.preferences_service import PreferencesService
+    from preferences.preferences_logic import PreferencesLogic
     from preferences.views.preferences_view import PreferencesView
-    from search.dto.user_search_preferences import UserSearchPreferencesDTO
+    from dto.preferences import UserSearchPreferencesDTO
 
 
 class ChannelPreferencesView(discord.ui.View):
@@ -15,7 +15,7 @@ class ChannelPreferencesView(discord.ui.View):
 
     def __init__(
         self,
-        handler: "PreferencesService",
+        handler: "PreferencesLogic",
         original_interaction: discord.Interaction,
         parent_view: "PreferencesView",
         prefs_dto: "UserSearchPreferencesDTO",
@@ -99,9 +99,8 @@ class ChannelPreferencesView(discord.ui.View):
 
         selected_channel_ids = [int(value) for value in self.channel_select.values]
 
-        guild_id = interaction.guild_id or 0
         await self.handler.save_preferred_channels(
-            interaction.user.id, selected_channel_ids, guild_id
+            interaction.user.id, selected_channel_ids
         )
 
         # 删除此临时设置消息

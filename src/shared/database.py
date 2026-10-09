@@ -1,195 +1,70 @@
 import os
 
-from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
-from sqlmodel import Column, Integer, MetaData, SQLModel, Table, Text, text
-
-from shared.fts5_tokenizer import register_jieba_tokenizer
+from sqlmodel import SQLModel
 
 # 确保表被导入，以便 SQLModel.metadata.create_all 能够工作
 
-DB_PATH = "data/database.db"
-DATABASE_URL = f"sqlite+aiosqlite:///{DB_PATH}"
+# 从环境变量读取数据库 URL（Docker 部署时由 docker-compose 注入），
+# 本地开发时回退到默认的 PostgreSQL URL。
+DATABASE_URL = os.environ.get(
+    "DATABASE_URL",
+    "postgresql+asyncpg://odysseia:changeme@localhost:5432/odysseia",
+)
+
+
+def _read_pool_int(name: str, default: int, *, minimum: int) -> int:
+    """读取并校验数据库连接池整数配置。"""
+    raw_value = os.environ.get(name)
+    if raw_value is None:
+        return default
+    try:
+        value = int(raw_value)
+    except ValueError as exc:
+        raise RuntimeError(f"{name} 必须是整数，当前值: {raw_value!r}") from exc
+    if value < minimum:
+        raise RuntimeError(f"{name} 必须大于等于 {minimum}，当前值: {value}")
+    return value
+
+
+DB_POOL_SIZE = _read_pool_int("DB_POOL_SIZE", 5, minimum=1)
+DB_MAX_OVERFLOW = _read_pool_int("DB_MAX_OVERFLOW", 8, minimum=0)
+DB_POOL_TIMEOUT = _read_pool_int("DB_POOL_TIMEOUT", 30, minimum=1)
 
 async_engine = create_async_engine(
     DATABASE_URL,
     echo=False,
-    pool_size=10,
-    max_overflow=20,
-    pool_timeout=60,
+    pool_size=DB_POOL_SIZE,
+    max_overflow=DB_MAX_OVERFLOW,
+    pool_timeout=DB_POOL_TIMEOUT,
     pool_pre_ping=True,
-    pool_recycle=1800,
+    pool_recycle=3600,
 )
-
-metadata_obj = MetaData()
-thread_fts_table = Table(
-    "thread_fts",
-    metadata_obj,
-    Column("rowid", Integer, primary_key=True),
-    Column("title", Text),
-    Column("first_message_excerpt", Text),
-    Column("thread_fts", Text),
-)
-
-
-@event.listens_for(async_engine.sync_engine, "connect")
-def _setup_tokenizer_on_connect(dbapi_connection, connection_record):
-    """
-    为每个新的 SQLite 连接注册 jieba 分词器。
-    执行双层解包以从 SQLAlchemy 异步适配器中获取标准连接。
-    """
-    try:
-        dbapi_connection.execute("PRAGMA journal_mode=WAL")
-        # dbapi_connection 是 SQLAlchemy 的异步包装器 (AsyncAdapt_...)
-        # 访问其 ._connection 属性，获取原始的 aiosqlite.Connection
-        aiosqlite_conn = dbapi_connection._connection
-
-        # 访问 aiosqlite.Connection 的内部 ._conn 属性，获取最终的标准 sqlite3.Connection
-        underlying_sqlite3_conn = aiosqlite_conn._conn
-
-        register_jieba_tokenizer(underlying_sqlite3_conn)
-
-    except Exception as e:
-        print(f"在新连接上注册分词器失败，解包过程可能出现问题: {e}")
-        raise
-
 
 AsyncSessionFactory = async_sessionmaker(
     bind=async_engine,
-    expire_on_commit=False,
+    expire_on_commit=True,
 )
 
 
+def is_deadlock_error(exc: Exception) -> bool:
+    """检测是否是 PostgreSQL 死锁错误 (sqlstate 40P01)。"""
+    orig = getattr(exc, "orig", None)
+    if orig is None:
+        return False
+    return getattr(orig, "sqlstate", None) == "40P01" or "deadlock" in str(orig).lower()
+
+
 async def init_db():
-    db_dir = os.path.dirname(DB_PATH)
-    if not os.path.exists(db_dir):
-        os.makedirs(db_dir)
+    """创建所有表（如果尚不存在）并建立全文搜索索引。"""
     async with async_engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
-        await conn.execute(
-            text(
-                """
-                CREATE VIRTUAL TABLE IF NOT EXISTS thread_fts USING fts5(
-                    title,
-                    first_message_excerpt,
-                    content='thread',
-                    content_rowid='id',
-                    tokenize = 'jieba'
-                );
-                """
-            )
-        )
-
-        await conn.execute(
-            text(
-                """
-                CREATE TRIGGER IF NOT EXISTS thread_after_insert
-                AFTER INSERT ON thread BEGIN
-                    INSERT INTO thread_fts(rowid, title, first_message_excerpt)
-                    VALUES (new.id, new.title, new.first_message_excerpt);
-                END;
-                """
-            )
-        )
-        await conn.execute(
-            text(
-                """
-                CREATE TRIGGER IF NOT EXISTS thread_after_delete
-                AFTER DELETE ON thread BEGIN
-                    INSERT INTO thread_fts(thread_fts, rowid, title, first_message_excerpt)
-                    VALUES ('delete', old.id, old.title, old.first_message_excerpt);
-                END;
-                """
-            )
-        )
-        await conn.execute(
-            text(
-                """
-                CREATE TRIGGER IF NOT EXISTS thread_after_update
-                AFTER UPDATE ON thread
-                WHEN
-                    new.title IS NOT old.title OR
-                    new.first_message_excerpt IS NOT old.first_message_excerpt
-                BEGIN
-                    INSERT INTO thread_fts(thread_fts, rowid, title, first_message_excerpt)
-                    VALUES ('delete', old.id, old.title, old.first_message_excerpt);
-                    INSERT INTO thread_fts(rowid, title, first_message_excerpt)
-                    VALUES (new.id, new.title, new.first_message_excerpt);
-                END;
-                """
-            )
-        )
-
-        # 重建 FTS 索引（使用当前分词器重新索引全部内容）并合并碎片段
-        await conn.execute(
-            text("INSERT INTO thread_fts(thread_fts) VALUES('rebuild')")
-        )
-        await conn.execute(
-            text("INSERT INTO thread_fts(thread_fts) VALUES('optimize')")
-        )
 
 
 async def init_db_for_test(engine_instance: AsyncEngine):
-    @event.listens_for(engine_instance.sync_engine, "connect")
-    def on_connect(dbapi_conn, connection_record):
-        register_jieba_tokenizer(dbapi_conn)
-
+    """为测试环境初始化数据库（创建表及索引）。"""
     async with engine_instance.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
-
-        await conn.execute(
-            text(
-                """
-                CREATE VIRTUAL TABLE IF NOT EXISTS thread_fts USING fts5(
-                    title,
-                    first_message_excerpt,
-                    content='thread',
-                    content_rowid='id',
-                    tokenize = 'jieba'
-                );
-                """
-            )
-        )
-
-        await conn.execute(
-            text(
-                """
-                CREATE TRIGGER IF NOT EXISTS thread_after_insert
-                AFTER INSERT ON thread BEGIN
-                    INSERT INTO thread_fts(rowid, title, first_message_excerpt)
-                    VALUES (new.id, new.title, new.first_message_excerpt);
-                END;
-                """
-            )
-        )
-        await conn.execute(
-            text(
-                """
-                CREATE TRIGGER IF NOT EXISTS thread_after_delete
-                AFTER DELETE ON thread BEGIN
-                    INSERT INTO thread_fts(thread_fts, rowid, title, first_message_excerpt)
-                    VALUES ('delete', old.id, old.title, old.first_message_excerpt);
-                END;
-                """
-            )
-        )
-        await conn.execute(
-            text(
-                """
-                CREATE TRIGGER IF NOT EXISTS thread_after_update
-                AFTER UPDATE ON thread
-                WHEN
-                    new.title IS NOT old.title OR
-                    new.first_message_excerpt IS NOT old.first_message_excerpt
-                BEGIN
-                    INSERT INTO thread_fts(thread_fts, rowid, title, first_message_excerpt)
-                    VALUES ('delete', old.id, old.title, old.first_message_excerpt);
-                    INSERT INTO thread_fts(rowid, title, first_message_excerpt)
-                    VALUES (new.id, new.title, new.first_message_excerpt);
-                END;
-                """
-            )
-        )
 
 
 async def close_db():

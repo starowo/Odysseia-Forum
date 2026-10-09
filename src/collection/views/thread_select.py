@@ -2,7 +2,7 @@ from typing import Awaitable, Callable, List, Set
 
 import discord
 
-from models import Thread
+from dto.thread_dto import ThreadDTO
 
 
 class ThreadSelect(discord.ui.Select):
@@ -10,7 +10,7 @@ class ThreadSelect(discord.ui.Select):
 
     def __init__(
         self,
-        threads: List[Thread],
+        threads: List[ThreadDTO],
         selected_threads: Set[str],
         on_change_callback: Callable[[discord.Interaction, Set[str]], Awaitable[None]],
         **kwargs,

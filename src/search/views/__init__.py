@@ -22,9 +22,6 @@ from search.views.results_view import (
 from search.views.thread_embed_builder import (
     ThreadEmbedBuilder,
 )
-from search.views.timeout_view import (
-    TimeoutView,
-)
 
 __all__ = [
     "ChannelSelectionView",
@@ -35,5 +32,4 @@ __all__ = [
     "PersistentChannelSearchView",
     "SearchResultsView",
     "ThreadEmbedBuilder",
-    "TimeoutView",
 ]

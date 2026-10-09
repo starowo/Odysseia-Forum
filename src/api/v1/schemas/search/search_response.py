@@ -2,7 +2,6 @@ from typing import List
 
 from pydantic import Field
 
-from api.v1.schemas.banner import BannerItem
 from api.v1.schemas.base import PaginatedResponse
 from api.v1.schemas.search.thread_detail import ThreadDetail
 
@@ -18,8 +17,3 @@ class SearchResponse(PaginatedResponse[ThreadDetail]):
         default_factory=list,
         description="当前频道配置的虚拟映射标签名列表（始终置顶于 available_tags 中）",
     )
-    banner_carousel: List[BannerItem] = Field(
-        default_factory=list,
-        description="Banner轮播列表，包含当前频道+全频道的banner（最多8个）",
-    )
-    unread_count: int = Field(default=0, description="当前用户关注列表的未读更新数量")

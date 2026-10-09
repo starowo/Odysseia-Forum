@@ -1,6 +1,15 @@
 # Odysseia Forum Search Bot
 
-Discord 论坛搜索机器人，支持智能索引、多维度搜索和用户偏好设置。
+<p align="center">
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Python-3.11+-3776AB.svg?style=flat&logo=python&logoColor=white" alt="Python" /></a>
+  <a href="https://github.com/Rapptz/discord.py"><img src="https://img.shields.io/badge/discord.py-2.3+-5865F2.svg?style=flat&logo=discord&logoColor=white" alt="discord.py" /></a>
+  <a href="https://fastapi.tiangolo.com/"><img src="https://img.shields.io/badge/FastAPI-0.115+-009688.svg?style=flat&logo=fastapi&logoColor=white" alt="FastAPI" /></a>
+  <a href="https://www.postgresql.org/"><img src="https://img.shields.io/badge/PostgreSQL-16-4169E1.svg?style=flat&logo=postgresql&logoColor=white" alt="PostgreSQL" /></a>
+  <a href="https://redis.io/"><img src="https://img.shields.io/badge/Redis-7-DC382D.svg?style=flat&logo=redis&logoColor=white" alt="Redis" /></a>
+  <a href="https://www.docker.com/"><img src="https://img.shields.io/badge/Docker-✓-2496ED.svg?style=flat&logo=docker&logoColor=white" alt="Docker" /></a>
+</p>
+
+Discord 论坛搜索机器人，支持智能索引、多维度搜索、书单、收藏和用户偏好过滤。同时提供 FastAPI 搜索接口，供网页调用。
 
 ## 🌟 主要功能
 
@@ -15,69 +24,77 @@ Discord 论坛搜索机器人，支持智能索引、多维度搜索和用户偏
 - **范围过滤**：支持按发帖时间/活跃时间/反应数/发言数筛选
 - **频道范围**：支持单频道或多频道搜索
 
-### 🧠 智能排序算法
-- **综合排序**：基于 UCB1 算法，计算帖子的“实力”（平均反应）和“潜力”（曝光机会）
-- **多种排序**：支持按时间、活跃度、反应数、回复数等多种方式排序
-- **可配置权重**：管理员可调整排序算法的各项参数
+### ⭐ 收藏与书单
+- **帖子收藏**：收藏感兴趣的帖子，支持搜索和管理已收藏内容
+- **书单系统**：创建自定义书单，支持公开/私密模式
+- **赛事书单**：支持赛事型书单，关联参赛帖子与赛事讨论频道 (通过与赛事 BOT 的通信进行同步)
 
 ### 👤 用户偏好系统
 - **搜索偏好**：保存用户的作者、时间、标签、关键词偏好
 - **显示设置**：支持缩略图/大图预览模式
 - **结果数量**：可自定义每页显示的搜索结果数量
 
-## 📋 系统要求
-
-- Python 3.11+
-
 ## 🚀 快速开始
 
 ### 1. 克隆项目
 ```bash
-git clone https://github.com/your-username/Odysseia-Forum.git
+git clone https://github.com/warming-afternoon/Odysseia-Forum.git
 
 cd Odysseia-Forum
 ```
 
 ### 2. 配置文件
-根据 `config.example.json` 创建你自己的 `config.json` 文件，并填入你的Discord机器人Token。
-
-### 3. 一键启动 (linux 运行)
-我们提供了一个一键启动脚本 `start.sh`
 
 ```bash
-# 首次运行前，请赋予脚本执行权限
-chmod +x ./start.sh
-
-# 执行脚本
-./start.sh
+cp config.example.json config.json
+cp .env.example .env
 ```
 
-### 脚本高级用法
-- **仅设置环境**: `./start.sh setup`
-- **重启机器人**: `./start.sh restart`
-- **查看帮助**: `./start.sh --help`
+编辑 `config.json` 和 `.env`，填入 Discord Bot Token、OAuth2 密钥等必要信息。
 
-### 4. 手动运行 ( windows/linux 运行)
+> 各配置项的详细说明请参阅 [配置指南](docs/CONFIGURATION.md)
 
-如果你不想使用 `start.sh` 脚本，可以按照以下步骤手动运行机器人：
+### 3. Docker Compose 运行（推荐）
 
-1.  创建虚拟环境并安装项目 (若为首次运行)
-    ```bash
-    # 首次运行前，请下载 uv
-    pip install uv
+项目使用 PostgreSQL 作为数据库、Redis 作为缓存。Docker Compose 一键启动全部服务：
 
-    # 使用 uv 创建虚拟环境
-    uv venv
+```bash
+# 启动所有服务（PostgreSQL + Redis + Bot + API）
+docker compose up -d --build
+```
 
-    # 安装项目及其依赖
-    uv pip install -e .
-    ```
+服务说明：
 
-2.  运行机器人 (后续运行)
-    ```bash
-    uv run bot_main.py
-    ```
+| 服务 | 端口 | 说明 |
+|------|------|------|
+| `odysseia-postgres` | 127.0.0.1:15432 | PostgreSQL 16 数据库 |
+| `odysseia-redis` | 11810 | Redis 缓存 |
+| `odysseia-forum-bot` | - | Discord 机器人 |
+| `odysseia-forum-api` | 10810 | FastAPI 搜索接口 |
 
+常用命令：
+
+```bash
+# 查看日志
+docker compose logs -f
+
+# 停止所有服务
+docker compose down
+
+# 停止并删除数据卷（⚠️ 会删除数据库数据）
+docker compose down -v
+```
+
+### 4. 本地开发运行（不使用 Docker）
+
+```bash
+# 安装依赖
+uv sync
+
+# 确保 PostgreSQL 和 Redis 已运行，然后：
+uv run bot_main.py    # 启动机器人
+uv run api_main.py    # 启动 API 服务
+```
 
 ## 📖 使用指南
 
@@ -93,73 +110,32 @@ chmod +x ./start.sh
 
 3. **创建公开搜索** : 使用 `/创建公开全局搜索` 或 `/创建频道搜索` 命令，创建公开搜索面板
 
-#### 搜索界面说明
-- **关键词**：设置包含/排除的关键词
-- **排序**：选择排序方式和方向
-
 ## 📝 命令列表
 
-### 用户命令
+全部可用命令请参阅 [命令列表文档](docs/COMMANDS.md)
 
-#### 搜索相关 (/命令)
-- `/全局搜索` - 开始一次仅自己可见的全局搜索
-- `/搜索作者 [作者]` - 搜索指定作者的帖子
+### 快速概览
 
-#### 搜索相关 (app命令，右键点击用户头像)
-- `搜索作品` - 搜索该用户的全部作品
-- `加入搜索屏蔽` - 加入屏蔽列表，搜索时不会搜索到该用户的作品
-- `移出搜索屏蔽` - 移出搜索屏蔽
+**用户命令**：`/全局搜索` · `/搜索作者` · `/查看收藏` · 右键菜单 `搜索作品` / `收藏此帖` / `移除收藏`
 
+**管理员命令**：`/构建索引` · `/移除索引` · `/创建公开全局搜索` · `/创建频道搜索` · `/配置` · `/banner`
 
-#### 偏好设置
-- `/搜索偏好 作者` - 管理作者偏好（只看/屏蔽/取消屏蔽/清空）
-- `/搜索偏好 设置` - 设置搜索时间范围、预览图显示方式（缩略图/大图）、标签、关键词、每页显示结果数
+## ⚙️ 排序算法
 
-#### 标签系统
-- `/标签评价` - 对当前帖子的标签进行点赞/点踩
+支持 **7 种排序方式**：综合排序 (UCB1) · 热门排序 (Reddit Hot) · 发帖时间 · 活跃时间 · 反应数 · 回复数 · 收藏数
 
-### 管理员命令
+> 各算法的详细说明与配置参数请参阅 [排序算法文档](docs/RANKING_ALGORITHM.md)
 
-#### 索引/面板管理
-- `/构建索引` - 对当前论坛频道构建索引
-- `/创建公开全局搜索` - 创建全局搜索面板
-- `/创建频道搜索` - 在当前帖子内创建频道搜索按钮
+## 🌐 API 服务
 
-#### 配置
-- `/配置 全局设置` - 配置搜索排序算法参数
-- `/配置 互斥标签组` - 配置互斥标签组
+项目提供基于 FastAPI 的 REST API，供配套前端及其他客户端调用。API 服务默认运行在 `10810` 端口。
 
-## ⚙️ 排序算法说明
+- 配套前端项目：[Odysseia-Forum-webpage](https://github.com/shiyue137mh-netizen/Odysseia-Forum-webpage)
+- 完整 API 文档：[src/api/README.md](src/api/README.md)
 
-### 综合排序算法 (UCB1)
+## 🏗️ 项目架构
 
-我们采用 UCB1 (Upper Confidence Bound) 算法
-
-- **利用 (Exploitation)**：帖子获得的反应数越多，其“实力分”就越高。
-- **探索 (Exploration)**：帖子被展示的次数越少，其“机会分”就越高，从而获得更多曝光机会。
-
-**最终分数** = `实力分 + 机会分`
-
-这个机制确保了高质量的帖子能保持高排名，同时新帖子或被埋没的旧帖子也有机会被重新发现。
-
-## 🔧 配置参数
-
-### UCB1 算法
-- `UCB1_STRENGTH_WEIGHT` (W): 实力权重，放大帖子自身实力（平均反应数）在总分中的占比。
-- `UCB1_EXPLORATION_FACTOR` (C): 探索因子，控制对新内容和不确定内容的探索力度。
-
-[UCB1 算法解释](docs/RANKING_ALGORITHM.md)
-
-## 🤝 贡献指南
-
-1. Fork 本项目
-2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 创建 Pull Request
-
-> 本项目推荐使用 uv 进行项目管理  
-> [ uv 中文指南](https://hellowac.github.io/uv-zh-cn/)
+> 完整架构说明与模块总览请参阅 [架构文档](docs/ARCHITECTURE.md)
 
 ## 📄 许可证
 
@@ -167,7 +143,7 @@ chmod +x ./start.sh
 
 ## 🐛 问题反馈
 
-如果您遇到任何问题或有功能建议，请在 [Issues](https://github.com/your-username/Odysseia-Forum/issues) 页面提交。
+如果您遇到任何问题或有功能建议，请在 [Issues](https://github.com/warming-afternoon/Odysseia-Forum/issues) 页面提交。
 
 ---
 

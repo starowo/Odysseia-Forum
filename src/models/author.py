@@ -1,7 +1,9 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional
 
 from sqlmodel import BigInteger, Column, Field, SQLModel
+
+from shared.time_utils import utc_now
 
 
 class Author(SQLModel, table=True):
@@ -16,7 +18,7 @@ class Author(SQLModel, table=True):
     avatar_url: Optional[str] = Field(default=None, description="用户头像的 URL")
 
     last_updated: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
-        sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
+        default_factory=utc_now,
+        sa_column_kwargs={"onupdate": utc_now},
         description="此条记录的最后更新时间 (UTC)",
     )

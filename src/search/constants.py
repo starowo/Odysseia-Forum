@@ -56,6 +56,18 @@ class SortMethod(Enum):
         description="按帖子回复数量排列",
         short_label="回复数",
     )
+    COLLECTION_COUNT = SortMethodInfo(
+        value="collection_count",
+        label="⭐ 按收藏数",
+        description="按帖子被收藏的数量排列",
+        short_label="收藏数",
+    )
+    REDDIT_HOT = SortMethodInfo(
+        value="reddit_hot",
+        label="🔥 热门排序",
+        description="Reddit Hot 算法：log(反应数) + 时间加成",
+        short_label="热门",
+    )
     CUSTOM = SortMethodInfo(
         value="custom",
         label="🛠️ 自定义搜索",

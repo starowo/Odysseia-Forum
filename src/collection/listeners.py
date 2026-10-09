@@ -6,8 +6,9 @@ from discord.ext import commands
 
 from collection.views.batch_collect_view import BatchCollectView
 from collection.views.batch_uncollect_view import BatchUncollectView
+from dto import ThreadDTO
 from models import Thread
-from shared.enum.collection_type import CollectionType
+from shared.enum import CollectionType
 
 if TYPE_CHECKING:
     from bot_main import MyBot
@@ -31,9 +32,10 @@ class CollectionListenerCog(commands.Cog):
 
         async def fetch_data(page: int, per_page: int):
             async with self.collection_cog.get_collection_service() as service:
-                return await service.get_followed_not_collected_threads(
+                threads, total = await service.get_followed_not_collected_threads(
                     interaction.user.id, page, per_page
                 )
+                return [ThreadDTO.from_orm(t) for t in threads], total
 
         batch_view = BatchCollectView(
             interaction=interaction,
@@ -52,13 +54,14 @@ class CollectionListenerCog(commands.Cog):
 
         async def fetch_data(page: int, per_page: int):
             async with self.collection_cog.get_collection_service() as service:
-                return await service.get_collected_targets(
+                threads, total = await service.get_collected_targets(
                     interaction.user.id,
                     CollectionType.THREAD,
                     page,
                     per_page,
                     Thread,
                 )
+                return [ThreadDTO.from_orm(t) for t in threads], total
 
         batch_view = BatchUncollectView(
             interaction=interaction,

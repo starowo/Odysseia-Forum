@@ -4,11 +4,11 @@ import discord
 
 from search.constants import SortMethod
 from search.strategies.search_strategy import SearchStrategy
-from search.views.components.keyword_modal import KeywordButton
-from search.views.components.sort_method_select import SortMethodSelect
-from search.views.components.sort_order_button import SortOrderButton
-from search.views.components.tag_logic_button import TagLogicButton
-from search.views.components.tag_page_button import TagPageButton
+from search.components.keyword_modal import KeywordButton
+from search.components.sort_method_select import SortMethodSelect
+from search.components.sort_order_button import SortOrderButton
+from search.components.tag_logic_button import TagLogicButton
+from search.components.tag_page_button import TagPageButton
 from shared.views.tag_select import TagSelect
 
 if TYPE_CHECKING:
@@ -27,7 +27,12 @@ class DefaultSearchStrategy(SearchStrategy):
     async def get_available_tags(
         self, cog: "Search", state: "SearchStateDTO"
     ) -> List[str]:
-        return cog.get_merged_tag_names(state.channel_ids)
+        """获取该策略下可用的标签，并将虚拟标签前置"""
+        separated_tags = await cog.get_merged_tags_separated(
+            state.channel_ids, include_abyss=state.can_view_abyss_tags
+        )
+        state.virtual_tags = separated_tags.virtual_tags
+        return separated_tags.all_tags
 
     def modify_query(self, query: "ThreadSearchQuery") -> "ThreadSearchQuery":
         # 默认策略不做任何修改

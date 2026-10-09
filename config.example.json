@@ -1,11 +1,10 @@
 {
-  "token": "将这里替换为你的 Discord 机器人Token",
-  
-  "db_url": "sqlite+aiosqlite:///data/database.db",
-  "_comment_db": "上面的db_url是默认的数据库链接，如果你想使用其他数据库，请修改这里",
-  
+
   "proxy": "",
   "_comment_proxy": "如果你需要通过代理连接Discord，请在proxy里填写你的代理地址(例如 http://127.0.0.1:8080)，否则请留空",
+  
+  "redis_url": "redis://odysseia-redis:6379/0",
+  "_comment_redis": "Redis 连接地址，用于广场趋势数据计算",
 
   "performance": {
     "api_scheduler_concurrency": 40,
@@ -18,6 +17,9 @@
       954037609313747036
   ],
   "_comment_bot_admin": "上面的 bot_admin_user_ids 列表中的用户将拥有BOT管理员权限",
+
+  "main_guild_id": null,
+  "_comment_main_guild_id": "主服务器 ID，可为空；留空时将回退到默认值 1134557553011998840（类脑服务器）",
 
   "management_role_id": 1337450755791261766,
   "_comment_management_role": "管理组身份组ID。用于在特定事件（如互斥标签冲突）发生时接收通知。",
@@ -37,7 +39,53 @@
     "ssl_cert_path": "ssl/cert.pem",
     "_comment_ssl_cert_path": "SSL证书路径",
     "ssl_key_path": "ssl/key.pem",
-    "_comment_ssl_key_path": "SSL私钥路径"
+    "_comment_ssl_key_path": "SSL私钥路径",
+
+    "cors_origins": [],
+    "_comment_cors_origins": "允许跨域请求的来源（CORS），支持配置多个域名",
+
+    "rate_limit": {
+      "_comment": "请求频率限制配置（Redis 固定窗口算法）",
+      "search": {
+        "max_requests": 60,
+        "_comment_max_requests": "每个窗口（60秒）内允许的最大请求数"
+      },
+      "similar": {
+        "max_requests": 60,
+        "_comment_max_requests": "相似推荐每个窗口（60秒）内允许的最大请求数"
+      },
+      "global": {
+        "max_requests": 300,
+        "_comment_max_requests": "所有已登录业务接口每个窗口（60秒）内允许的最大请求数",
+        "daily_watch_threshold": 1500,
+        "_comment_daily_watch_threshold": "服务器本地自然日请求数超过该值后持续续期 Watch"
+      }
+    }
+  },
+
+  "integration": {
+    "_comment": "第三方系统集成配置",
+
+    "tournament_api_key": "",
+    "_comment_tournament_api_key": "赛事 BOT 通信 API Key，调用赛事接口时需在请求头 X-API-Key 中携带",
+
+    "booklist_publish": {
+      "api_key": "",
+      "_comment_api_key": "书单发布 BOT 的通信 API Key",
+
+      "base_url": "",
+      "_comment_base_url": "书单发布服务的 IP:端口"
+    },
+
+    "open_graph": {
+      "service_token": "",
+      "_comment_service_token": "必须设置为长随机值，并仅作为 Cloudflare Secret 保存；留空时内部 OG 接口返回 503",
+      "refresh_before_expiry_hours": 1,
+      "sync_wait_timeout_seconds": 2,
+      "cache_ttl_seconds": 600,
+      "max_async_refresh_jobs": 5,
+      "_comment": "Pages Function 调用内部分享 OG 接口使用的服务令牌、图片刷新窗口与安全缓存配置"
+    }
   },
 
 "auth": {
@@ -59,9 +107,6 @@
     "jwt_secret": "your_jwt_secret_key_here_make_it_long_and_random",
     "_comment_jwt_secret": "JWT 签名密钥，请使用长随机字符串",
     
-    "bot_token": "your_bot_token_here",
-    "_comment_bot_token": "Discord Bot Token，用于验证用户身份组（可选，建议配置）",
-    
     "frontend_url": "https://your-frontend-domain.com",
     "_comment_frontend_url": "前端应用 URL，用于 OAuth2 回调后重定向",
     
@@ -82,29 +127,49 @@
   },
 
   "update_detector": {
-    "enabled": true,
-    "_comment_enabled": "是否启用更新检测功能",
+    "mode": "observe",
+    "_comment_mode": "更新检测模式：disabled 关闭、observe 仅本地估算、active 正式调用 DeepSeek",
 
-    "gemini_api_key": "your_gemini_api_key_here",
-    "_comment_gemini_api_key": "Google Gemini API Key，用于AI判断消息是否为发布更新",
+    "deepseek_base_url": "https://api.deepseek.com",
+    "_comment_deepseek_base_url": "DeepSeek 官方或 OpenAI Chat Completions 兼容代理的基础地址",
 
-    "gemini_base_url": "",
-    "_comment_gemini_base_url": "Gemini API 地址，留空使用官方默认地址。可填写代理地址，例如 https://your-proxy.com/v1beta",
+    "deepseek_model": "deepseek-v4-flash",
+    "_comment_deepseek_model": "更新检测使用的 DeepSeek 模型",
 
-    "gemini_model": "gemini-2.0-flash",
-    "_comment_gemini_model": "Gemini 模型名称，可自行修改为代理支持的模型名",
+    "thinking_enabled": true,
+    "_comment_thinking_enabled": "是否开启 DeepSeek thinking 模式",
+
+    "max_output_tokens": 2048,
+    "_comment_max_output_tokens": "单次 DeepSeek 请求的最大生成 Token",
+
+    "request_timeout_seconds": 60,
+    "_comment_request_timeout_seconds": "DeepSeek 请求超时时间（秒）",
 
     "prompt_message": "检测到您可能发布了作品的新版本，是否将其同步到索引页？",
     "_comment_prompt_message": "发送给用户的提醒消息内容，可自定义",
-
-    "auto_delete_seconds": 600,
-    "_comment_auto_delete_seconds": "提醒消息自动删除时间（秒），默认600秒（10分钟）",
 
     "min_text_length": 100,
     "_comment_min_text_length": "触发检测的最小文字长度（纯文字消息），默认100字符",
 
     "min_text_length_with_attachment": 30,
     "_comment_min_text_length_with_attachment": "带附件时触发检测的最小文字长度，默认30字符"
+  },
+
+  "backup": {
+    "enabled": false,
+    "_comment_enabled": "是否启用数据库定时备份到 S3 兼容对象存储（如 Cloudflare R2）",
+    "_comment_encryption_key": "如需加密备份 config.json 和 .env，请在 .env 文件中设置 BACKUP_ENCRYPTION_KEY（Base64 编码的 32 字节密钥）",
+
+    "endpoint_url": "https://<your-account-id>.r2.cloudflarestorage.com",
+    "_comment_endpoint_url": "S3 兼容对象存储的端点 URL",
+    "access_key": "your-access-key",
+    "_comment_access_key": "S3 访问密钥 ID",
+    "secret_key": "your-secret-key",
+    "_comment_secret_key": "S3 访问密钥 Secret",
+    "bucket_name": "your-bucket-name",
+    "_comment_bucket_name": "存储桶名称",
+    "region_name": "auto",
+    "_comment_region_name": "区域名称，R2 通常为 auto"
   },
 
   "banner": {
@@ -115,13 +180,13 @@
     "_comment_applicant_role_ids": "允许申请Banner的身份组ID，多个用逗号分隔",
     
     "reviewer_role_ids": "role_id_1,role_id_2,role_id_3",
-    "_comment_reviewer_role_ids": "审核员身份组ID，多个用逗号分隔",
+    "_comment_reviewer_role_ids": "【已废弃】审核权限现由 bot_admin_user_ids + 服务器管理员权限决定，不再使用此身份组配置",
     
     "review_thread_id": 0,
     "_comment_review_thread_id": "接收审核申请的Thread ID",
     
     "archive_thread_id": 0,
-    "_comment_archive_thread_id": "审核记录存档的Forum频道ID",
+    "_comment_archive_thread_id": "审核记录存档的频道ID",
     
     "available_channels": {
       "1374474903981527082": "纯净区",
@@ -131,5 +196,19 @@
       "1374491950161330277": "其它区"
     },
     "_comment_available_channels": "用户可选择的展示频道列表，格式为 频道ID: 频道名称"
+  },
+
+  "abyss": {
+    "_comment": "深渊区配置：仅拥有指定身份组的用户可看到这些频道的帖子",
+    "channel_ids": [],
+    "_comment_channel_ids": "需要屏蔽的频道ID列表，未授权的用户将看不到这些频道的帖子",
+    "required_role_id": "",
+    "_comment_required_role_id": "允许查看深渊区的身份组ID，用户需拥有此身份组才能看到被屏蔽频道的帖子"
+  },
+
+  "discovery": {
+    "_comment": "广场推荐配置",
+    "ignore_channel_ids": [],
+    "_comment_ignore_channel_ids": "探索屏蔽频道ID列表，频道帖子不会出现在推荐轨道和随机推荐中，也不会新增写入Redis趋势榜单；修改后需重启Bot和API"
   }
 }

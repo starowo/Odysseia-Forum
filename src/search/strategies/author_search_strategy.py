@@ -4,11 +4,11 @@ import discord
 
 from search.constants import SortMethod
 from search.strategies.search_strategy import SearchStrategy
-from search.views.components.keyword_modal import KeywordButton
-from search.views.components.sort_method_select import SortMethodSelect
-from search.views.components.sort_order_button import SortOrderButton
-from search.views.components.tag_logic_button import TagLogicButton
-from search.views.components.tag_page_button import TagPageButton
+from search.components.keyword_modal import KeywordButton
+from search.components.sort_method_select import SortMethodSelect
+from search.components.sort_order_button import SortOrderButton
+from search.components.tag_logic_button import TagLogicButton
+from search.components.tag_page_button import TagPageButton
 from shared.views.tag_select import TagSelect
 
 if TYPE_CHECKING:
@@ -31,7 +31,9 @@ class AuthorSearchStrategy(SearchStrategy):
         self, cog: "Search", state: "SearchStateDTO"
     ) -> List[str]:
         """从数据库获取该作者使用过的所有标签"""
-        tags = await cog.get_tags_for_author(self.author_id)
+        tags = await cog.get_tags_for_author(
+            self.author_id, include_abyss=state.can_view_abyss_tags
+        )
         return sorted([tag.name for tag in tags])
 
     def modify_query(self, query: "ThreadSearchQuery") -> "ThreadSearchQuery":

@@ -3,7 +3,7 @@ from datetime import timezone
 
 import discord
 
-from models import Thread as ThreadModel
+from dto.thread_dto import ThreadDTO
 
 
 class ThreadEmbedBuilder:
@@ -20,24 +20,32 @@ class ThreadEmbedBuilder:
 
     @staticmethod
     async def build(
-        thread: "ThreadModel",
-        guild: discord.Guild,
+        thread: ThreadDTO,
+        guild: discord.Guild | None,
         preview_mode: str = "thumbnail",
         keywords_str: str = "",
-        highlight_pattern: re.Pattern | None = None,  # 接收 pattern 对象
+        highlight_pattern: re.Pattern | None = None,
+        virtual_tags: list[str] | None = None,
     ) -> discord.Embed:
-        """根据Thread ORM对象构建嵌入消息"""
+        """构建帖子结果卡片，支持高亮和跨服虚拟标签显示"""
 
         author_display = f"作者 <@{thread.author_id}>"
 
+        # 使用数据库帖子记录的 guild_id
+        target_guild_id = thread.guild_id or (guild.id if guild else None)
         embed = discord.Embed(
             title=thread.title,
             description=author_display,
-            url=f"https://discord.com/channels/{guild.id}/{thread.thread_id}",
+            url=(
+                f"https://discord.com/channels/{target_guild_id}/{thread.thread_id}"
+                if target_guild_id
+                else None
+            ),
         )
 
-        # 标签信息通过 relationship 加载
-        tag_names = [tag.name for tag in thread.tags]
+        # 结合数据库内的真实标签与传入的匹配虚拟标签
+        real_tag_names = [tag.name for tag in thread.tags]
+        all_tags = (virtual_tags or []) + real_tag_names
 
         # 将 datetime 对象转换为 Unix 时间戳
         created_at_ts = int(thread.created_at.replace(tzinfo=timezone.utc).timestamp())
@@ -54,8 +62,10 @@ class ThreadEmbedBuilder:
         basic_stats = (
             f"发帖日期: <t:{created_at_ts}:D> | "
             f"最近活跃: {last_active_str}\n"
-            f"最高反应数: **{thread.reaction_count}** | 总回复数: **{thread.reply_count}**\n"
-            f"标签: **{', '.join(tag_names) if tag_names else '无'}**"
+            f"最高反应数: **{thread.reaction_count}** | "
+            f"回复数: **{thread.reply_count}** | "
+            f"收藏数: **{thread.collection_count}**\n"
+            f"标签: **{', '.join(all_tags) if all_tags else '无'}**"
         )
 
         embed.add_field(

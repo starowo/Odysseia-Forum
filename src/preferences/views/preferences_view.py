@@ -3,18 +3,17 @@ from typing import TYPE_CHECKING, Optional
 
 import discord
 
-from preferences.preferences_repository import PreferencesRepository
 from preferences.views.components.results_per_page_modal import ResultsPerPageModal
 from search.constants import SortMethod
-from search.dto.user_search_preferences import UserSearchPreferencesDTO
-from search.views.components.keyword_modal import KeywordModal
-from search.views.components.sort_method_select import SortMethodSelect
-from shared.enum.default_preferences import DefaultPreferences
+from dto.preferences import UserSearchPreferencesDTO
+from search.components.keyword_modal import KeywordModal
+from search.components.sort_method_select import SortMethodSelect
+from shared.enum import DefaultPreferences
 from shared.safe_defer import safe_defer
 from shared.views.components.time_range_modal import TimeRangeModal
 
 if TYPE_CHECKING:
-    from preferences.preferences_service import PreferencesService
+    from preferences.preferences_logic import PreferencesLogic
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +23,7 @@ class PreferencesView(discord.ui.View):
 
     def __init__(
         self,
-        service: "PreferencesService",
+        service: "PreferencesLogic",
         interaction: discord.Interaction,
     ):
         super().__init__(timeout=890)  # 15分钟超时
@@ -34,19 +33,17 @@ class PreferencesView(discord.ui.View):
 
     async def fetch_preferences(self) -> "UserSearchPreferencesDTO":
         """获取最新的用户偏好设置"""
-        guild_id = self.original_interaction.guild_id or 0
-        async with self.service.session_factory() as session:
-            repo = PreferencesRepository(session, self.service.tag_service)
-            prefs_dto = await repo.get_user_preferences(
-                self.original_interaction.user.id, guild_id
+        # 使用配置的主服务器 ID
+        prefs_dto = await self.service.get_user_preferences(
+            self.original_interaction.user.id
+        )
+        if not prefs_dto:
+            # 创建一个临时的空DTO对象
+            prefs_dto = UserSearchPreferencesDTO(
+                user_id=self.original_interaction.user.id
             )
-            if not prefs_dto:
-                # 创建一个临时的空DTO对象
-                prefs_dto = UserSearchPreferencesDTO(
-                    user_id=self.original_interaction.user.id
-                )
-            self.preferences = prefs_dto
-            return prefs_dto
+        self.preferences = prefs_dto
+        return prefs_dto
 
     def build_embed(self) -> discord.Embed:
         """构建显示当前偏好设置的Embed"""
@@ -91,17 +88,30 @@ class PreferencesView(discord.ui.View):
             )
 
         # 频道偏好
-        channel_names = []
-        if prefs.preferred_channels and self.original_interaction.guild:
+        channel_info_list = []
+        if prefs.preferred_channels:
             for channel_id in prefs.preferred_channels:
-                channel = self.original_interaction.guild.get_channel(channel_id)
-                if channel:
-                    channel_names.append(channel.mention)
+                # 优先从全局已索引缓存中获取
+                channel = self.service.cache_service.indexed_channels.get(channel_id)
 
-        if channel_names:
+                if channel:
+                    # 使用 频道名
+                    channel_info_list.append(f"{channel.name}")
+                else:
+                    # 如果已索引缓存未命中（可能索引已被删除），尝试从 Bot 全局缓存拿
+                    fallback_channel = self.service.bot.get_channel(channel_id)
+                    if fallback_channel:
+                        # 尝试获取 name 属性，如果没有则显示 ID
+                        name = getattr(fallback_channel, "name", str(channel_id))
+                        channel_info_list.append(f"{name}")
+                    else:
+                        # 彻底没找到（机器人被踢出该服务器或频道被删）
+                        channel_info_list.append(f"频道({channel_id})")
+
+        if channel_info_list:
             embed.add_field(
                 name="🔍 偏好频道",
-                value=", ".join(channel_names),
+                value=", ".join(channel_info_list),
                 inline=False,
             )
 
@@ -320,12 +330,7 @@ class PreferencesView(discord.ui.View):
         await self.fetch_preferences()
         self.update_components()
         embed = self.build_embed()
-        await self.service.bot.api_scheduler.submit(
-            coro_factory=lambda: interaction.edit_original_response(
-                embed=embed, view=self
-            ),
-            priority=1,
-        )
+        await interaction.edit_original_response(embed=embed, view=self)
 
     async def button_callback(self, interaction: discord.Interaction):
         """统一处理所有按钮点击事件"""
@@ -415,13 +420,11 @@ class PreferencesView(discord.ui.View):
     ):
         await safe_defer(modal_interaction, ephemeral=True)
         try:
-            guild_id = modal_interaction.guild_id or 0
             await self.service.save_user_keywords(
                 user_id=modal_interaction.user.id,
                 include_str=submitted_include,
                 exclude_str=submitted_exclude,
                 exemption_markers_str=submitted_markers,
-                guild_id=guild_id,
             )
             # 刷新本视图
             await self.refresh(modal_interaction)
@@ -440,10 +443,7 @@ class PreferencesView(discord.ui.View):
             if sort_method != "custom":
                 update_data["custom_base_sort"] = "comprehensive"
 
-            guild_id = interaction.guild_id or 0
-            await self.service.save_user_preferences(
-                interaction.user.id, update_data, guild_id
-            )
+            await self.service.save_user_preferences(interaction.user.id, update_data)
             await self.refresh(interaction)  # 刷新视图以显示或隐藏新行
         except Exception as e:
             logger.error(f"保存排序方式失败: {e}", exc_info=True)
@@ -457,9 +457,8 @@ class PreferencesView(discord.ui.View):
         await safe_defer(interaction)
         try:
             # 注意这里 service 的方法是通用的，可以直接用
-            guild_id = interaction.guild_id or 0
             await self.service.save_user_preferences(
-                interaction.user.id, {"custom_base_sort": sort_method}, guild_id
+                interaction.user.id, {"custom_base_sort": sort_method}
             )
             await self.refresh(interaction)  # 刷新视图以更新embed中的文本
         except Exception as e:

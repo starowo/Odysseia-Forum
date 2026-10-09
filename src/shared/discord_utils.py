@@ -72,3 +72,33 @@ class DiscordUtils:
 
         return user_obj
 
+    @staticmethod
+    async def get_channel_safely(
+        bot: "MyBot",
+        channel_id: int,
+    ) -> discord.abc.GuildChannel | None:
+        """优先从缓存获取频道，失败则从 API 获取。
+
+        Args:
+            bot: MyBot 实例
+            channel_id: 目标频道的 Discord ID
+
+        Returns:
+            如果成功找到频道，返回频道对象；否则返回 None。
+            调用方应自行使用 isinstance() 检查频道类型。
+        """
+        channel = bot.get_channel(channel_id)
+        if channel:
+            return channel  # type: ignore[return-value]
+
+        try:
+            return await bot.fetch_channel(channel_id)  # type: ignore[return-value]
+        except discord.NotFound:
+            logger.warning(
+                f"无法找到频道 (ID: {channel_id})，机器人可能不在该服务器中。"
+            )
+        except discord.Forbidden:
+            logger.warning(f"没有权限访问频道 (ID: {channel_id})。")
+        except Exception as e:
+            logger.error(f"获取频道 (ID: {channel_id}) 时发生未知错误: {e}")
+        return None

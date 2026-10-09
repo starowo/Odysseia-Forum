@@ -4,9 +4,9 @@ from typing import TYPE_CHECKING, Optional
 import discord
 
 from search.dto.search_state import SearchStateDTO
-from search.views.components.number_range_modal import NumberRangeModal
-from search.views.components.sort_method_select import SortMethodSelect
-from shared.enum.default_preferences import DefaultPreferences
+from search.components.number_range_modal import NumberRangeModal
+from search.components.sort_method_select import SortMethodSelect
+from shared.enum import DefaultPreferences
 from shared.safe_defer import safe_defer
 from shared.views.components.time_range_modal import TimeRangeModal
 
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 class CustomSearchSettingsView(discord.ui.View):
     def __init__(self, parent_view: "GenericSearchView"):
-        super().__init__(timeout=880)
+        super().__init__(timeout=14400)  # 4 小时
         self.parent = parent_view
         self.state: SearchStateDTO = parent_view.search_state
         self.original_interaction: discord.Interaction = parent_view.last_interaction
@@ -196,18 +196,13 @@ class CustomSearchSettingsView(discord.ui.View):
             )
 
     async def on_timeout(self):
-        """视图超时后，删除该私密消息以清理界面"""
-        # 通知父视图，此自定义设置窗口已失效
+        """
+        视图超时后，清理程序内存状态。
+        由于是私密消息，此时交互 Token 已失效，无法通过 API 删除它。
+        """
         if self.parent:
             self.parent.custom_settings_message = None
-
-        # 当用户与此视图交互过时，我们有权限删除它。
-        if self.last_settings_interaction:
-            try:
-                await self.last_settings_interaction.delete_original_response()
-            except (discord.errors.NotFound, discord.errors.HTTPException):
-                # 消息可能已被手动删除或因其他原因无法访问，这是正常情况，无需报错。
-                pass
+        self.last_settings_interaction = None
 
     async def handle_time_modal_submit(
         self, interaction: discord.Interaction, values: dict

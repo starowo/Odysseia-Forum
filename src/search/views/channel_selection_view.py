@@ -205,22 +205,28 @@ class ChannelSelectionView(discord.ui.View):
             final_selected_ids = []
 
         # 重新获取合并后的标签（基于最终选择的频道）
-        merged_tag_names = self.cog.get_merged_tag_names(final_selected_ids)
-        merged_tag_names_set = set(merged_tag_names)
+        self.search_state.can_view_abyss_tags = self.cog.can_view_abyss_tags(
+            interaction.user.id
+        )
+        separated_tags = await self.cog.get_merged_tags_separated(
+            final_selected_ids,
+            include_abyss=self.search_state.can_view_abyss_tags,
+        )
+        merged_tag_names_set = set(separated_tags.all_tags)
+
+        # 自定义 TAG 不进入候选框，但既有偏好仍需静默参与查询。
+        selected_names = self.search_state.include_tags | self.search_state.exclude_tags
+        retained_custom_names = await self.cog.get_custom_tag_names(selected_names)
+        allowed_state_names = merged_tag_names_set | retained_custom_names
 
         # 过滤已有偏好中的标签，确保它们在当前选定的频道中依然有效
-        self.search_state.include_tags = self.search_state.include_tags.intersection(
-            merged_tag_names_set
-        )
-        self.search_state.exclude_tags = self.search_state.exclude_tags.intersection(
-            merged_tag_names_set
-        )
+        self.search_state.include_tags &= allowed_state_names
+        self.search_state.exclude_tags &= allowed_state_names
 
         # 更新状态
         self.search_state.channel_ids = final_selected_ids
-        self.search_state.all_available_tags = merged_tag_names
-
-        
+        self.search_state.all_available_tags = separated_tags.all_tags
+        self.search_state.virtual_tags = separated_tags.virtual_tags
 
         generic_view = GenericSearchView(
             self.cog, interaction, self.search_state, strategy=DefaultSearchStrategy()

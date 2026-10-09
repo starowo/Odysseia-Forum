@@ -4,19 +4,22 @@ import sys
 from typing import Any, Dict, Optional
 
 from fastapi import Depends, HTTPException, Request, status
-from fastapi.security import APIKeyHeader
+from fastapi.security import APIKeyHeader, HTTPAuthorizationCredentials, HTTPBearer
 
 from api.v1.utils.jwt_utils import verify_jwt
 
 logger = logging.getLogger(__name__)
 
+VERIFIED_JWT_PAYLOAD_STATE_KEY = "verified_jwt_payload"
+
 # 全局变量，在应用启动时初始化
 _JWT_SECRET = None
+_API_KEY = None
 
 
 def initialize_api_security():
     """在应用启动时调用，初始化 API 安全配置"""
-    global _JWT_SECRET
+    global _JWT_SECRET, _API_KEY
     try:
         with open("config.json", "r", encoding="utf-8") as f:
             config = json.load(f)
@@ -25,6 +28,11 @@ def initialize_api_security():
         _JWT_SECRET = config.get("auth", {}).get("jwt_secret")
         if _JWT_SECRET:
             logger.info("JWT 密钥已加载")
+
+        # 加载 API Key（用于BOT机机通信认证）
+        _API_KEY = config.get("integration", {}).get("tournament_api_key")
+        if _API_KEY:
+            logger.info("API Key 已加载")
 
         logger.info("API 安全配置已初始化")
     except (FileNotFoundError, ValueError) as e:
@@ -36,8 +44,13 @@ def initialize_api_security():
 # 定义 API 密钥在请求头中的名称
 api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
+bearer_scheme = HTTPBearer(auto_error=False)
 
-async def get_current_user(request: Request) -> Optional[Dict[str, Any]]:
+
+async def get_current_user(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(bearer_scheme),
+) -> Optional[Dict[str, Any]]:
     """
     从请求中提取并验证 JWT token，返回用户信息
     优先从 Authorization Bearer 中读取，回退到 Cookie
@@ -48,13 +61,15 @@ async def get_current_user(request: Request) -> Optional[Dict[str, Any]]:
             detail="JWT 认证服务未初始化",
         )
 
-    # 1) 优先从 Authorization Bearer 中读取
-    token = None
-    auth_header = request.headers.get("Authorization", "")
-    if auth_header.startswith("Bearer "):
-        token = auth_header[7:].strip()
+    # 复用全局限频中间件已经验证过的 JWT 结果
+    request_state = request.scope.get("state", {})
+    if VERIFIED_JWT_PAYLOAD_STATE_KEY in request_state:
+        return request_state[VERIFIED_JWT_PAYLOAD_STATE_KEY]
 
-    # 2) 回退到 Cookie 会话
+    # 优先从 Authorization Bearer 中读取
+    token = credentials.credentials if credentials else None
+
+    # 回退到 Cookie 会话
     if not token:
         token = request.cookies.get("session")
 
@@ -78,3 +93,20 @@ async def require_auth(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="未登录或会话失效"
         )
     return user
+
+
+async def require_api_key(
+    api_key: Optional[str] = Depends(api_key_header),
+) -> bool:
+    """验证 X-API-Key 请求头，用于 BOT 机机通信认证"""
+    if not _API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="API key 认证未配置",
+        )
+    if not api_key or api_key != _API_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="无效或缺失的 API Key",
+        )
+    return True

@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING, Awaitable, Callable, List, Optional, Set, Tupl
 
 import discord
 
-from models import Thread
+from dto.thread_dto import ThreadDTO
 from shared.safe_defer import safe_defer
 from shared.views.components.page_jump_modal import PageJumpModal
 
@@ -18,7 +18,7 @@ class BaseManagementView(discord.ui.View):
         cog: "CollectionCog",
         interaction: discord.Interaction,
         title: str,
-        fetch_data_func: Callable[[int, int], Awaitable[Tuple[List[Thread], int]]],
+        fetch_data_func: Callable[[int, int], Awaitable[Tuple[List[ThreadDTO], int]]],
         refresh_callback: Optional[Callable[[], Awaitable[None]]] = None,
     ):
         super().__init__(timeout=300)
@@ -32,7 +32,7 @@ class BaseManagementView(discord.ui.View):
         self.per_page = 25
         self.total_items = 0
         self.max_page = 1
-        self.threads: List[Thread] = []
+        self.threads: List[ThreadDTO] = []
         self.selected_threads: Set[str] = set()
         self.message: Optional[discord.WebhookMessage] = None
         self.thread_cache: dict[str, str] = {}

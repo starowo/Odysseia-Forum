@@ -4,7 +4,7 @@ from typing import Dict, List
 
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from core.tag_service import TagService
+from core.tag_repository import TagRepository
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ class TagCacheService:
         """
         logger.debug("Building tag cache...")
         async with self.session_factory() as session:
-            tag_service = TagService(session)
+            tag_service = TagRepository(session)
             all_tags = await tag_service.get_all_tags()
             all_unique_tags_from_indexed_threads = (
                 await tag_service.get_all_unique_tags_from_indexed_threads()
@@ -39,6 +39,8 @@ class TagCacheService:
 
         temp_name_to_ids = defaultdict(list)
         for tag in all_tags:
+            if tag.deleted_at is not None:
+                continue
             self._id_to_name[tag.id] = tag.name
             temp_name_to_ids[tag.name].append(tag.id)
 
@@ -52,15 +54,12 @@ class TagCacheService:
         self.global_merged_tags = sorted(
             [tag.name for tag in all_unique_tags_from_indexed_threads]
         )
-        logger.info(
-            f"全局合并标签预计算完成，共 {len(self.global_merged_tags)} 个唯一标签"
-        )
 
-    def get_name_by_id(self, tag_id: int) -> str | None:
+    def get_tag_name_by_id(self, tag_id: int) -> str | None:
         """从缓存中通过ID获取标签名称。"""
         return self._id_to_name.get(tag_id)
 
-    def get_ids_by_name(self, tag_name: str) -> List[int]:
+    def get_ids_by_tag_name(self, tag_name: str) -> List[int]:
         """从缓存中通过名称获取所有对应的标签ID。"""
         return self._name_to_ids.get(tag_name, [])
 

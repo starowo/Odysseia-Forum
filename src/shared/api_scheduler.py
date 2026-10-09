@@ -4,6 +4,7 @@ from itertools import count
 from typing import Any, Callable, Coroutine, NamedTuple
 
 from aiohttp.client_exceptions import ClientConnectorError
+from discord.errors import DiscordServerError
 
 # 设置日志记录器
 logger = logging.getLogger(__name__)
@@ -86,7 +87,11 @@ class APIScheduler:
                     if not request.future.done():
                         request.future.set_result(result)
                     return
-                except (asyncio.TimeoutError, ClientConnectorError) as e:
+                except (
+                    asyncio.TimeoutError,
+                    ClientConnectorError,
+                    DiscordServerError,
+                ) as e:
                     if attempt < max_retries - 1:
                         logger.debug(
                             f"协程 (优先级: {request.priority}) 遇到可重试错误 ({type(e).__name__})，"

@@ -1,14 +1,16 @@
 import logging
 import random
 from asyncio import sleep
-from typing import List
+from typing import TYPE_CHECKING
 
 from discord.ext import commands, tasks
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from auditor.repository import AuditorRepository
-from core.sync_service import SyncService
-from shared.api_scheduler import APIScheduler
+from auditor.auditor_service import AuditorService
+
+
+if TYPE_CHECKING:
+    from bot_main import MyBot
 
 logger = logging.getLogger(__name__)
 
@@ -18,22 +20,22 @@ class Auditor(commands.Cog):
     负责后台数据审计的 Cog
 
     这个 Cog 包含一个后台循环任务，该任务会定期执行完整的审计周期。
-    在每个周期开始时，它会从数据库获取所有已索引的帖子ID，然后以非常低的速率
-    将它们逐一提交给 API 调度器进行数据同步。这确保了本地数据与 Discord 的数据最终一致
+    使用自增主键 ``id`` 做 keyset 分页，逐批从数据库加载帖子 ID，
+    避免一次性加载全表带来的内存压力。
     """
+
+    AUDIT_BATCH_SIZE = 500
 
     def __init__(
         self,
-        bot: commands.Bot,
+        bot: "MyBot",
         session_factory: async_sessionmaker,
-        api_scheduler: APIScheduler,
-        sync_service: SyncService,
     ):
         self.bot = bot
         self.session_factory = session_factory
-        self.api_scheduler = api_scheduler
-        self.sync_service = sync_service
-        self.audit_queue: List[int] = []
+        self.api_scheduler = bot.api_scheduler
+        self.sync_service = bot.sync_service
+        self._audit_cursor: int = 0
         logger.info("Auditor 模块已加载")
 
     async def cog_load(self):
@@ -46,56 +48,55 @@ class Auditor(commands.Cog):
         self.audit_loop.cancel()
         self.cleanup_loop.cancel()
 
-    async def _reload_audit_queue(self):
-        """
-        从数据库重新加载需要审计的帖子 ID 列表。
-
-        它会获取所有帖子的ID，并随机打乱顺序，以避免每次都从相同的帖子开始审计。
-        """
-        logger.debug("正在从数据库重新加载审计队列...")
-        async with self.session_factory() as session:
-            repo = AuditorRepository(session)
-            self.audit_queue = await repo.get_all_thread_ids()
-            random.shuffle(self.audit_queue)
-        logger.debug(f"审计队列加载完成，共 {len(self.audit_queue)} 个帖子需要审计。")
-
-    @tasks.loop(seconds=60)
+    @tasks.loop(seconds=0)
     async def audit_loop(self):
         """
-        主审计循环。
+        主审计循环（keyset 分页模式）。
 
-        这个循环负责执行一个完整的审计周期。它会先加载所有帖子ID，然后逐一处理。
-        处理完所有帖子后，会等待一段时间，再开始下一个周期。
+        每轮拉一批、处理一批、推进游标，直到扫完整张表后重置游标等待下一轮。
+        使用自增主键 ``id`` 作为游标，保证新插入的行不会在本轮遗漏。
         """
         try:
-            logger.debug("开始新一轮的后台数据审计周期...")
-            await self._reload_audit_queue()
+            if self._audit_cursor == 0:
+                logger.debug("开始新一轮的后台数据审计周期...")
 
-            if not self.audit_queue:
-                logger.debug("没有需要审计的帖子，本轮审计周期跳过。")
-            else:
-                for thread_id in self.audit_queue:
-                    if self.audit_loop.is_being_cancelled():
-                        logger.info("审计循环被中断。")
-                        break
+            async with self.session_factory() as session:
+                repo = AuditorService(session)
+                batch = await repo.get_thread_ids_batch(
+                    cursor=self._audit_cursor,
+                    batch_size=self.AUDIT_BATCH_SIZE,
+                )
 
-                    await self.api_scheduler.submit(
-                        coro_factory=lambda tid=thread_id: self.sync_service.sync_thread(
-                            tid
-                        ),
-                        priority=10,
-                    )
-                    await sleep(4)
+            if not batch:
+                logger.debug("本轮所有帖子已审计完毕，准备开始下一轮。")
+                self._audit_cursor = 0
+                return
 
-                if not self.audit_loop.is_being_cancelled():
-                    logger.debug(
-                        f"本轮 {len(self.audit_queue)} 个帖子的审计任务已全部提交。"
-                    )
+            thread_ids = [tid for _, tid in batch]
+            random.shuffle(thread_ids)
+
+            for thread_id in thread_ids:
+                if self.audit_loop.is_being_cancelled():
+                    logger.info("审计循环被中断。")
+                    return
+
+                await self.api_scheduler.submit(
+                    coro_factory=lambda tid=thread_id: self.sync_service.sync_thread(
+                        tid
+                    ),
+                    priority=10,
+                )
+                await sleep(3)
+
+            self._audit_cursor = batch[-1][0]
+            logger.debug(
+                f"批次处理完成，cursor -> {self._audit_cursor}，共 {len(batch)} 条"
+            )
 
         except Exception as e:
             logger.error(f"审计循环发生严重错误: {e}", exc_info=True)
         finally:
-            if not self.audit_loop.is_being_cancelled():
+            if not self.audit_loop.is_being_cancelled() and self._audit_cursor == 0:  # type: ignore
                 logger.debug("本轮审计周期完成，将在1分钟后开始下一轮。")
                 await sleep(60)
 
@@ -105,7 +106,7 @@ class Auditor(commands.Cog):
         try:
             logger.info("开始执行幽灵数据清理任务...")
             async with self.session_factory() as session:
-                repo = AuditorRepository(session)
+                repo = AuditorService(session)
                 # 清理连续5次都找不到的帖子
                 deleted_count = await repo.delete_stale_threads(threshold=5)
 

@@ -1,8 +1,9 @@
-from typing import List, Optional
+from typing import List, Optional, Union, Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
-from shared.enum.default_preferences import DefaultPreferences
+from shared.enum import DefaultPreferences
+from shared.request_id import RequestId
 
 
 class SearchRequest(BaseModel):
@@ -12,17 +13,33 @@ class SearchRequest(BaseModel):
     包含所有可用的搜索条件，用于精确查找论坛帖子
     """
 
-    guild_id: Optional[int] = Field(
+    guild_id: Optional[Union[int, str]] = Field(
         default=None, description="要搜索的服务器ID，为空则不按服务器过滤"
     )
-    channel_ids: Optional[List[int]] = Field(
+    channel_ids: Optional[List[Union[int, str]]] = Field(
         default=None, description="要搜索的频道ID列表，为空则搜索所有频道"
     )
     include_tags: List[str] = Field(
-        default_factory=list, description="必须包含的标签名列表"
+        default_factory=list,
+        description="包含的标签标准名或别名；标准名完整匹配，别名完整匹配且忽略大小写；每个名称对应的实体组内任一命中，不同名称按 tag_logic 组合，与 ID 条件共同生效",
     )
+    include_tag_ids: list[RequestId] = Field(
+        default_factory=list,
+        max_length=100,
+        description="包含的内部标签 ID，可混合原生与自定义标签",
+    )
+    """包含的内部标签 ID 列表，可混合原生与自定义标签，按 tag_logic 统一匹配"""
+
+    exclude_tag_ids: list[RequestId] = Field(
+        default_factory=list,
+        max_length=100,
+        description="排除的内部标签 ID，可混合原生与自定义标签",
+    )
+    """排除的内部标签 ID 列表，命中任意标签即排除帖子"""
+
     exclude_tags: List[str] = Field(
-        default_factory=list, description="必须排除的标签名列表"
+        default_factory=list,
+        description="排除的标签标准名或别名；别名完整匹配且忽略大小写，命中任一实体即排除",
     )
     tag_logic: str = Field(
         default="and",
@@ -38,11 +55,11 @@ class SearchRequest(BaseModel):
         default=None,
         description="关键词排除的豁免标记，附近包含这些标记的反选关键词不会被排除",
     )
-    include_authors: Optional[List[int]] = Field(
-        default=None, description="只看这些作者的帖子，作者ID列表"
+    include_authors: Optional[List[Union[int, str]]] = Field(
+        default=None, description="包含的作者 ID 列表"
     )
-    exclude_authors: Optional[List[int]] = Field(
-        default=None, description="屏蔽这些作者的帖子，作者ID列表"
+    exclude_authors: Optional[List[Union[int, str]]] = Field(
+        default=None, description="屏蔽的作者 ID 列表"
     )
     author_name: Optional[str] = Field(
         default=None, description="模糊搜索作者的全局用户名或昵称"
@@ -50,6 +67,13 @@ class SearchRequest(BaseModel):
     search_by_collection: Optional[bool] = Field(
         default=False, description="仅搜索当前用户收藏的帖子"
     )
+
+    apply_preferences: bool = Field(
+        default=False,
+        description="是否应用当前用户的搜索偏好。"
+        "若为True，前端未传的字段将使用用户偏好补全",
+    )
+
     created_after: Optional[str] = Field(
         default=None,
         description="发帖时间晚于此日期 (格式: YYYY-MM-DD 或相对时间如 -7d)",
@@ -68,18 +92,19 @@ class SearchRequest(BaseModel):
     )
     reaction_count_range: str = Field(
         default=DefaultPreferences.DEFAULT_NUMERIC_RANGE.value,
-        description="点赞数范围 (例如: '>10', '5-20')",
+        description="点赞数范围, 例如: [0, 10000000)",
     )
     reply_count_range: str = Field(
         default=DefaultPreferences.DEFAULT_NUMERIC_RANGE.value,
-        description="回复数范围 (例如: '>=5')",
+        description="回复数范围, 例如: [0, 10000000)",
     )
     sort_method: str = Field(
         default="comprehensive",
         description="排序方法：'comprehensive'(综合排序), "
         "'created_at'(发帖时间), 'last_active'(最后活跃时间), "
         "'reaction_count'(点赞数), 'reply_count'(回复数), "
-        "'collected_at'(收藏时间), 'custom'(自定义)",
+        "'collection_count'(收藏数), 'collected_at'(收藏时间), "
+        "'reddit_hot'(Reddit Hot 热门算法), 'custom'(自定义)",
     )
     custom_base_sort: str = Field(
         default="comprehensive",
@@ -94,10 +119,57 @@ class SearchRequest(BaseModel):
         le=100,
         description="每次请求期望返回的新帖子数量 (范围: 1-100)",
     )
-    exclude_thread_ids: List[int] = Field(
+    exclude_thread_ids: List[Union[int, str]] = Field(
         default_factory=list,
         description="已在前端展示的帖子 thread_id 列表，本次请求将排除这些帖子",
     )
-    offset: int = Field(
-        default=0, ge=0, description="结果的偏移页（已弃用，为兼容旧版本保留）"
+    exclude_channel_ids: List[Union[int, str]] = Field(
+        default_factory=list,
+        description="要排除的频道ID列表",
     )
+
+    offset: int = Field(
+        default=0,
+        ge=0,
+        description="在筛选及排除条件生效后的结果中跳过的记录数，不是页码；默认 0。例如 limit=20 时前三页分别传 0、20、40，计算公式为（页码-1）×limit；若用 exclude_thread_ids 排除已加载帖子，通常保持 offset=0，避免重复跳过",
+    )
+
+    debug_timing: bool = Field(
+        default=False,
+        description="调试模式：为真时打印各阶段耗时日志，正常请求请勿开启以减少开销",
+    )
+
+    # --- 统一转换逻辑 ---
+
+    @field_validator(
+        "guild_id",
+        "channel_ids",
+        "exclude_channel_ids",
+        "include_authors",
+        "exclude_authors",
+        "exclude_thread_ids",
+        mode="before",
+    )
+    @classmethod
+    def convert_ids_to_int(cls, v: Any) -> Any:
+        """
+        在 Pydantic 校验前，将字符串形式的 Discord ID 转换为 int。
+        """
+        if v is None:
+            return v
+
+        # 处理单值 (如 guild_id)
+        if isinstance(v, str):
+            return int(v) if v.isdigit() else v
+
+        # 处理列表 (如 channel_ids, exclude_thread_ids)
+        if isinstance(v, list):
+            processed = []
+            for item in v:
+                if isinstance(item, str) and item.isdigit():
+                    processed.append(int(item))
+                else:
+                    processed.append(item)
+            return processed
+
+        return v

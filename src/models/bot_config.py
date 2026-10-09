@@ -1,8 +1,10 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Optional
 
 from sqlalchemy.types import Float
 from sqlmodel import BigInteger, Column, Field, SQLModel
+
+from shared.time_utils import utc_now
 
 
 class BotConfig(SQLModel, table=True):
@@ -26,10 +28,12 @@ class BotConfig(SQLModel, table=True):
     tips: str = Field(default="", description="该配置的含义或提示")
 
     update_time: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
-        sa_column_kwargs={"onupdate": lambda: datetime.now(timezone.utc)},
+        default_factory=utc_now,
+        sa_column_kwargs={"onupdate": utc_now},
         description="最近更新时间 (UTC)",
     )
     update_user_id: Optional[int] = Field(
-        default=None, description="最后修改此配置的用户ID"
+        default=None,
+        sa_column=Column(BigInteger),
+        description="最后修改此配置的用户ID",
     )

@@ -182,15 +182,12 @@ cython_debug/
 
 # 忽略运行文件
 
+.agents/
 .roo/
 config.json
 *.db
 data/
 temp/
-webpage/index.json
-webpage/node_modules/
-webpage/dist/
-webpage/.env
-webpage-vue/
 config_production.json
 deploy/
+logs/

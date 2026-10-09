@@ -6,17 +6,14 @@ import discord
 from search.dto.search_state import SearchStateDTO
 from search.qo.thread_search import ThreadSearchQuery
 from search.strategies import (
-    AuthorSearchStrategy,
     CollectionSearchStrategy,
-    DefaultSearchStrategy,
     SearchStrategy,
 )
 from search.views.combined_search_view import CombinedSearchView
 from search.views.custom_search_settings_view import CustomSearchSettingsView
 from search.views.results_view import SearchResultsView
-from search.views.timeout_view import TimeoutView
-from search.views.components.keyword_modal import KeywordModal
-from shared.enum.default_preferences import DefaultPreferences
+from search.components.keyword_modal import KeywordModal
+from shared.enum import DefaultPreferences
 from shared.safe_defer import safe_defer
 
 if TYPE_CHECKING:
@@ -33,31 +30,19 @@ class GenericSearchView(discord.ui.View):
         search_state: SearchStateDTO,
         strategy: SearchStrategy,
     ):
-        super().__init__(timeout=890)
+        super().__init__(timeout=14400)  # 4 小时
         self.cog = cog
-        self.original_interaction = interaction
         self.last_interaction = interaction
         self.search_state = search_state
         self.strategy = strategy
-        self.last_message: Optional[discord.WebhookMessage] = None
-
-        # 将策略信息保存到状态中，以便超时恢复
-        if isinstance(strategy, DefaultSearchStrategy):
-            self.search_state.strategy_type = "default"
-            self.search_state.strategy_params = {}
-        elif isinstance(strategy, AuthorSearchStrategy):
-            self.search_state.strategy_type = "author"
-            self.search_state.strategy_params = {
-                "author_id": strategy.author_id,
-            }
-        elif isinstance(strategy, CollectionSearchStrategy):
-            self.search_state.strategy_type = "collection"
-            self.search_state.strategy_params = {"user_id": strategy.user_id}
 
         # --- UI状态 ---
         self.tags_per_page = 25
         self.last_search_results: dict | None = None
         self.custom_settings_message: Optional[discord.WebhookMessage] = None
+
+        # 临时桥接变量，用来填补“主搜索视图刚弹出来，却在子视图里做了操作”这段真空期
+        self.view_message: Optional[discord.WebhookMessage] = None
 
     async def start(self, send_new_ephemeral: bool = False):
         """
@@ -67,6 +52,11 @@ class GenericSearchView(discord.ui.View):
             send_new_ephemeral (bool): 如果为 True，则发送一个新的私密消息，而不是编辑原始消息
         """
 
+        # 使用主服务器身份组刷新当前用户的深渊向候选权限。
+        self.search_state.can_view_abyss_tags = self.cog.can_view_abyss_tags(
+            self.last_interaction.user.id
+        )
+
         # 填充可用的标签列表
         self.search_state.all_available_tags = await self.strategy.get_available_tags(
             self.cog, self.search_state
@@ -74,7 +64,7 @@ class GenericSearchView(discord.ui.View):
 
         # 更新主搜索视图
         await self.update_view(
-            self.original_interaction, send_new_ephemeral=send_new_ephemeral
+            self.last_interaction, send_new_ephemeral=send_new_ephemeral
         )
 
         # 检查是否需要立即弹出自定义设置视图
@@ -91,6 +81,7 @@ class GenericSearchView(discord.ui.View):
         interaction: discord.Interaction,
         rerun_search: bool = True,
         send_new_ephemeral: bool = False,
+        from_subview: bool = False,
     ):
         """
         根据当前状态更新整个视图，包括UI组件和搜索结果
@@ -98,9 +89,8 @@ class GenericSearchView(discord.ui.View):
         Args:
             rerun_search (bool): 如果为 True，则根据恢复的状态重新执行一次搜索
             send_new_ephemeral (bool): 如果为 True，则发送一个新的私密消息，而不是编辑原始消息
-
+            from_subview (bool): 如果为 True，表示由子视图触发，需要调用桥接逻辑
         """
-        self.last_interaction = interaction
         await safe_defer(interaction, ephemeral=True)
 
         results = {}
@@ -123,14 +113,19 @@ class GenericSearchView(discord.ui.View):
         if self.search_state.channel_ids and not isinstance(
             self.strategy, CollectionSearchStrategy
         ):
-            guild = interaction.guild
-            if guild:
-                channels = [
-                    guild.get_channel(cid) for cid in self.search_state.channel_ids
-                ]
-                channel_mentions = [ch.mention for ch in channels if ch]
-                if channel_mentions:
-                    content = f"在 {', '.join(channel_mentions)} 中搜索"
+            channel_mentions = []
+            for cid in self.search_state.channel_ids:
+                # 尝试从 CacheService 获取频道对象（该缓存包含所有服务器的已索引频道）
+                channel = self.cog.cache_service.indexed_channels.get(cid)
+                if channel:
+                    channel_mentions.append(channel.name)
+                else:
+                    # 即使缓存中没有（可能是极端同步延迟），使用标准的 Discord 提及语法也能显示
+                    channel_mentions.append(f"<#{cid}>")
+
+            if channel_mentions:
+                content = f"在 **{', '.join(channel_mentions)}** 中搜索"
+
         thread_embeds = results.get("embeds", [])
         summary_embed = self.build_summary_embed(results)
 
@@ -158,35 +153,45 @@ class GenericSearchView(discord.ui.View):
             for item in filter_components:
                 final_view.add_item(item)
 
-        # 更新消息
-        # 根据模式选择是编辑还是发送新消息
+        # 更新消息，按模式选择发送新消息或编辑已有消息
         if send_new_ephemeral:
-            # 首次发送新消息时，使用 wait=True 获取消息对象作为锚点
-            msg = await interaction.followup.send(
-                content=content,
-                view=final_view,
-                embeds=final_embeds_to_send,
-                ephemeral=True,
-                wait=True,
-            )
-            self.last_message = msg
-        else:
-            edit_coro = None
-            # 优先编辑锚点消息
-            if self.last_message:
-                edit_coro = self.last_message.edit(
-                    content=content, view=final_view, embeds=final_embeds_to_send
+            # 发送新私密消息，写入临时桥接变量
+            async def _send_new():
+                msg = await interaction.followup.send(
+                    content=content,
+                    view=final_view,
+                    embeds=final_embeds_to_send,
+                    ephemeral=True,
+                    wait=True,
                 )
-            # 回退到编辑原始响应
-            else:
-                edit_coro = interaction.edit_original_response(
-                    content=content, view=final_view, embeds=final_embeds_to_send
-                )
+                self.view_message = msg
 
-            if edit_coro:
-                await self.cog.bot.api_scheduler.submit(
-                    coro_factory=lambda: edit_coro, priority=1
+            await self.cog.bot.api_scheduler.submit(coro_factory=_send_new, priority=1)
+
+        elif not from_subview:
+            # 视图自身触发的刷新，更新交互
+            self.last_interaction = interaction
+            self.view_message = None
+
+            edit_coro = interaction.edit_original_response(
+                content=content, view=final_view, embeds=final_embeds_to_send
+            )
+            await self.cog.bot.api_scheduler.submit(
+                coro_factory=lambda: edit_coro, priority=1
+            )
+        else:
+            # 自定义设置视图 (子视图) 触发的刷新
+            if self.view_message is not None:
+                edit_coro = self.view_message.edit(
+                    content=content, view=final_view, embeds=final_embeds_to_send
                 )
+            else:
+                edit_coro = self.last_interaction.edit_original_response(
+                    content=content, view=final_view, embeds=final_embeds_to_send
+                )
+            await self.cog.bot.api_scheduler.submit(
+                coro_factory=lambda: edit_coro, priority=1
+            )
 
     async def _execute_search(self, interaction: discord.Interaction) -> dict:
         """执行搜索并返回结果"""
@@ -268,7 +273,10 @@ class GenericSearchView(discord.ui.View):
     ):
         """由 CustomSearchSettingsView 回调，应用设置并刷新主视图"""
         self.search_state = updated_state
-        await self.on_filter_change(self.last_interaction)
+        self.search_state.page = 1
+        await self.update_view(
+            self.last_interaction, rerun_search=True, from_subview=True
+        )
 
     async def on_tag_page_change(self, interaction: discord.Interaction, action: str):
         """处理标签翻页"""
@@ -422,40 +430,11 @@ class GenericSearchView(discord.ui.View):
     async def refresh_view(self):
         """提供给子视图的回调，用于在数据更新后刷新此主视图"""
         if self.last_interaction:
-            await self.update_view(self.last_interaction, rerun_search=True)
+            await self.update_view(
+                self.last_interaction, rerun_search=True, from_subview=True
+            )
 
     async def on_timeout(self):
-        """当视图超时时，保存状态并显示一个带有"继续"按钮的新视图"""
-
-        state = self.search_state.model_dump()
-
-        timeout_view = TimeoutView(
-            self.cog, self.last_interaction, state, view_class=self.__class__
-        )
-
-        edit_coro = None
-        # 优先编辑锚点消息
-        if self.last_message:
-            edit_coro = self.last_message.edit(
-                content="⏰ 搜索界面已超时，点击下方按钮可恢复之前的搜索状态。",
-                view=timeout_view,
-                embeds=[],
-            )
-        # 回退到编辑原始响应
-        elif self.last_interaction:
-            edit_coro = self.last_interaction.edit_original_response(
-                content="⏰ 搜索界面已超时，点击下方按钮可恢复之前的搜索状态。",
-                view=timeout_view,
-                embeds=[],
-            )
-        else:
-            # 没有任何可编辑的目标，静默返回
-            return
-
-        try:
-            if edit_coro:
-                await self.cog.bot.api_scheduler.submit(
-                    coro_factory=lambda: edit_coro, priority=1
-                )
-        except (discord.errors.NotFound, discord.errors.HTTPException):
-            pass
+        """当视图超时时，由于是私密消息且交互 Token 必已过期，无需（也无法）进行编辑。"""
+        # 释放内存中可能存在的大型结果缓存
+        self.last_search_results = None
